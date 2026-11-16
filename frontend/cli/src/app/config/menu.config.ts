@@ -46,7 +46,7 @@ export const MENU_CONFIG: MenuSection[] = [
     label: 'Panel de Paciente',
     icon: 'personal_injury',
     role: Role.PACIENTE,
-    order: 1,
+    order: 2,
     items: [
       {
         label: 'Mi Dashboard',
@@ -100,7 +100,7 @@ export const MENU_CONFIG: MenuSection[] = [
     label: 'Panel de Médico',
     icon: 'medical_services',
     role: Role.MEDICO,
-    order: 2,
+    order: 1,
     items: [
       {
         label: 'Mi Dashboard',
