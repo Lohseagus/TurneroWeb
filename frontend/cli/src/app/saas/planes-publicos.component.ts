@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SaasService } from './saas.service';
-import { ToastService } from '../services/toast.service';
 import {
   AddonSaas,
   CatalogoSaas,
   PlanSaas,
   PrecioSaas,
   esPlanRecomendado,
+  esFalloDeAcceso,
   formatoArs,
   iconoPlan
 } from './saas.models';
@@ -51,7 +51,7 @@ export class PlanesPublicosComponent implements OnInit, OnDestroy {
   esPlanRecomendado = esPlanRecomendado;
   private cotizarTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private saas: SaasService, private toast: ToastService) {}
+  constructor(private saas: SaasService) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -76,13 +76,12 @@ export class PlanesPublicosComponent implements OnInit, OnDestroy {
           this.alCambiarPlanCotizacion();
         } else {
           this.error = resp.status_text || 'No se pudieron cargar los planes.';
-          this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.cargando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudieron cargar los planes.';
-        this.toast.error(this.error);
       }
     });
   }

@@ -1,104 +1,82 @@
-<div class="saas-page">
-  <header class="saas-hero">
-    <p class="saas-kicker">
-      <span class="material-symbols-outlined" aria-hidden="true">monitoring</span>
-      Panel comercial
-    </p>
-    <h1>SaaS</h1>
-    <p class="saas-lead">Suscripciones, prueba, precios y cobros de CheTurno.</p>
-  </header>
+<div class="card p-xl mb-4">
+  <div class="listado-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <span class="material-symbols-outlined header-icon" aria-hidden="true">monitoring</span>
+      <div>
+        <h1>SaaS</h1>
+        <p class="mb-0">Suscripciones, prueba, precios y cobros de CheTurno.</p>
+      </div>
+    </div>
+  </div>
 
-  <nav class="saas-nav" aria-label="Secciones de SaaS">
-    <a routerLink="/saas" [class.is-active]="vista === 'dashboard'" [attr.aria-current]="vista === 'dashboard' ? 'page' : null">Tablero</a>
-    <a routerLink="/saas/suscripciones" [class.is-active]="vista === 'suscripciones' || vista === 'detalle'" [attr.aria-current]="vista === 'suscripciones' ? 'page' : null">Suscripciones</a>
-    <a routerLink="/saas/planes" [class.is-active]="vista === 'planes'" [attr.aria-current]="vista === 'planes' ? 'page' : null">Planes y precios</a>
-    <a routerLink="/saas/pagos" [class.is-active]="vista === 'pagos'" [attr.aria-current]="vista === 'pagos' ? 'page' : null">Pagos</a>
-  </nav>
+  <ul class="nav nav-pills flex-wrap gap-2 mb-4" aria-label="Secciones de SaaS">
+    <li class="nav-item"><a class="nav-link" routerLink="/saas" [class.active]="vista === 'dashboard'" [attr.aria-current]="vista === 'dashboard' ? 'page' : null">Tablero</a></li>
+    <li class="nav-item"><a class="nav-link" routerLink="/saas/suscripciones" [class.active]="vista === 'suscripciones' || vista === 'detalle'" [attr.aria-current]="vista === 'suscripciones' ? 'page' : null">Suscripciones</a></li>
+    <li class="nav-item"><a class="nav-link" routerLink="/saas/planes" [class.active]="vista === 'planes'" [attr.aria-current]="vista === 'planes' ? 'page' : null">Planes y precios</a></li>
+    <li class="nav-item"><a class="nav-link" routerLink="/saas/pagos" [class.active]="vista === 'pagos'" [attr.aria-current]="vista === 'pagos' ? 'page' : null">Pagos</a></li>
+  </ul>
 
-  @if (error) { <div class="saas-alert error" role="alert">{{ error }}</div> }
-  @if (ok) { <div class="saas-alert ok" role="status">{{ ok }}</div> }
+  @if (error) { <div class="alert alert-danger" role="alert">{{ error }}</div> }
+  @if (ok) { <div class="alert alert-success" role="status">{{ ok }}</div> }
 
   @if (vista === 'dashboard') {
-    @if (cargando && !resumen) {
-      <div class="saas-skeleton" aria-hidden="true">
-        <div class="saas-kpis">
-          @for (item of [1, 2, 3, 4, 5]; track item) { <div class="saas-skeleton__card"></div> }
+    @if (cargando && !resumen) { <p class="text-muted" role="status">Cargando el tablero…</p> }
+    @if (resumen; as r) {
+      <p class="text-muted">Prueba de {{ r.configuracion.diasTrial }} días · IVA {{ r.configuracion.ivaPorcentaje }}% · descuento anual {{ r.configuracion.descuentoAnualPorcentaje }}% · pasarela {{ r.configuracion.proveedorPago }}.</p>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">MRR neto</p><h2 class="h3 mb-0">{{ formatoArs(r.mrrNeto) }}</h2><small class="text-muted">Sin las heredadas</small></div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Suscripciones activas</p><h2 class="h3 mb-0">{{ r.activas }}</h2></div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">En prueba</p><h2 class="h3 mb-0">{{ r.trials }}</h2><small class="text-muted">{{ r.trialsPorVencer }} vencen en 7 días</small></div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Morosas</p><h2 class="h3 mb-0">{{ r.morosas }}</h2></div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Churn</p><h2 class="h3 mb-0">{{ formatoPorcentaje(churn) }}</h2><small class="text-muted">Canceladas sobre el total</small></div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Cobrado este mes</p><h2 class="h3 mb-0">{{ formatoArs(r.ingresosConIvaMes) }}</h2><small class="text-muted">Con IVA · neto {{ formatoArs(r.ingresosNetosMes) }}</small></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Vencidas</p><h2 class="h4 mb-0">{{ r.vencidas }}</h2></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Suspendidas</p><h2 class="h4 mb-0">{{ r.suspendidas }}</h2></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Canceladas</p><h2 class="h4 mb-0">{{ r.canceladas }}</h2></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Heredadas activas</p><h2 class="h4 mb-0">{{ r.heredadasActivas }}</h2><small class="text-muted">No entran al MRR</small></div></div></div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+          <div class="card h-100"><div class="card-body">
+            <h2 class="h5">Suscripciones por estado</h2>
+            @if (hayGraficoEstados) {
+              <div class="chart-box" role="img" aria-label="Gráfico de suscripciones por estado">
+                <canvas baseChart [data]="estadosChart" [options]="opcionesDona" type="doughnut"></canvas>
+              </div>
+              <ul class="list-unstyled d-flex flex-wrap gap-3 mt-2 mb-0 small text-muted">
+                @for (item of mezclaEstados; track item.clave) {
+                  <li><span class="badge-estado" [ngClass]="item.clase">{{ item.etiqueta }}: {{ item.valor }}</span></li>
+                }
+              </ul>
+            } @else {
+              <div class="empty-state"><span class="material-symbols-outlined" aria-hidden="true">donut_large</span><p>Todavía no hay suscripciones para graficar.</p></div>
+            }
+          </div></div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card h-100"><div class="card-body">
+            <h2 class="h5">MRR por plan</h2>
+            @if (hayGraficoMrr) {
+              <div class="chart-box" role="img" aria-label="Gráfico de ingreso mensual recurrente por plan">
+                <canvas baseChart [data]="mrrChart" [options]="opcionesBarras" type="bar"></canvas>
+              </div>
+            } @else {
+              <div class="empty-state"><span class="material-symbols-outlined" aria-hidden="true">bar_chart</span><p>No hay MRR para mostrar. Las suscripciones heredadas no se facturan.</p></div>
+            }
+          </div></div>
         </div>
       </div>
-      <p class="saas-sr" role="status">Cargando el tablero…</p>
-    }
-    @if (resumen; as r) {
-      <p class="saas-lead">Prueba de {{ r.configuracion.diasTrial }} días · IVA {{ r.configuracion.ivaPorcentaje }}% · descuento anual {{ r.configuracion.descuentoAnualPorcentaje }}% · pasarela {{ r.configuracion.proveedorPago }}.</p>
-      <div class="saas-kpis">
-        <div class="saas-kpi"><span>MRR neto</span><strong>{{ formatoArs(r.mrrNeto) }}</strong><small>Sin las heredadas</small></div>
-        <div class="saas-kpi"><span>Suscripciones activas</span><strong>{{ r.activas }}</strong></div>
-        <div class="saas-kpi"><span>En prueba</span><strong>{{ r.trials }}</strong><small>{{ r.trialsPorVencer }} vencen en 7 días</small></div>
-        <div class="saas-kpi"><span>Morosas</span><strong>{{ r.morosas }}</strong></div>
-        <div class="saas-kpi"><span>Churn</span><strong>{{ formatoPorcentaje(churn) }}</strong><small>Canceladas sobre el total</small></div>
-        <div class="saas-kpi"><span>Cobrado este mes</span><strong>{{ formatoArs(r.ingresosConIvaMes) }}</strong><small>Con IVA · neto {{ formatoArs(r.ingresosNetosMes) }}</small></div>
-      </div>
 
-      <div class="saas-kpis" style="margin-top: 12px">
-        <div class="saas-kpi"><span>Vencidas</span><strong>{{ r.vencidas }}</strong></div>
-        <div class="saas-kpi"><span>Suspendidas</span><strong>{{ r.suspendidas }}</strong></div>
-        <div class="saas-kpi"><span>Canceladas</span><strong>{{ r.canceladas }}</strong></div>
-        <div class="saas-kpi"><span>Heredadas activas</span><strong>{{ r.heredadasActivas }}</strong><small>No entran al MRR</small></div>
-      </div>
-
-      <div class="saas-charts" style="margin-top: 16px">
-        <section class="saas-panel">
-          <h2>Suscripciones por estado</h2>
-          @if (hayGraficoEstados) {
-            <div class="saas-mix" aria-hidden="true">
-              @for (item of mezclaEstados; track item.clave) {
-                <span [class]="item.clase" [style.width.%]="ancho(item.valor)"></span>
-              }
-            </div>
-            <ul class="saas-legend">
-              @for (item of mezclaEstados; track item.clave) {
-                <li><i [style.background]="item.color"></i>{{ item.etiqueta }}: {{ item.valor }}</li>
-              }
-            </ul>
-            <div class="saas-chart__canvas" role="img" aria-label="Gráfico de suscripciones por estado">
-              <canvas baseChart [data]="estadosChart" [options]="opcionesDona" type="doughnut"></canvas>
-            </div>
-          } @else {
-            <div class="saas-empty">
-              <span class="material-symbols-outlined" aria-hidden="true">donut_large</span>
-              <p>Todavía no hay suscripciones para graficar.</p>
-            </div>
-          }
-        </section>
-        <section class="saas-panel">
-          <h2>MRR por plan</h2>
-          @if (hayGraficoMrr) {
-            <div class="saas-chart__canvas" role="img" aria-label="Gráfico de ingreso mensual recurrente por plan">
-              <canvas baseChart [data]="mrrChart" [options]="opcionesBarras" type="bar"></canvas>
-            </div>
-          } @else {
-            <div class="saas-empty">
-              <span class="material-symbols-outlined" aria-hidden="true">bar_chart</span>
-              <p>No hay MRR para mostrar. Las suscripciones heredadas no se facturan.</p>
-            </div>
-          }
-        </section>
-      </div>
-
-      <div class="saas-table-wrap" style="margin-top: 16px">
-        <table class="saas-table">
-          <caption class="saas-sr">Suscripciones e ingreso mensual por plan</caption>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <caption class="visually-hidden">Suscripciones e ingreso mensual por plan</caption>
           <thead><tr><th>Plan</th><th>Suscripciones</th><th>MRR neto</th></tr></thead>
           <tbody>
             @for (plan of r.porPlan; track plan.codigo) {
-              <tr>
-                <td>{{ plan.nombre }}</td>
-                <td>{{ plan.cantidad }}</td>
-                <td>{{ formatoArs(plan.mrrNeto) }}</td>
-              </tr>
+              <tr><td>{{ plan.nombre }}</td><td>{{ plan.cantidad }}</td><td>{{ formatoArs(plan.mrrNeto) }}</td></tr>
             }
-            @if (!r.porPlan.length) {
-              <tr><td colspan="3">No hay planes con suscripciones.</td></tr>
-            }
+            @if (!r.porPlan.length) { <tr><td colspan="3">No hay planes con suscripciones.</td></tr> }
           </tbody>
         </table>
       </div>
@@ -106,55 +84,58 @@
   }
 
   @if (vista === 'suscripciones') {
-    <form class="saas-filters" (ngSubmit)="buscar()">
-      <label>Estado
-        <select name="estado" [(ngModel)]="filtroEstado">
-          <option value="">Todos los estados</option>
-          <option value="TRIAL">Prueba</option>
-          <option value="ACTIVA">Activa</option>
-          <option value="VENCIDA">Vencida</option>
-          <option value="MOROSA">Morosa</option>
-          <option value="SUSPENDIDA">Suspendida</option>
-          <option value="CANCELADA">Cancelada</option>
-        </select>
-      </label>
-      <label>Plan
-        <select name="plan" [(ngModel)]="filtroPlan">
-          <option value="">Todos los planes</option>
-          <option value="PROFESIONAL">Profesional</option>
-          <option value="CONSULTORIO">Consultorio</option>
-          <option value="CENTRO">Centro</option>
-          <option value="RED">Red</option>
-        </select>
-      </label>
-      <label>Buscar
-        <input name="q" [(ngModel)]="filtroTexto" placeholder="Organización o email" aria-label="Buscar por organización o email">
-      </label>
-      <button class="btn btn-primary" type="submit">Filtrar</button>
+    <form class="filters-section" (ngSubmit)="buscar()">
+      <div class="filters-title"><span class="material-symbols-outlined">filter_list</span> Filtros de búsqueda</div>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label" for="filtro-estado">Estado</label>
+          <select id="filtro-estado" class="form-select" name="estado" [(ngModel)]="filtroEstado">
+            <option value="">Todos los estados</option>
+            <option value="TRIAL">Prueba</option>
+            <option value="ACTIVA">Activa</option>
+            <option value="VENCIDA">Vencida</option>
+            <option value="MOROSA">Morosa</option>
+            <option value="SUSPENDIDA">Suspendida</option>
+            <option value="CANCELADA">Cancelada</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="filtro-plan">Plan</label>
+          <select id="filtro-plan" class="form-select" name="plan" [(ngModel)]="filtroPlan">
+            <option value="">Todos los planes</option>
+            <option value="PROFESIONAL">Profesional</option>
+            <option value="CONSULTORIO">Consultorio</option>
+            <option value="CENTRO">Centro</option>
+            <option value="RED">Red</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="filtro-q">Buscar</label>
+          <input id="filtro-q" class="form-control" name="q" [(ngModel)]="filtroTexto" placeholder="Organización o email">
+        </div>
+        <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Filtrar</button></div>
+      </div>
     </form>
 
     @if (cargando && !suscripciones.length) {
-      <div class="saas-skeleton__card" aria-hidden="true"></div>
-      <p class="saas-sr" role="status">Cargando suscripciones…</p>
+      <p class="text-muted" role="status">Cargando suscripciones…</p>
     } @else if (!suscripciones.length) {
-      <div class="saas-empty saas-panel">
+      <div class="empty-state">
         <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
-        <p>No hay suscripciones con esos filtros.</p>
+        <h3>No hay suscripciones</h3>
+        <p class="text-muted">Probá con otros filtros.</p>
       </div>
     } @else {
-      <div class="saas-table-wrap">
-        <table class="saas-table">
-          <caption class="saas-sr">Listado de suscripciones</caption>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <caption class="visually-hidden">Listado de suscripciones</caption>
           <thead><tr><th>Organización</th><th>Plan</th><th>Estado</th><th>Neto mensual</th><th></th></tr></thead>
           <tbody>
             @for (item of listaPagina; track item.id) {
               <tr>
-                <td>
-                  {{ item.organizacion.nombre }}
-                  @if (item.heredada) { <span class="saas-badge neutro">Heredada</span> }
-                </td>
+                <td>{{ item.organizacion.nombre }} @if (item.heredada) { <span class="badge-estado neutro">Heredada</span> }</td>
                 <td>{{ item.plan.nombre }}</td>
-                <td><span class="saas-badge" [ngClass]="claseEstado(item.estado)">{{ etiquetaEstado(item.estado) }}</span></td>
+                <td><span class="badge-estado" [ngClass]="claseEstado(item.estado)">{{ etiquetaEstado(item.estado) }}</span></td>
                 <td>{{ formatoArs(item.precioMensual.neto) }}</td>
                 <td><a [routerLink]="['/saas/suscripciones', item.id]">Ver organización</a></td>
               </tr>
@@ -162,212 +143,170 @@
           </tbody>
         </table>
       </div>
-      <div class="saas-pager">
-        <p class="saas-meta">{{ suscripciones.length }} suscripciones · página {{ paginaLista }} de {{ paginasLista }}</p>
-        <div class="saas-actions">
-          <button type="button" class="btn btn-outline-primary" (click)="paginaLista = paginaLista - 1" [disabled]="paginaLista <= 1">Anterior</button>
-          <button type="button" class="btn btn-outline-primary" (click)="paginaLista = paginaLista + 1" [disabled]="paginaLista >= paginasLista">Siguiente</button>
-        </div>
-      </div>
+      <p class="results-info"><span class="material-symbols-outlined">info</span> {{ suscripciones.length }} suscripciones</p>
+      @if (paginasLista > 1) {
+        <app-pagination [totalPages]="paginasLista" [currentPage]="paginaLista" [number]="paginaLista - 1" [last]="paginaLista >= paginasLista" (pageChangeRequested)="paginaLista = $event"></app-pagination>
+      }
     }
   }
 
   @if (vista === 'detalle') {
-    @if (cargando && !detalle) {
-      <div class="saas-skeleton__card" aria-hidden="true"></div>
-      <p class="saas-sr" role="status">Cargando la organización…</p>
-    }
+    @if (cargando && !detalle) { <p class="text-muted" role="status">Cargando la organización…</p> }
     @if (detalle; as d) {
       <p><a routerLink="/saas/suscripciones">Volver al listado</a></p>
-      <header class="saas-hero">
-        <h2>{{ d.organizacion.nombre }}</h2>
-        <p>
-          <span class="saas-badge" [ngClass]="claseEstado(d.estado)">{{ etiquetaEstado(d.estado) }}</span>
-          {{ d.plan.nombre }} · {{ d.heredada ? 'Heredada, sin facturar' : 'Comercial' }}
-        </p>
-        <p class="saas-nota">{{ d.organizacion.emailContacto }} · {{ d.organizacion.telefono || 'sin teléfono' }} · CUIT {{ d.organizacion.cuit || '—' }}</p>
-      </header>
-
-      <div class="saas-kpis">
-        <div class="saas-kpi"><span>Neto mensual</span><strong>{{ formatoArs(d.precioMensual.neto) }}</strong><small>{{ formatoArs(d.precioMensual.total) }} con IVA</small></div>
-        <div class="saas-kpi"><span>Médicos</span><strong>{{ d.uso.medicos }} / {{ tope(d.uso.maxMedicos) }}</strong></div>
-        <div class="saas-kpi"><span>Sedes</span><strong>{{ d.uso.centros }} / {{ tope(d.uso.maxCentros) }}</strong><small>{{ d.uso.sedesIncluidas }} incluidas, {{ d.uso.sedesExtra }} extra</small></div>
-        <div class="saas-kpi"><span>Operadores</span><strong>{{ d.uso.operadores }} / {{ tope(d.uso.maxOperadores) }}</strong></div>
+      <h2 class="h3">{{ d.organizacion.nombre }}</h2>
+      <p><span class="badge-estado" [ngClass]="claseEstado(d.estado)">{{ etiquetaEstado(d.estado) }}</span> {{ d.plan.nombre }} · {{ d.heredada ? 'Heredada, sin facturar' : 'Comercial' }}</p>
+      <p class="text-muted">{{ d.organizacion.emailContacto }} · {{ d.organizacion.telefono || 'sin teléfono' }} · CUIT {{ d.organizacion.cuit || '—' }}</p>
+      <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Neto mensual</p><h3 class="h4">{{ formatoArs(d.precioMensual.neto) }}</h3><small>{{ formatoArs(d.precioMensual.total) }} con IVA</small></div></div></div>
+        <div class="col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Médicos</p><h3 class="h4">{{ d.uso.medicos }} / {{ tope(d.uso.maxMedicos) }}</h3></div></div></div>
+        <div class="col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Sedes</p><h3 class="h4">{{ d.uso.centros }} / {{ tope(d.uso.maxCentros) }}</h3><small>{{ d.uso.sedesIncluidas }} incluidas, {{ d.uso.sedesExtra }} extra</small></div></div></div>
+        <div class="col-md-3"><div class="card h-100"><div class="card-body"><p class="text-muted mb-1">Operadores</p><h3 class="h4">{{ d.uso.operadores }} / {{ tope(d.uso.maxOperadores) }}</h3></div></div></div>
       </div>
 
-      <section class="saas-panel" style="margin-top: 16px">
-        <h2>Acciones</h2>
-        <p class="saas-nota">Preapproval: {{ d.mpPreapprovalId || '—' }} · estado de la pasarela: {{ d.mpStatus || '—' }}</p>
+      <div class="card mb-3"><div class="card-body">
+        <h2 class="h5">Acciones</h2>
+        <p class="text-muted">Preapproval: {{ d.mpPreapprovalId || '—' }} · pasarela: {{ d.mpStatus || '—' }}</p>
         @if (d.motivo) { <p>Motivo: {{ d.motivo }}</p> }
-        <div class="saas-actions">
-          <label class="saas-field">Días de prueba
-            <input type="number" name="dias" [(ngModel)]="diasExtension" min="1" max="365">
-          </label>
-          <button class="btn btn-outline-primary" type="button" [disabled]="operando" (click)="extender()">Extender prueba</button>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label" for="dias-prueba">Días de prueba</label>
+            <input id="dias-prueba" class="form-control" type="number" name="dias" [(ngModel)]="diasExtension" min="1" max="365">
+          </div>
+          <div class="col-md-3"><button class="btn btn-outline-primary" type="button" [disabled]="operando" (click)="extender()">Extender prueba</button></div>
+          <div class="col-md-6">
+            <label class="form-label" for="motivo">Motivo</label>
+            <input id="motivo" class="form-control" name="motivo" [(ngModel)]="motivo" placeholder="Opcional">
+          </div>
         </div>
-        <div class="saas-actions">
-          <button class="btn btn-outline-primary" type="button" (click)="abrir('suspender', $event)">Suspender</button>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button class="btn btn-outline-primary" type="button" (click)="pedirSuspender()">Suspender</button>
           <button class="btn btn-outline-primary" type="button" [disabled]="operando" (click)="reactivar()">Reactivar</button>
-          <button class="btn btn-outline-primary" type="button" (click)="abrir('cancelar', $event)">Cancelar suscripción</button>
+          <button class="btn btn-outline-danger" type="button" (click)="pedirCancelar()">Cancelar suscripción</button>
         </div>
         @if (catalogo) {
-          <div class="saas-actions">
-            <label class="saas-field">Plan destino
-              <select name="planDestino" [(ngModel)]="planDestino">
+          <div class="row g-3 align-items-end mt-2">
+            <div class="col-md-4">
+              <label class="form-label" for="plan-destino">Plan destino</label>
+              <select id="plan-destino" class="form-select" name="planDestino" [(ngModel)]="planDestino">
                 @for (plan of catalogo.planes; track plan.codigo) {
                   <option [value]="plan.codigo">{{ plan.nombre }}</option>
                 }
               </select>
-            </label>
-            <button class="btn btn-primary" type="button" (click)="abrir('cambiar', $event)">Cambiar plan</button>
+            </div>
+            <div class="col-md-3"><button class="btn btn-primary" type="button" (click)="pedirCambio()">Cambiar plan</button></div>
           </div>
         }
-      </section>
+      </div></div>
 
-      <div class="saas-split" style="margin-top: 16px">
-        <section class="saas-panel">
-          <h2>Centros</h2>
-          @if (!d.centros.length) {
-            <p class="saas-nota">Esta organización no tiene centros asociados.</p>
-          }
-          <ul class="saas-features">
-            @for (centro of d.centros; track centro.id) {
-              <li>{{ centro.nombre }} — {{ centro.localidad }}, {{ centro.provincia }}</li>
+      <div class="row g-3">
+        <div class="col-md-6"><div class="card h-100"><div class="card-body">
+          <h2 class="h5">Centros</h2>
+          @if (!d.centros.length) { <p class="text-muted">Esta organización no tiene centros asociados.</p> }
+          <ul>@for (centro of d.centros; track centro.id) { <li>{{ centro.nombre }} — {{ centro.localidad }}, {{ centro.provincia }}</li> }</ul>
+        </div></div></div>
+        <div class="col-md-6"><div class="card h-100"><div class="card-body">
+          <h2 class="h5">Historial</h2>
+          @if (!d.eventos.length) { <p class="text-muted">Todavía no hay eventos.</p> }
+          <ul class="list-unstyled">
+            @for (evento of d.eventos; track evento.fecha + evento.detalle) {
+              <li class="mb-2"><time [attr.datetime]="evento.fecha">{{ formatoFecha(evento.fecha) }}</time><br><strong>{{ evento.detalle }}</strong><br><span class="text-muted">{{ evento.actor }}</span></li>
             }
           </ul>
-          <h3>Uso</h3>
-          <div class="saas-meter">
-            <div class="saas-meter__top"><span>Consultorios</span><span>{{ d.uso.consultorios }} / {{ tope(d.uso.maxConsultorios) }}</span></div>
-            <div class="saas-meter__track"><div class="saas-meter__fill" [ngClass]="nivelUso(d.uso.consultorios, d.uso.maxConsultorios)" [style.width.%]="porcentajeUso(d.uso.consultorios, d.uso.maxConsultorios)"></div></div>
-          </div>
-        </section>
-        <section class="saas-panel">
-          <h2>Historial</h2>
-          @if (!d.eventos.length) {
-            <p class="saas-nota">Todavía no hay eventos.</p>
-          }
-          <ol class="saas-timeline">
-            @for (evento of d.eventos; track evento.fecha + evento.detalle) {
-              <li>
-                <time [attr.datetime]="evento.fecha">{{ formatoFecha(evento.fecha) }}</time>
-                <strong>{{ evento.detalle }}</strong>
-                <div class="saas-meta">{{ evento.actor }}</div>
-              </li>
-            }
-          </ol>
-        </section>
+        </div></div></div>
       </div>
 
-      <section class="saas-section">
-        <h2>Pagos de la organización</h2>
-        @if (!d.pagos.length) {
-          <div class="saas-empty saas-panel">
-            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-            <p>Esta organización todavía no tiene pagos.</p>
-          </div>
-        } @else {
-          <div class="saas-table-wrap">
-            <table class="saas-table">
-              <thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Total</th><th>Referencia</th></tr></thead>
-              <tbody>
-                @for (pago of d.pagos; track pago.id) {
-                  <tr>
-                    <td>{{ formatoFecha(pago.fecha) }}</td>
-                    <td>{{ etiquetaTipoPago(pago.tipo) }}</td>
-                    <td>{{ etiquetaPago(pago.estado) }}</td>
-                    <td>{{ formatoArs(pago.total) }}</td>
-                    <td>{{ pago.mpPaymentId }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </section>
+      <h2 class="h5 mt-4">Pagos de la organización</h2>
+      @if (!d.pagos.length) {
+        <div class="empty-state"><span class="material-symbols-outlined" aria-hidden="true">receipt_long</span><p>Esta organización todavía no tiene pagos.</p></div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover"><thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Total</th><th>Referencia</th></tr></thead>
+            <tbody>@for (pago of d.pagos; track pago.id) { <tr><td>{{ formatoFecha(pago.fecha) }}</td><td>{{ etiquetaTipoPago(pago.tipo) }}</td><td>{{ etiquetaPago(pago.estado) }}</td><td>{{ formatoArs(pago.total) }}</td><td>{{ pago.mpPaymentId }}</td></tr> }</tbody>
+          </table>
+        </div>
+      }
     }
   }
 
   @if (vista === 'planes') {
-    @if (cargando && !catalogo) {
-      <div class="saas-skeleton__card" aria-hidden="true"></div>
-      <p class="saas-sr" role="status">Cargando planes…</p>
-    }
+    @if (cargando && !catalogo) { <p class="text-muted" role="status">Cargando planes…</p> }
     @if (catalogo; as c) {
-      <form class="saas-form saas-panel" (ngSubmit)="guardarConfig()">
-        <h2>Parámetros comerciales</h2>
-        <div class="saas-fields">
-          <label class="saas-field">IVA %<input type="number" name="iva" [(ngModel)]="c.configuracion.ivaPorcentaje" step="0.01"></label>
-          <label class="saas-field">Días de prueba<input type="number" name="dias" [(ngModel)]="c.configuracion.diasTrial" min="1" max="365"></label>
-          <label class="saas-field">Descuento anual %<input type="number" name="descuento" [(ngModel)]="c.configuracion.descuentoAnualPorcentaje" step="0.01"></label>
-          <label class="saas-field">Moneda<input name="moneda" [(ngModel)]="c.configuracion.moneda"></label>
+      <form class="card mb-3" (ngSubmit)="guardarConfig()"><div class="card-body">
+        <h2 class="h5">Parámetros comerciales</h2>
+        <div class="row g-3">
+          <div class="col-md-3"><label class="form-label" for="iva">IVA %</label><input id="iva" class="form-control" type="number" name="iva" [(ngModel)]="c.configuracion.ivaPorcentaje" step="0.01"></div>
+          <div class="col-md-3"><label class="form-label" for="dias">Días de prueba</label><input id="dias" class="form-control" type="number" name="dias" [(ngModel)]="c.configuracion.diasTrial" min="1" max="365"></div>
+          <div class="col-md-3"><label class="form-label" for="descuento">Descuento anual %</label><input id="descuento" class="form-control" type="number" name="descuento" [(ngModel)]="c.configuracion.descuentoAnualPorcentaje" step="0.01"></div>
+          <div class="col-md-3"><label class="form-label" for="moneda">Moneda</label><input id="moneda" class="form-control" name="moneda" [(ngModel)]="c.configuracion.moneda"></div>
         </div>
-        <button class="btn btn-primary" type="submit">Guardar parámetros</button>
-        <p class="saas-nota">Pasarela actual: {{ c.configuracion.proveedorPago }}. Los precios de los planes son netos. Un reinicio no los pisa.</p>
-      </form>
+        <button class="btn btn-primary mt-3" type="submit">Guardar parámetros</button>
+        <p class="text-muted mt-2 mb-0">Pasarela actual: {{ c.configuracion.proveedorPago }}. Los precios de los planes son netos.</p>
+      </div></form>
 
       @for (plan of c.planes; track plan.id) {
-        <article class="saas-panel" style="margin-top: 16px">
-          <h2>{{ plan.codigo }} · {{ plan.nombre }}</h2>
-          <form class="saas-form" (ngSubmit)="guardarPlan(plan)">
-            <div class="saas-fields">
-              <label class="saas-field">Nombre<input name="nombre-{{ plan.id }}" [(ngModel)]="plan.nombre"></label>
-              <label class="saas-field">Descripción<textarea name="desc-{{ plan.id }}" [(ngModel)]="plan.descripcion"></textarea></label>
-              <label class="saas-field">Precio base mensual neto<input type="number" name="base-{{ plan.id }}" [(ngModel)]="plan.precioBaseMensual" step="0.01"></label>
-              <label class="saas-field">Precio por profesional neto<input type="number" name="prof-{{ plan.id }}" [(ngModel)]="plan.precioPorProfesional" step="0.01"></label>
-              <label class="saas-field">Mínimo de profesionales<input type="number" name="min-{{ plan.id }}" [(ngModel)]="plan.minProfesionales"></label>
-              <label class="saas-field">Máximo de profesionales<input type="number" name="maxp-{{ plan.id }}" [(ngModel)]="plan.maxProfesionales"></label>
-              <label class="saas-field">Máximo de médicos (vacío = sin tope)<input type="number" name="med-{{ plan.id }}" [(ngModel)]="plan.maxMedicos"></label>
-              <label class="saas-field">Máximo de operadores<input type="number" name="op-{{ plan.id }}" [(ngModel)]="plan.maxOperadores"></label>
-              <label class="saas-field">Máximo de consultorios<input type="number" name="cons-{{ plan.id }}" [(ngModel)]="plan.maxConsultorios"></label>
-              <label class="saas-field">Máximo de sedes<input type="number" name="sedes-{{ plan.id }}" [(ngModel)]="plan.maxCentros"></label>
-              <label class="saas-field">Sedes incluidas<input type="number" name="inc-{{ plan.id }}" [(ngModel)]="plan.sedesIncluidas"></label>
-              <label class="saas-field">Precio sede extra neto<input type="number" name="extra-{{ plan.id }}" [(ngModel)]="plan.precioPorSedeExtra" step="0.01"></label>
-              <label class="saas-field">Descuento anual propio (vacío = el general)<input type="number" name="descAnual-{{ plan.id }}" [(ngModel)]="plan.descuentoAnualPorcentaje" step="0.01"></label>
-              <label class="saas-field">preapproval_plan mensual<input name="mp-m-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdMensual"></label>
-              <label class="saas-field">preapproval_plan anual<input name="mp-a-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdAnual"></label>
+        <article class="card mb-3"><div class="card-body">
+          <h2 class="h5">{{ plan.codigo }} · {{ plan.nombre }}</h2>
+          <form (ngSubmit)="guardarPlan(plan)">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="nombre-{{ plan.id }}" [(ngModel)]="plan.nombre"></div>
+              <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" name="desc-{{ plan.id }}" [(ngModel)]="plan.descripcion"></textarea></div>
+              <div class="col-md-4"><label class="form-label">Precio base mensual neto</label><input class="form-control" type="number" name="base-{{ plan.id }}" [(ngModel)]="plan.precioBaseMensual" step="0.01"></div>
+              <div class="col-md-4"><label class="form-label">Precio por profesional neto</label><input class="form-control" type="number" name="prof-{{ plan.id }}" [(ngModel)]="plan.precioPorProfesional" step="0.01"></div>
+              <div class="col-md-4"><label class="form-label">Mínimo de profesionales</label><input class="form-control" type="number" name="min-{{ plan.id }}" [(ngModel)]="plan.minProfesionales"></div>
+              <div class="col-md-4"><label class="form-label">Máximo de profesionales</label><input class="form-control" type="number" name="maxp-{{ plan.id }}" [(ngModel)]="plan.maxProfesionales"></div>
+              <div class="col-md-4"><label class="form-label">Máximo de médicos</label><input class="form-control" type="number" name="med-{{ plan.id }}" [(ngModel)]="plan.maxMedicos"></div>
+              <div class="col-md-4"><label class="form-label">Máximo de operadores</label><input class="form-control" type="number" name="op-{{ plan.id }}" [(ngModel)]="plan.maxOperadores"></div>
+              <div class="col-md-4"><label class="form-label">Máximo de consultorios</label><input class="form-control" type="number" name="cons-{{ plan.id }}" [(ngModel)]="plan.maxConsultorios"></div>
+              <div class="col-md-4"><label class="form-label">Máximo de sedes</label><input class="form-control" type="number" name="sedes-{{ plan.id }}" [(ngModel)]="plan.maxCentros"></div>
+              <div class="col-md-4"><label class="form-label">Sedes incluidas</label><input class="form-control" type="number" name="inc-{{ plan.id }}" [(ngModel)]="plan.sedesIncluidas"></div>
+              <div class="col-md-4"><label class="form-label">Precio sede extra neto</label><input class="form-control" type="number" name="extra-{{ plan.id }}" [(ngModel)]="plan.precioPorSedeExtra" step="0.01"></div>
+              <div class="col-md-4"><label class="form-label">Descuento anual propio</label><input class="form-control" type="number" name="descAnual-{{ plan.id }}" [(ngModel)]="plan.descuentoAnualPorcentaje" step="0.01"></div>
+              <div class="col-md-6"><label class="form-label">preapproval_plan mensual</label><input class="form-control" name="mp-m-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdMensual"></div>
+              <div class="col-md-6"><label class="form-label">preapproval_plan anual</label><input class="form-control" name="mp-a-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdAnual"></div>
             </div>
-            <label class="saas-switch"><input type="checkbox" name="rep-{{ plan.id }}" [(ngModel)]="plan.reportesBasicos"><span>Reportes</span></label>
-            <label class="saas-switch"><input type="checkbox" name="red-{{ plan.id }}" [(ngModel)]="plan.reportesConsolidados"><span>Reportes consolidados</span></label>
-            <label class="saas-switch"><input type="checkbox" name="sop-{{ plan.id }}" [(ngModel)]="plan.soportePrioritario"><span>Soporte prioritario</span></label>
-            <label class="saas-switch"><input type="checkbox" name="act-{{ plan.id }}" [(ngModel)]="plan.activo"><span>Activo</span></label>
-            <p class="saas-nota">Ejemplo mensual: {{ formatoArs(plan.ejemploMensual.neto) }} + IVA = {{ formatoArs(plan.ejemploMensual.total) }}</p>
+            <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="rep-{{ plan.id }}" [(ngModel)]="plan.reportesBasicos" [id]="'rep-' + plan.id"><label class="form-check-label" [for]="'rep-' + plan.id">Reportes</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="red-{{ plan.id }}" [(ngModel)]="plan.reportesConsolidados" [id]="'red-' + plan.id"><label class="form-check-label" [for]="'red-' + plan.id">Reportes consolidados</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="sop-{{ plan.id }}" [(ngModel)]="plan.soportePrioritario" [id]="'sop-' + plan.id"><label class="form-check-label" [for]="'sop-' + plan.id">Soporte prioritario</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="act-{{ plan.id }}" [(ngModel)]="plan.activo" [id]="'act-' + plan.id"><label class="form-check-label" [for]="'act-' + plan.id">Activo</label></div>
+            <p class="text-muted">Ejemplo mensual: {{ formatoArs(plan.ejemploMensual.neto) }} + IVA = {{ formatoArs(plan.ejemploMensual.total) }}</p>
             <button class="btn btn-primary" type="submit">Guardar {{ plan.nombre }}</button>
           </form>
-        </article>
+        </div></article>
       }
 
       @for (addon of c.addons; track addon.id) {
-        <article class="saas-panel" style="margin-top: 16px">
-          <h2>{{ addon.nombre }} @if (addon.placeholder) { <span class="saas-badge neutro">Placeholder</span> }</h2>
-          <form class="saas-form" (ngSubmit)="guardarAddon(addon)">
-            <label class="saas-field">Nombre<input name="an-{{ addon.id }}" [(ngModel)]="addon.nombre"></label>
-            <label class="saas-field">Descripción<textarea name="ad-{{ addon.id }}" [(ngModel)]="addon.descripcion"></textarea></label>
-            <label class="saas-field">Precio mensual neto<input type="number" name="ap-{{ addon.id }}" [(ngModel)]="addon.precioMensualNeto" step="0.01"></label>
-            <label class="saas-switch"><input type="checkbox" name="aa-{{ addon.id }}" [(ngModel)]="addon.activo"><span>Activo</span></label>
-            <p class="saas-nota">{{ formatoArs(addon.precioMensualConIva) }} con IVA</p>
+        <article class="card mb-3"><div class="card-body">
+          <h2 class="h5">{{ addon.nombre }} @if (addon.placeholder) { <span class="badge-estado neutro">Placeholder</span> }</h2>
+          <form (ngSubmit)="guardarAddon(addon)">
+            <label class="form-label">Nombre</label><input class="form-control mb-2" name="an-{{ addon.id }}" [(ngModel)]="addon.nombre">
+            <label class="form-label">Descripción</label><textarea class="form-control mb-2" name="ad-{{ addon.id }}" [(ngModel)]="addon.descripcion"></textarea>
+            <label class="form-label">Precio mensual neto</label><input class="form-control mb-2" type="number" name="ap-{{ addon.id }}" [(ngModel)]="addon.precioMensualNeto" step="0.01">
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="aa-{{ addon.id }}" [(ngModel)]="addon.activo" [id]="'aa-' + addon.id"><label class="form-check-label" [for]="'aa-' + addon.id">Activo</label></div>
+            <p class="text-muted">{{ formatoArs(addon.precioMensualConIva) }} con IVA</p>
             <button class="btn btn-outline-primary" type="submit">Guardar complemento</button>
           </form>
-        </article>
+        </div></article>
       }
     }
   }
 
   @if (vista === 'pagos') {
-    <label class="saas-field">Buscar pago
-      <input name="filtroPago" [(ngModel)]="filtroPago" (ngModelChange)="alFiltrarPagos()" placeholder="Organización, plan, estado o referencia">
-    </label>
+    <div class="filters-section">
+      <label class="form-label" for="filtro-pago">Buscar pago</label>
+      <input id="filtro-pago" class="form-control" name="filtroPago" [(ngModel)]="filtroPago" (ngModelChange)="alFiltrarPagos()" placeholder="Organización, plan, estado o referencia">
+    </div>
     @if (cargando && !pagos.length) {
-      <div class="saas-skeleton__card" aria-hidden="true"></div>
-      <p class="saas-sr" role="status">Cargando pagos…</p>
+      <p class="text-muted" role="status">Cargando pagos…</p>
     } @else if (!pagosFiltrados.length) {
-      <div class="saas-empty saas-panel">
+      <div class="empty-state">
         <span class="material-symbols-outlined" aria-hidden="true">payments</span>
-        <p>{{ pagos.length ? 'Ningún pago coincide con la búsqueda.' : 'Todavía no hay pagos registrados.' }}</p>
+        <h3>{{ pagos.length ? 'Ningún pago coincide' : 'Todavía no hay pagos' }}</h3>
       </div>
     } @else {
-      <div class="saas-table-wrap">
-        <table class="saas-table">
-          <caption class="saas-sr">Pagos de todas las organizaciones</caption>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <caption class="visually-hidden">Pagos de todas las organizaciones</caption>
           <thead><tr><th>Fecha</th><th>Organización</th><th>Plan</th><th>Tipo</th><th>Estado</th><th>Neto</th><th>Total</th><th>Id pasarela</th></tr></thead>
           <tbody>
             @for (pago of pagosPagina; track pago.id) {
@@ -376,7 +315,7 @@
                 <td>{{ pago.organizacion }}</td>
                 <td>{{ pago.plan }}</td>
                 <td>{{ etiquetaTipoPago(pago.tipo) }}</td>
-                <td><span class="saas-badge" [ngClass]="pago.estado === 'APROBADO' ? 'activa' : 'vencida'">{{ etiquetaPago(pago.estado) }}</span></td>
+                <td><span class="badge-estado" [ngClass]="pago.estado === 'APROBADO' ? 'activa' : 'vencida'">{{ etiquetaPago(pago.estado) }}</span></td>
                 <td>{{ formatoArs(pago.neto) }}</td>
                 <td>{{ formatoArs(pago.total) }}</td>
                 <td>{{ pago.mpPaymentId }}</td>
@@ -385,44 +324,10 @@
           </tbody>
         </table>
       </div>
-      <div class="saas-pager">
-        <p class="saas-meta">{{ pagosFiltrados.length }} pagos · página {{ paginaPagos }} de {{ paginasPagos }}</p>
-        <div class="saas-actions">
-          <button type="button" class="btn btn-outline-primary" (click)="paginaPagos = paginaPagos - 1" [disabled]="paginaPagos <= 1">Anterior</button>
-          <button type="button" class="btn btn-outline-primary" (click)="paginaPagos = paginaPagos + 1" [disabled]="paginaPagos >= paginasPagos">Siguiente</button>
-        </div>
-      </div>
+      <p class="results-info"><span class="material-symbols-outlined">info</span> {{ pagosFiltrados.length }} pagos</p>
+      @if (paginasPagos > 1) {
+        <app-pagination [totalPages]="paginasPagos" [currentPage]="paginaPagos" [number]="paginaPagos - 1" [last]="paginaPagos >= paginasPagos" (pageChangeRequested)="paginaPagos = $event"></app-pagination>
+      }
     }
   }
 </div>
-
-@if (dialogo && detalle) {
-  <div class="saas-dialog-backdrop" (click)="cerrarDialogo()" (keydown)="onDialogKeydown($event)">
-    <div class="saas-dialog" #dialogoRef role="dialog" aria-modal="true" aria-labelledby="titulo-admin" (click)="$event.stopPropagation()">
-      @if (dialogo === 'suspender') {
-        <h2 id="titulo-admin">¿Suspendés esta suscripción?</h2>
-        <p>{{ detalle.organizacion.nombre }} pasa a solo lectura hasta que la reactives.</p>
-        <label class="saas-field">Motivo (opcional)
-          <input name="motivo-susp" [(ngModel)]="motivo" data-autofocus>
-        </label>
-      }
-      @if (dialogo === 'cancelar') {
-        <h2 id="titulo-admin">¿Cancelás esta suscripción?</h2>
-        <p>La cuenta de {{ detalle.organizacion.nombre }} queda en solo lectura. Los datos no se borran.</p>
-        <label class="saas-field">Motivo (opcional)
-          <input name="motivo-can" [(ngModel)]="motivo" data-autofocus>
-        </label>
-      }
-      @if (dialogo === 'cambiar') {
-        <h2 id="titulo-admin">¿Confirmás el cambio de plan?</h2>
-        <p>{{ detalle.organizacion.nombre }} pasa de {{ detalle.plan.nombre }} a {{ planDestino }}.</p>
-      }
-      <div class="saas-actions">
-        <button type="button" class="btn btn-outline-primary" (click)="cerrarDialogo()">Volver</button>
-        <button type="button" class="btn btn-primary" [attr.data-autofocus]="dialogo === 'cambiar' ? '' : null" [disabled]="operando" (click)="dialogo === 'suspender' ? suspender() : dialogo === 'cancelar' ? cancelar() : cambiarPlan()">
-          {{ operando ? 'Guardando…' : 'Confirmar' }}
-        </button>
-      </div>
-    </div>
-  </div>
-}

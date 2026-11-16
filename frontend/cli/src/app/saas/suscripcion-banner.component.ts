@@ -13,10 +13,10 @@ import { etiquetaEstado } from './saas.models';
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     @if (mensaje) {
-      <div class="saas-banner" [class.saas-banner--bloqueo]="soloLectura" role="status">
+      <div class="alert d-flex flex-wrap align-items-center gap-2 saas-banner" [class.alert-danger]="soloLectura" [class.alert-warning]="!soloLectura" role="status">
         <span class="material-symbols-outlined" aria-hidden="true">{{ soloLectura ? 'lock' : 'hourglass_top' }}</span>
-        <p>{{ mensaje }}</p>
-        <a routerLink="/mi-plan">Ir a Mi plan</a>
+        <p class="mb-0 flex-grow-1">{{ mensaje }}</p>
+        <a class="btn btn-sm btn-outline-dark" routerLink="/mi-plan">Ir a Mi plan</a>
       </div>
     }
   `,

@@ -83,6 +83,10 @@ import { SaasAdminComponent } from "./saas/saas-admin.component";
 
 export const routes: Routes = [
   { path: "", component: HomeComponent },
+  { path: "home", redirectTo: "", pathMatch: "full" },
+  { path: "superadmin-dashboard", redirectTo: "saas", pathMatch: "full" },
+  { path: "superadmin-auditoria", redirectTo: "turnos/audit-dashboard", pathMatch: "full" },
+  { path: "superadmin-metricas", redirectTo: "dashboard-gestion", pathMatch: "full" },
   { path: "planes", component: PlanesPublicosComponent },
   { path: "registro-saas", component: RegistroSaasComponent },
 
