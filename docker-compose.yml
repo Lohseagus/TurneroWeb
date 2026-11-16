@@ -22,9 +22,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
+    environment:
+      HCE_STORAGE_PATH: /var/cheturno/hce
     volumes:
       - ./backend:/app
       - ../common/backend/m2:/root/.m2
+      - hce_files:/var/cheturno/hce
     working_dir: /app
     command: sh run.sh
     ports:
@@ -74,3 +77,4 @@ services:
 
 volumes:
   postgres:
+  hce_files:

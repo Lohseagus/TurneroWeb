@@ -73,6 +73,9 @@ import { ListaEsperaComponent } from "./lista-espera/lista-espera.component";
 import { PreferenciasPacienteComponent } from "./pacientes/preferencias-paciente/preferencias-paciente.component";
 import { ListaEsperaFormComponent } from "./lista-espera/lista-espera-form.component";
 import { ListaEsperaEstadisticasComponent } from "./lista-espera/lista-espera-estadisticas.component";
+import { MedicoHceComponent } from "./historia-clinica/medico-hce.component";
+import { MedicoConsultaComponent } from "./historia-clinica/medico-consulta.component";
+import { PacienteHceComponent } from "./historia-clinica/paciente-hce.component";
 import { PlanesPublicosComponent } from "./saas/planes-publicos.component";
 import { RegistroSaasComponent } from "./saas/registro-saas.component";
 import { MiPlanComponent } from "./saas/mi-plan.component";
@@ -164,6 +167,11 @@ export const routes: Routes = [
     canActivate: [PatientGuard],
   },
   {
+    path: "paciente-historia-clinica",
+    component: PacienteHceComponent,
+    canActivate: [PatientGuard],
+  },
+  {
     path: "paciente-preferencias",
     component: PreferenciasPacienteComponent,
     canActivate: [PatientGuard],
@@ -203,6 +211,26 @@ export const routes: Routes = [
   {
     path: "medico-perfil",
     component: MedicoPerfilComponent,
+    canActivate: [MedicoGuard],
+  },
+  {
+    path: "medico-hce",
+    component: MedicoHceComponent,
+    canActivate: [MedicoGuard],
+  },
+  {
+    path: "medico-hce/:pacienteId",
+    component: MedicoHceComponent,
+    canActivate: [MedicoGuard],
+  },
+  {
+    path: "medico-consulta/nueva",
+    component: MedicoConsultaComponent,
+    canActivate: [MedicoGuard],
+  },
+  {
+    path: "medico-consulta/:id",
+    component: MedicoConsultaComponent,
     canActivate: [MedicoGuard],
   },
 

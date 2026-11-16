@@ -1,0 +1,104 @@
+<div class="hce-page">
+  <div class="hce-header">
+    <div>
+      <h1>{{ consulta.id ? 'Consulta' : 'Nueva consulta' }}</h1>
+      <p>
+        {{ consulta.pacienteApellido }} {{ consulta.pacienteNombre }}
+        <span *ngIf="consulta.dni"> · DNI {{ consulta.dni }}</span>
+        <span *ngIf="consulta.centroNombre"> · {{ consulta.centroNombre }}</span>
+        <span *ngIf="consulta.especialidadNombre"> · {{ consulta.especialidadNombre }}</span>
+      </p>
+    </div>
+    <div class="hce-actions">
+      <a class="btn btn-secondary" *ngIf="consulta.pacienteId" [routerLink]="['/medico-hce', consulta.pacienteId]">Historia</a>
+      <button type="button" class="btn btn-secondary" *ngIf="consulta.id" (click)="pdf()">PDF</button>
+    </div>
+  </div>
+
+  <div class="hce-error" *ngIf="error">{{ error }}</div>
+  <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
+  <p class="hce-badge" [class.cerrada]="cerrada" [class.borrador]="!cerrada">{{ consulta.estado || 'BORRADOR' }}</p>
+
+  <section class="hce-panel">
+    <label>Motivo de consulta</label>
+    <textarea [(ngModel)]="consulta.motivoConsulta" [disabled]="cerrada"></textarea>
+    <label>Anamnesis</label>
+    <textarea [(ngModel)]="consulta.anamnesis" [disabled]="cerrada"></textarea>
+    <label>Examen físico</label>
+    <textarea [(ngModel)]="consulta.examenFisico" [disabled]="cerrada"></textarea>
+
+    <h2>Signos vitales</h2>
+    <div class="hce-signos">
+      <div><label>TA sistólica</label><input type="number" [(ngModel)]="consulta.tensionSistolica" [disabled]="cerrada" /></div>
+      <div><label>TA diastólica</label><input type="number" [(ngModel)]="consulta.tensionDiastolica" [disabled]="cerrada" /></div>
+      <div><label>FC</label><input type="number" [(ngModel)]="consulta.frecuenciaCardiaca" [disabled]="cerrada" /></div>
+      <div><label>Temperatura</label><input type="number" [(ngModel)]="consulta.temperatura" [disabled]="cerrada" /></div>
+      <div><label>Peso (kg)</label><input type="number" [(ngModel)]="consulta.pesoKg" [disabled]="cerrada" /></div>
+      <div><label>Talla (cm)</label><input type="number" [(ngModel)]="consulta.tallaCm" [disabled]="cerrada" /></div>
+      <div><label>IMC</label><input type="text" [value]="consulta.imc || imc" disabled /></div>
+    </div>
+
+    <h2>Diagnósticos CIE-10</h2>
+    <div *ngIf="!cerrada">
+      <input type="search" placeholder="Buscar código o descripción" [(ngModel)]="busqueda" (ngModelChange)="buscarCie()" />
+      <div class="hce-sugerencias" *ngIf="sugerencias.length">
+        <button type="button" *ngFor="let codigo of sugerencias" (click)="agregarDiagnostico(codigo)">
+          {{ codigo.code }} — {{ codigo.display }}
+        </button>
+      </div>
+    </div>
+    <div class="hce-list-item" *ngFor="let diagnostico of consulta.diagnosticos; let i = index">
+      <span>{{ diagnostico.code }} {{ diagnostico.display }}</span>
+      <select [(ngModel)]="diagnostico.tipo" [disabled]="cerrada">
+        <option value="PRESUNTIVO">Presuntivo</option>
+        <option value="DEFINITIVO">Definitivo</option>
+      </select>
+      <button type="button" class="btn btn-secondary" *ngIf="!cerrada" (click)="quitarDiagnostico(i)">Quitar</button>
+    </div>
+
+    <label>Indicaciones</label>
+    <textarea [(ngModel)]="consulta.indicaciones" [disabled]="cerrada"></textarea>
+    <label>Plan</label>
+    <textarea [(ngModel)]="consulta.plan" [disabled]="cerrada"></textarea>
+    <label>Próximo control</label>
+    <input type="date" [(ngModel)]="consulta.proximoControl" [disabled]="cerrada" />
+
+    <div class="hce-actions" *ngIf="!cerrada">
+      <button type="button" class="btn btn-secondary" (click)="guardar()" [disabled]="guardando">Guardar borrador</button>
+      <button type="button" class="btn btn-primary" (click)="cerrar()" [disabled]="guardando">Cerrar consulta</button>
+    </div>
+  </section>
+
+  <section class="hce-panel" *ngIf="consulta.id">
+    <h2>Estudios e imágenes</h2>
+    <div class="hce-actions" *ngIf="!cargando">
+      <select [(ngModel)]="tipoAdjunto">
+        <option value="ESTUDIO">Estudio</option>
+        <option value="IMAGEN">Imagen</option>
+        <option value="DOCUMENTO">PDF</option>
+        <option value="OTRO">Otro</option>
+      </select>
+      <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" (change)="onArchivo($event)" />
+    </div>
+    <p class="hce-muted">PDF o imagen, hasta 10 MB. No se borran.</p>
+    <div class="hce-list">
+      <div class="hce-list-item" *ngFor="let adjunto of adjuntos">
+        <span>{{ adjunto.nombreOriginal }} · {{ adjunto.tipo }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="hce-panel" *ngIf="cerrada">
+    <h2>Enmiendas</h2>
+    <article *ngFor="let enmienda of consulta.enmiendas">
+      <p><strong>{{ enmienda.medicoNombre }}</strong> · {{ enmienda.creadaEn | date:'dd/MM/yyyy HH:mm' }}</p>
+      <p class="hce-muted">Motivo: {{ enmienda.motivo }}</p>
+      <p>{{ enmienda.texto }}</p>
+    </article>
+    <label>Motivo de la corrección</label>
+    <input type="text" [(ngModel)]="enmiendaMotivo" />
+    <label>Texto de la enmienda</label>
+    <textarea [(ngModel)]="enmiendaTexto"></textarea>
+    <button type="button" class="btn btn-primary" (click)="agregarEnmienda()" [disabled]="guardando">Registrar enmienda</button>
+  </section>
+</div>

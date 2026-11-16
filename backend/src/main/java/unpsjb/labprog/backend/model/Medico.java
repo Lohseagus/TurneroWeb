@@ -28,6 +28,12 @@ public class Medico extends Persona {
     @Column(nullable = false)
     private String matricula;
 
+    /**
+     * Identificador REFEPS del profesional. Opcional hasta la integración nacional.
+     */
+    @Column(length = 40)
+    private String refepsId;
+
     @ManyToMany
     @JoinTable(
         name = "medico_especialidad",

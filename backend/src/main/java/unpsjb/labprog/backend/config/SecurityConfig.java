@@ -265,6 +265,11 @@ public class SecurityConfig {
                                         "/api/config/**")
                                 .hasAnyRole("ADMINISTRADOR", "OPERADOR")
 
+                                // Historia clínica. El servicio autoriza por rol primario,
+                                // centro, consentimiento y titularidad: la jerarquía hace que
+                                // ADMINISTRADOR y SUPERADMIN hereden ROLE_MEDICO.
+                                .requestMatchers("/api/hce/**").authenticated()
+
                                 .anyRequest().authenticated();
                     }
                 })

@@ -643,6 +643,18 @@ Posible problema de configuración. Verifique:
     this.router.navigate(['/medico-horarios']);
   }
 
+  iniciarConsulta(turno: { id: number }): void {
+    this.router.navigate(['/medico-consulta/nueva'], { queryParams: { turnoId: turno.id } });
+  }
+
+  verHistoria(turno: { id: number; pacienteId?: number }): void {
+    if (turno.pacienteId) {
+      this.router.navigate(['/medico-hce', turno.pacienteId]);
+    } else {
+      this.router.navigate(['/medico-consulta/nueva'], { queryParams: { turnoId: turno.id } });
+    }
+  }
+
   verNotificaciones() {
     // Navegar a una página de notificaciones o mostrar un modal
     this.router.navigate(['/medico-notificaciones']);

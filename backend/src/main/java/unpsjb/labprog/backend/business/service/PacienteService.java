@@ -223,6 +223,7 @@ public class PacienteService {
                 // Guardar el usuario actualizado
                 userService.save(user);
             }
+            paciente.setIdentificadorFederado(existente.getIdentificadorFederado());
         }
 
         Paciente saved = repository.save(paciente);
