@@ -1,5 +1,7 @@
 # Suite de Tests Multi-Tenant - TurneroWeb
 
+Cómo levantar Postgres + backend y correr `npm test` (local y CI): [README.md](README.md).
+
 ## Descripción General
 
 Esta suite de tests de aceptación valida el comportamiento de la arquitectura SaaS multi-tenant del sistema TurneroWeb. Los tests están escritos en Cucumber.js usando el formato Gherkin en español.

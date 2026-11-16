@@ -51,6 +51,10 @@ public class TurnoDTO {
 
     private Boolean asistio;
 
+    // Se completan al cancelar para que la respuesta traiga la marca de tiempo
+    private LocalDateTime fechaCancelacion;
+    private LocalDateTime updatedAt;
+
     // Si es true, permite crear/actualizar el turno aun cuando exista solapamiento con otros turnos
     // (usado por la funcionalidad de "sobreturno" con confirmación previa desde el frontend)
     private Boolean permitirSolapamiento;

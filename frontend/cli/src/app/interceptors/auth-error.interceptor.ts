@@ -10,10 +10,17 @@ import { AuthService } from '../inicio-sesion/auth.service';
 export const authErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
 
+  // Los endpoints de autenticación manejan sus propios errores (login/refresh).
+  // No deben disparar el modal global de "Sesión Expirada" (ej. al abrir la app
+  // con tokens viejos en storage o sin sesión activa).
+  const url = req.url || '';
+  const isAuthEndpoint =
+    url.includes('/api/auth/refresh') || url.includes('/api/auth/login');
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       // Si es un error 401 o 403, usar el manejador centralizado de AuthService
-      if (error.status === 401 || error.status === 403) {
+      if (!isAuthEndpoint && (error.status === 401 || error.status === 403)) {
         // Determinar mensaje específico basado en la respuesta del servidor
         let customMessage: string | undefined;
         

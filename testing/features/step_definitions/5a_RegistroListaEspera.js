@@ -1,19 +1,21 @@
 const { Given, When, Then, AfterAll } = require("@cucumber/cucumber");
 const assert = require("assert");
-const request = require("sync-request");
+const rawRequest = require("sync-request");
 const { Client } = require("pg");
+const { apiUrl, dbConfig: dbEnv } = require("../../support/config");
 
 // --- CONFIGURACIÓN ---
-const BACKEND_URL = "http://backend:8080";
-
-// Configuración de conexión a la Base de Datos
 const dbConfig = {
-  user: "APP",
-  host: "database",
-  database: "labprog",
-  password: "APP",
-  port: 5432,
+  user: dbEnv.user,
+  host: dbEnv.host,
+  database: dbEnv.database,
+  password: dbEnv.password,
+  port: Number(dbEnv.port),
 };
+
+function request(method, path, options) {
+  return rawRequest(method, apiUrl(path), options);
+}
 
 // --- ESTADO DEL TEST ---
 let usuarioData = {};
@@ -72,14 +74,15 @@ Given("que un nuevo paciente se registra en el sistema", function () {
   console.log(`📝 Registrando usuario: ${usuarioData.email}`);
 
   try {
-    const res = request("POST", `${BACKEND_URL}/api/auth/register`, {
+    const res = request("POST", "/api/auth/register", {
       json: usuarioData,
     });
-
-    lastStatus = res.statusCode;
-    assert.ok(
-      [200, 201].includes(res.statusCode),
-      `Falló registro. Status: ${res.statusCode}`
+    const body = JSON.parse(res.getBody("utf8"));
+    lastStatus = body.status_code || res.statusCode;
+    assert.strictEqual(
+      lastStatus,
+      200,
+      `Falló registro. Status: ${lastStatus} ${body.status_text || ""}`
     );
     console.log("✅ Registro enviado correctamente.");
   } catch (err) {
@@ -102,15 +105,15 @@ When(
 // 3. ACTIVACIÓN
 When("el paciente valida su email con dicho token", function () {
   try {
-    const res = request("POST", `${BACKEND_URL}/api/auth/activate-account`, {
+    const res = request("POST", "/api/auth/activate-account", {
       json: { token: activationToken },
     });
-
-    lastStatus = res.statusCode;
+    const body = JSON.parse(res.getBody("utf8"));
+    lastStatus = body.status_code || res.statusCode;
     assert.strictEqual(
-      res.statusCode,
+      lastStatus,
       200,
-      `Falló la activación. Status: ${res.statusCode}`
+      `Falló la activación. Status: ${lastStatus} ${body.status_text || ""}`
     );
     console.log("✅ Cuenta activada exitosamente.");
   } catch (err) {
@@ -121,15 +124,15 @@ When("el paciente valida su email con dicho token", function () {
 // 4. LOGIN
 When("inicia sesión con sus nuevas credenciales", function () {
   try {
-    const res = request("POST", `${BACKEND_URL}/api/auth/login`, {
+    const res = request("POST", "/api/auth/login", {
       json: {
         email: usuarioData.email,
         password: usuarioData.password,
       },
     });
 
-    assert.strictEqual(res.statusCode, 200, "Login falló");
     const body = JSON.parse(res.getBody("utf8"));
+    assert.strictEqual(body.status_code || res.statusCode, 200, `Login falló: ${body.status_text || ""}`);
 
     if (body.data && body.data.accessToken) {
       authToken = body.data.accessToken;
@@ -149,29 +152,57 @@ When(
   "solicita unirse a la lista de espera para {string}",
   function (especialidadNombre) {
     try {
-      const res = request("POST", `${BACKEND_URL}/lista-espera`, {
+      const especialidades = JSON.parse(
+        request("GET", "/api/especialidades", {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }).getBody("utf8")
+      ).data || [];
+      const centros = JSON.parse(
+        request("GET", "/api/centrosAtencion", {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }).getBody("utf8")
+      ).data || [];
+      const pacientes = JSON.parse(
+        request("GET", `/api/pacientes/by-email/${encodeURIComponent(usuarioData.email)}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }).getBody("utf8")
+      );
+
+      const especialidad = especialidades.find(
+        (esp) => esp.nombre && esp.nombre.toLowerCase() === especialidadNombre.toLowerCase()
+      );
+      const centro = centros[0];
+      const pacienteId = pacientes.data && (pacientes.data.id || pacientes.data.pacienteId);
+
+      assert.ok(especialidad, `No existe la especialidad ${especialidadNombre}`);
+      assert.ok(centro, "No hay centros de atención para la lista de espera");
+      assert.ok(pacienteId, `No se encontró el paciente ${usuarioData.email}`);
+
+      const res = request("POST", "/api/lista-espera", {
         headers: {
           Authorization: `Bearer ${authToken}`,
           "Content-Type": "application/json",
         },
         json: {
-          // CORRECCIÓN: Usamos 'especialidadId' en lugar de 'especialidad' o 'especialidadNombre'.
-          // Asumimos que ID 1 es "Cardiología" o alguna especialidad válida.
-          especialidadId: 99998,
-          centroAtencionId: 4,
+          pacienteId,
+          especialidadId: especialidad.id,
+          centroAtencionId: centro.id,
           urgenciaMedica: "BAJA",
-
-          // Agregamos estado inicial por si el backend no lo asigna por defecto
           estado: "PENDIENTE",
         },
       });
 
-      lastStatus = res.statusCode;
+      const body = JSON.parse(res.getBody("utf8"));
+      lastStatus = body.status_code || res.statusCode;
+      this.listaEsperaBody = body;
 
-      if (res.statusCode >= 400) {
-        console.log("⚠️ Error Backend (Body):", res.getBody("utf8"));
+      if (lastStatus >= 400) {
+        console.log("⚠️ Error Backend (Body):", body);
       }
     } catch (err) {
+      if (!err.statusCode) {
+        throw err;
+      }
       lastStatus = err.statusCode;
       if (err.body) {
         console.log("⚠️ Error API:", err.body.toString());
@@ -183,15 +214,11 @@ When(
 );
 // 6. VALIDACIÓN FINAL
 Then("el sistema confirma su ingreso a la lista exitosamente", function () {
-  // 200 (OK) o 201 (Created)
-  const esExito = [200, 201].includes(lastStatus);
-
-  // Si dio 409 (Conflict), significa que el usuario YA estaba en la lista, lo cual también es "éxito" de conexión
-  if (lastStatus === 409) {
-    console.log("⚠️ El usuario ya estaba en la lista, pero el test es válido.");
-    return;
-  }
-
-  assert.ok(esExito, `Falló ingreso a lista. Status: ${lastStatus}`);
+  const texto = (this.listaEsperaBody && this.listaEsperaBody.status_text) || "";
+  assert.strictEqual(
+    lastStatus,
+    200,
+    `Falló ingreso a lista. Status: ${lastStatus} ${texto}`
+  );
   console.log("🎉 Flujo completo verificado correctamente.");
 });

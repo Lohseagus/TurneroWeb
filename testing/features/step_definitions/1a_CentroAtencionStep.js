@@ -1,6 +1,6 @@
 const { BeforeAll, When, Then, Given } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
 
 BeforeAll(function () {
   try {

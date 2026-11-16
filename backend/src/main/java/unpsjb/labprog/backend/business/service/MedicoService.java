@@ -22,6 +22,7 @@ import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.CentroAtencionRepository;
 import unpsjb.labprog.backend.dto.EspecialidadDTO;
 import unpsjb.labprog.backend.dto.MedicoDTO;
+import unpsjb.labprog.backend.exception.InputValidationException;
 import unpsjb.labprog.backend.model.Especialidad;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.StaffMedico;
@@ -152,22 +153,24 @@ public class MedicoService {
      */
     @Transactional
     public MedicoDTO createMedico(MedicoDTO dto, String performedByEmail) {
+        // Obtener el centro del administrador que está creando el médico.
+        // SUPERADMIN no tiene centro: el médico queda global, sin StaffMedico.
+        User performingAdmin = userService.findByEmail(performedByEmail)
+            .orElseThrow(() -> new IllegalArgumentException("Administrador no encontrado: " + performedByEmail));
+
+        if (performingAdmin.getCentroAtencion() == null) {
+            return crearMedicoSinCentro(dto, performedByEmail);
+        }
+
         // Validar que venga especialidad
         final Integer especialidadId;
         if (dto.getEspecialidadIds() != null && !dto.getEspecialidadIds().isEmpty()) {
             especialidadId = dto.getEspecialidadIds().iterator().next();
-        } else if (dto.getEspecialidades() != null && !dto.getEspecialidades().isEmpty()) {
+        } else if (dto.getEspecialidades() != null && !dto.getEspecialidades().isEmpty()
+                && dto.getEspecialidades().iterator().next().getId() != null) {
             especialidadId = dto.getEspecialidades().iterator().next().getId();
         } else {
             throw new IllegalArgumentException("Debe proporcionar al menos una especialidad válida");
-        }
-        
-        // Obtener el centro del administrador que está creando el médico
-        User performingAdmin = userService.findByEmail(performedByEmail)
-            .orElseThrow(() -> new IllegalArgumentException("Administrador no encontrado: " + performedByEmail));
-        
-        if (performingAdmin.getCentroAtencion() == null) {
-            throw new IllegalArgumentException("El administrador no tiene un centro asignado");
         }
         
         Integer centroId = performingAdmin.getCentroAtencion().getId();
@@ -269,16 +272,74 @@ public class MedicoService {
         return toDTO(medico);
     }
 
-   
+    /**
+     * Alta global usada por SUPERADMIN. No exige centro ni especialidad:
+     * el médico existe en el sistema y cada centro lo asocia después.
+     */
+    private MedicoDTO crearMedicoSinCentro(MedicoDTO dto, String performedByEmail) {
+        if (dto.getDni() == null || dto.getDni().isBlank()) {
+            throw new InputValidationException("El dni es obligatorio");
+        }
+        if (!dto.getDni().matches("\\d+")) {
+            throw new InputValidationException("dni incorrecto, débe contener sólo números");
+        }
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            throw new IllegalArgumentException("El email es obligatorio");
+        }
+        if (dto.getTelefono() == null || dto.getTelefono().isBlank()) {
+            String base = "549" + dto.getDni().replaceAll("\\D", "");
+            dto.setTelefono(base.length() > 15 ? base.substring(0, 15) : base);
+        }
+
+        Long dniLong = Long.parseLong(dto.getDni());
+        if (repository.existsByDni(dniLong)) {
+            throw new IllegalArgumentException("El dni ya existe en el sistema");
+        }
+        if (dto.getMatricula() != null && repository.existsByMatricula(dto.getMatricula())) {
+            throw new IllegalArgumentException("La matrícula ya existe en el sistema");
+        }
+        if (repository.existsByEmail(dto.getEmail())) {
+            throw new IllegalArgumentException("Ya existe un médico con el email: " + dto.getEmail());
+        }
+
+        Medico medico = toEntity(dto);
+        medico.setDni(dniLong);
+        validarMedico(medico);
+        if (tieneEspecialidades(dto)) {
+            medico.setEspecialidades(resolverEspecialidades(dto));
+        }
+
+        medico = repository.save(medico);
+
+        String temporaryPassword = java.util.UUID.randomUUID().toString().substring(0, 12);
+        registrationService.registrarMedicoWithAudit(
+            dto.getEmail(),
+            temporaryPassword,
+            dniLong,
+            dto.getNombre(),
+            dto.getApellido(),
+            dto.getTelefono(),
+            performedByEmail
+        );
+        userService.findByEmail(dto.getEmail()).ifPresent(medicoUser -> {
+            try {
+                emailService.sendMedicoWelcomeEmail(medicoUser, temporaryPassword);
+            } catch (Exception e) {
+                logger.warn("No se pudo enviar el email de bienvenida a {}: {}", dto.getEmail(), e.getMessage());
+            }
+        });
+
+        return toDTO(medico);
+    }
 
     @Transactional
     public MedicoDTO saveOrUpdate(MedicoDTO dto, String performedBy) {
         // Validar DNI en el DTO antes de convertir a entidad
         if (dto.getDni() == null || dto.getDni().isBlank()) {
-            throw new IllegalArgumentException("El dni es obligatorio");
+            throw new InputValidationException("El dni es obligatorio");
         }
         if (!dto.getDni().matches("\\d+")) {
-            throw new IllegalArgumentException("dni incorrecto, débe contener sólo números");
+            throw new InputValidationException("dni incorrecto, débe contener sólo números");
         }
         if (dto.getDni().length() < 7 || dto.getDni().length() > 9) {
             throw new IllegalArgumentException("El dni debe tener entre 7 y 9 dígitos");
@@ -304,19 +365,7 @@ public class MedicoService {
                 throw new IllegalStateException("Ya existe un médico con el email: " + medico.getEmail());
             }
 
-            // Obtener IDs de especialidades - verificar ambas formas
-            Set<Integer> especialidadIds;
-            if (dto.getEspecialidadIds() != null && !dto.getEspecialidadIds().isEmpty()) {
-                // Usar especialidadIds si está presente
-                especialidadIds = dto.getEspecialidadIds();
-            } else if (dto.getEspecialidades() != null && !dto.getEspecialidades().isEmpty()) {
-                // Extraer IDs de los objetos especialidades
-                especialidadIds = dto.getEspecialidades().stream()
-                    .map(EspecialidadDTO::getId)
-                    .collect(Collectors.toSet());
-            } else {
-                throw new IllegalArgumentException("Debe proporcionar al menos una especialidad válida");
-            }
+            Set<Especialidad> especialidades = resolverEspecialidades(dto);
 
             // Si es creado por ADMIN u OPERADOR (tiene performedBy), usar auditoría
             if (dto.getPerformedBy() != null && !dto.getPerformedBy().trim().isEmpty()) {
@@ -325,12 +374,6 @@ public class MedicoService {
                 if (password == null || password.trim().isEmpty()) {
                     password = generarPasswordAutomatica();
                 }
-
-                // Obtener especialidades usando los IDs validados
-                Set<Especialidad> especialidades = especialidadIds.stream()
-                    .map(id -> especialidadRepo.findById(id)
-                        .orElseThrow(() -> new IllegalArgumentException("Especialidad no encontrada: " + id)))
-                    .collect(Collectors.toSet());
 
                 // 1. Crear usuario en la tabla User con auditoría
                 registrationService.registrarMedicoWithAudit(
@@ -347,6 +390,7 @@ public class MedicoService {
                 medico.setEspecialidades(especialidades);
                 
                 Medico medicoCreado = repository.save(medico);
+                vincularAlCentroDeQuienCrea(medicoCreado, especialidades, dto.getPerformedBy());
 
                 // 3. Enviar contraseña por mail
                 enviarPasswordPorMail(medico.getEmail(), password);
@@ -354,33 +398,7 @@ public class MedicoService {
                 // Retornar el médico creado
                 return toDTO(medicoCreado);
             } else {
-                // Validar especialidades normalmente para registro directo
-                if (medico.getEspecialidades() == null || medico.getEspecialidades().isEmpty()) {
-                    throw new IllegalArgumentException("Debe proporcionar al menos una especialidad válida");
-                }
-
-                // Validar existencia de las especialidades
-                Set<Especialidad> especialidadesValidadas = new HashSet<>();
-                for (Especialidad esp : medico.getEspecialidades()) {
-                    if (esp.getId() != null) {
-                        Optional<Especialidad> especialidadOpt = especialidadRepo.findById(esp.getId());
-                        if (especialidadOpt.isPresent()) {
-                            especialidadesValidadas.add(especialidadOpt.get());
-                        } else {
-                            throw new IllegalArgumentException("La especialidad con ID " + esp.getId() + " NO existe");
-                        }
-                    } else if (esp.getNombre() != null && !esp.getNombre().isBlank()) {
-                        Especialidad especialidad = especialidadRepo.findByNombreIgnoreCase(esp.getNombre());
-                        if (especialidad != null) {
-                            especialidadesValidadas.add(especialidad);
-                        } else {
-                            throw new IllegalArgumentException("La especialidad " + esp.getNombre() + " NO existe");
-                        }
-                    } else {
-                        throw new IllegalArgumentException("Debe proporcionar especialidades válidas con ID o nombre");
-                    }
-                }
-                medico.setEspecialidades(especialidadesValidadas);
+                medico.setEspecialidades(especialidades);
             }
         } else {
             // MODIFICACIÓN
@@ -652,22 +670,92 @@ public class MedicoService {
 
     private void validarMedico(Medico medico) {
         if (medico.getNombre() == null || medico.getNombre().isBlank()) {
-            throw new IllegalArgumentException("El nombre es obligatorio");
+            throw new InputValidationException("El nombre es obligatorio");
         }
         if (medico.getNombre().length() > 50) {
-            throw new IllegalArgumentException("El nombre no puede superar los 50 caracteres");
+            throw new InputValidationException("El nombre no puede superar los 50 caracteres");
         }
         if (medico.getApellido() == null || medico.getApellido().isBlank()) {
-            throw new IllegalArgumentException("El apellido es obligatorio");
+            throw new InputValidationException("El apellido es obligatorio");
         }
         if (medico.getApellido().length() > 50) {
-            throw new IllegalArgumentException("El apellido no puede superar los 50 caracteres");
+            throw new InputValidationException("El apellido no puede superar los 50 caracteres");
         }
         if (medico.getMatricula() == null || medico.getMatricula().trim().isEmpty()) {
             throw new IllegalArgumentException("La matrícula es obligatoria");
         }
         if (medico.getMatricula().length() > 20) {
             throw new IllegalArgumentException("La matrícula no puede superar los 20 caracteres");
+        }
+    }
+
+    private boolean tieneEspecialidades(MedicoDTO dto) {
+        boolean porId = dto.getEspecialidadIds() != null && dto.getEspecialidadIds().stream().anyMatch(id -> id != null);
+        boolean porNombre = dto.getEspecialidades() != null && dto.getEspecialidades().stream()
+            .anyMatch(esp -> esp != null && ((esp.getId() != null) || (esp.getNombre() != null && !esp.getNombre().isBlank())));
+        return porId || porNombre;
+    }
+
+    /**
+     * Resuelve especialidades por id o, si el id no viene, por nombre.
+     * Una especialidad inexistente es un error de entrada (400), no un 500.
+     */
+    private Set<Especialidad> resolverEspecialidades(MedicoDTO dto) {
+        Set<Especialidad> resueltas = new HashSet<>();
+        if (dto.getEspecialidadIds() != null) {
+            for (Integer id : dto.getEspecialidadIds()) {
+                if (id == null) {
+                    continue;
+                }
+                resueltas.add(especialidadRepo.findById(id)
+                    .orElseThrow(() -> new InputValidationException("La especialidad con ID " + id + " NO existe")));
+            }
+        }
+        if (dto.getEspecialidades() != null) {
+            for (EspecialidadDTO esp : dto.getEspecialidades()) {
+                if (esp == null) {
+                    continue;
+                }
+                if (esp.getId() != null) {
+                    resueltas.add(especialidadRepo.findById(esp.getId())
+                        .orElseThrow(() -> new InputValidationException("La especialidad con ID " + esp.getId() + " NO existe")));
+                } else if (esp.getNombre() != null && !esp.getNombre().isBlank()) {
+                    Especialidad encontrada = especialidadRepo.findByNombreIgnoreCase(esp.getNombre());
+                    if (encontrada == null) {
+                        throw new InputValidationException("La especialidad " + esp.getNombre() + " NO existe");
+                    }
+                    resueltas.add(encontrada);
+                }
+            }
+        }
+        if (resueltas.isEmpty()) {
+            throw new IllegalArgumentException("Debe proporcionar al menos una especialidad válida");
+        }
+        return resueltas;
+    }
+
+    /**
+     * Si quien crea el médico pertenece a un centro, deja la asociación StaffMedico.
+     * SUPERADMIN no tiene centro y no genera asociación.
+     */
+    private void vincularAlCentroDeQuienCrea(Medico medico, Set<Especialidad> especialidades, String performedBy) {
+        if (performedBy == null || performedBy.isBlank() || especialidades == null || especialidades.isEmpty()) {
+            return;
+        }
+        Optional<User> operador = userService.findByEmail(performedBy);
+        if (operador.isEmpty() || operador.get().getCentroAtencion() == null) {
+            return;
+        }
+        CentroAtencion centro = operador.get().getCentroAtencion();
+        for (Especialidad especialidad : especialidades) {
+            if (staffMedicoRepository.existsByMedicoAndCentroAtencionAndEspecialidad(medico, centro, especialidad)) {
+                continue;
+            }
+            StaffMedico staff = new StaffMedico();
+            staff.setMedico(medico);
+            staff.setCentroAtencion(centro);
+            staff.setEspecialidad(especialidad);
+            staffMedicoRepository.save(staff);
         }
     }
 }

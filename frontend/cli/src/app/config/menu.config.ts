@@ -55,10 +55,10 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Panel principal del paciente'
       },
       {
-        label: 'Mi Agenda',
+        label: 'Pedir turno',
         route: '/paciente-agenda',
-        icon: 'calendar_month',
-        description: 'Ver mis turnos programados'
+        icon: 'event_available',
+        description: 'Buscar disponibilidad y reservar un turno'
       },
       {
         label: 'Mi Historial',
@@ -121,10 +121,10 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Métricas y reportes'
       },
       {
-        label: 'Sobreturnos',
+        label: 'Turno manual (extra)',
         route: '/turnos/new',
         icon: 'event_busy',
-        description: 'Registrar sobreturno manual (fuera de agenda)'
+        description: 'Registrar un turno extra fuera de la agenda'
       },
       {
         label: 'Mi Perfil',
@@ -159,10 +159,10 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Administrar turnos del sistema'
       },
       {
-        label: 'Sobreturnos',
+        label: 'Turno manual (extra)',
         route: '/turnos/new',
         icon: 'event_busy',
-        description: 'Registrar sobreturno manual (fuera de agenda)'
+        description: 'Registrar un turno extra fuera de la agenda'
       },
       {
         label: 'Pacientes',

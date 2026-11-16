@@ -1,6 +1,61 @@
 const { When, Then, Given, BeforeAll } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
+
+function especialidadesResueltas(especialidades) {
+  const nombres = String(especialidades || '')
+    .split(',')
+    .map((esp) => esp.trim())
+    .filter(Boolean);
+  let catalogo = [];
+  try {
+    const res = request('GET', 'http://backend:8080/especialidades');
+    catalogo = JSON.parse(res.getBody('utf8')).data || [];
+  } catch (error) {
+    catalogo = [];
+  }
+  return nombres.map((nombre) => {
+    const encontrada = catalogo.find(
+      (esp) => esp.nombre && esp.nombre.toLowerCase() === nombre.toLowerCase()
+    );
+    return encontrada
+      ? { id: encontrada.id, nombre: encontrada.nombre }
+      : { nombre };
+  });
+}
+
+function payloadMedico(nombre, apellido, dni, matricula, especialidades) {
+  const especialidadesArray = especialidadesResueltas(especialidades);
+  const dniTexto = dni == null ? '' : String(dni);
+  const digitos = dniTexto.replace(/\D/g, '') || String(Date.now()).slice(-8);
+  return {
+    nombre,
+    apellido,
+    dni: dniTexto,
+    matricula,
+    // El alta actual persiste email y teléfono (Persona) y, si hay usuario
+    // autenticado, también la cuenta. Los escenarios no los declaran.
+    email: `m${digitos}@medicos.test`,
+    telefono: `549${digitos}`.slice(0, 15),
+    especialidades: especialidadesArray,
+    especialidadIds: especialidadesArray.map((esp) => esp.id).filter((id) => id != null)
+  };
+}
+
+function postMedico(medico) {
+  try {
+    const res = request('POST', 'http://backend:8080/medicos/create-by-admin', { json: medico });
+    return JSON.parse(res.getBody('utf8'));
+  } catch (error) {
+    try {
+      return error.response
+        ? JSON.parse(error.response.body.toString('utf8'))
+        : { status_code: 500, status_text: 'Error interno' };
+    } catch (parseErr) {
+      return { status_code: 500, status_text: 'Error interno' };
+    }
+  }
+}
 
 Given('que existen {int} medicos registrados en el sistema', function (cantidad) {
     // Trae la lista actual de médicos y guarda la cantidad real en el contexto
@@ -14,60 +69,14 @@ Given('que existen {int} medicos registrados en el sistema', function (cantidad)
 When(
   'el administrador crea un médico con {string}, {string}, {string}, {string}, {string}',
   function (nombre, apellido, dni, matricula, especialidades) {
-    // Procesar especialidades: puede ser una sola o múltiples separadas por coma
-    const especialidadesArray = especialidades.split(',').map(esp => ({
-      nombre: esp.trim()
-    }));
-    
-    const medico = {
-      nombre,
-      apellido,
-      dni: dni && !isNaN(Number(dni)) ? Number(dni) : dni,
-      matricula,
-      especialidades: especialidadesArray
-    };
-    try {
-      const res = request('POST', 'http://backend:8080/medicos', { json: medico });
-      this.response = JSON.parse(res.getBody('utf8'));
-    } catch (error) {
-      try {
-        this.response = error.response
-          ? JSON.parse(error.response.body.toString('utf8'))
-          : { status_code: 500, status_text: 'Error interno' };
-      } catch (parseErr) {
-        this.response = { status_code: 500, status_text: 'Error interno' };
-      }
-    }
+    this.response = postMedico(payloadMedico(nombre, apellido, dni, matricula, especialidades));
   }
 );
 
 When(
   'el administrador crea un médico con {string}, {string}, {string}, {string} y las especialidades {string}',
   function (nombre, apellido, dni, matricula, especialidades) {
-    // Procesar múltiples especialidades separadas por coma
-    const especialidadesArray = especialidades.split(',').map(esp => ({
-      nombre: esp.trim()
-    }));
-    
-    const medico = {
-      nombre,
-      apellido,
-      dni: dni && !isNaN(Number(dni)) ? Number(dni) : dni,
-      matricula,
-      especialidades: especialidadesArray
-    };
-    try {
-      const res = request('POST', 'http://backend:8080/medicos', { json: medico });
-      this.response = JSON.parse(res.getBody('utf8'));
-    } catch (error) {
-      try {
-        this.response = error.response
-          ? JSON.parse(error.response.body.toString('utf8'))
-          : { status_code: 500, status_text: 'Error interno' };
-      } catch (parseErr) {
-        this.response = { status_code: 500, status_text: 'Error interno' };
-      }
-    }
+    this.response = postMedico(payloadMedico(nombre, apellido, dni, matricula, especialidades));
   }
 );
 

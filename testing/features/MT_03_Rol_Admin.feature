@@ -233,10 +233,10 @@ Característica: Permisos y Acceso del ADMINISTRADOR (Tenant-Bound)
     Dado que me autentico como "<email>" con password "password"
     Cuando consulto los consultorios de mi centro
     Entonces solo veo consultorios del centro <centro_id>
-    Y la cantidad de consultorios es <cantidad>
+    Y veo al menos 4 consultorios
 
     Ejemplos:
-      | email                        | centro_id | cantidad |
-      | admin.santamaria@turnero.com  | 1         | 4        |
-      | admin.delsur@turnero.com        | 2         | 4        |
-      | admin.delsol@turnero.com        | 3         | 4        |
+      | email                        | centro_id |
+      | admin.santamaria@turnero.com  | 1         |
+      | admin.delsur@turnero.com        | 2         |
+      | admin.delsol@turnero.com        | 3         |

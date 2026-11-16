@@ -1,6 +1,6 @@
 const { Given, When, Then, BeforeAll } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
 
 Given('que existe un centro de atención llamado {string}', function(nombreCentro) {
   // Intenta buscar el centro

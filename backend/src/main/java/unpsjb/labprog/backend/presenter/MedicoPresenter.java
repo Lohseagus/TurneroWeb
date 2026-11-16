@@ -23,6 +23,7 @@ import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.MedicoService;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.MedicoDTO;
+import unpsjb.labprog.backend.exception.InputValidationException;
 
 @RestController
 @RequestMapping("/api/medicos")
@@ -178,6 +179,8 @@ public class MedicoPresenter {
             // Usar el service que ahora maneja la lógica de auditoría
             MedicoDTO saved = service.saveOrUpdate(request, performedBy);
             return Response.ok(saved, "Médico creado correctamente por administrador");
+        } catch (InputValidationException e) {
+            return Response.error(null, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {
@@ -201,6 +204,8 @@ public class MedicoPresenter {
             // Usar el service que ahora maneja la lógica de auditoría
             MedicoDTO saved = service.saveOrUpdate(request, performedBy);
             return Response.ok(saved, "Médico creado correctamente por operador");
+        } catch (InputValidationException e) {
+            return Response.error(null, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {

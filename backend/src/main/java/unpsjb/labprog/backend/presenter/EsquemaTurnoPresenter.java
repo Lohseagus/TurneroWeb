@@ -67,7 +67,12 @@ public class EsquemaTurnoPresenter {
     public ResponseEntity<Object> create(@RequestBody EsquemaTurnoDTO esquemaTurnoDTO) {
         try {
             EsquemaTurnoDTO saved = service.saveOrUpdate(esquemaTurnoDTO);
-            return Response.ok(saved, "Esquema de turno creado correctamente");
+            String aviso = service.consumirAdvertenciaSolapamiento();
+            String mensaje = "Esquema de turno creado correctamente";
+            if (aviso != null && !aviso.isBlank()) {
+                mensaje = mensaje + ". Advertencia de solapamiento con otro centro";
+            }
+            return Response.ok(saved, mensaje);
         } catch (IllegalStateException e) {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {
@@ -80,6 +85,7 @@ public class EsquemaTurnoPresenter {
         try {
             esquemaTurnoDTO.setId(id);
             EsquemaTurnoDTO updated = service.saveOrUpdate(esquemaTurnoDTO);
+            service.consumirAdvertenciaSolapamiento();
             return Response.ok(updated, "Esquema de turno actualizado correctamente");
         } catch (IllegalStateException e) {
             return Response.dbError(e.getMessage());

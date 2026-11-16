@@ -1,0 +1,86 @@
+name: e2e-cucumber
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  cucumber:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: APP
+          POSTGRES_PASSWORD: APP
+          POSTGRES_DB: labprog
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U APP -d labprog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Comprobar Maven
+        run: |
+          if ! command -v mvn >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y maven
+          fi
+
+      - name: Instalar cliente de Postgres
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Compilar y levantar el backend
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/labprog
+          DB_USERNAME: APP
+          DB_PASSWORD: APP
+          SECURITY_DEV_MODE: "true"
+          MAIL_HOST: 127.0.0.1
+          MAIL_PORT: "1025"
+          MAIL_USERNAME: test@localhost
+          MAIL_PASSWORD: test
+        run: |
+          mvn -B -DskipTests package
+          java -jar target/backend-0.0.1-SNAPSHOT.jar > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/ >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "El backend no levantó"
+          tail -n 200 /tmp/backend.log
+          exit 1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: testing/package-lock.json
+
+      - name: Correr Cucumber
+        working-directory: testing
+        env:
+          API_BASE_URL: http://localhost:8080/api
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: APP
+          PGPASSWORD: APP
+          PGDATABASE: labprog
+        run: |
+          npm ci
+          npm test

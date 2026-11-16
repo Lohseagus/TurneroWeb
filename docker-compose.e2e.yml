@@ -1,0 +1,36 @@
+# Postgres + backend para la suite Cucumber.
+# No reemplaza docker-compose.yml de desarrollo (ese también levanta el frontend).
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: APP
+      POSTGRES_PASSWORD: APP
+      POSTGRES_DB: labprog
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U APP -d labprog"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/labprog
+      DB_USERNAME: APP
+      DB_PASSWORD: APP
+      SECURITY_DEV_MODE: "true"
+      MAIL_HOST: 127.0.0.1
+      MAIL_PORT: "1025"
+      MAIL_USERNAME: test@localhost
+      MAIL_PASSWORD: test
+      ADMIN_SEED_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
