@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,6 +10,7 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './paciente-notificaciones.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './paciente-notificaciones.component.css'
 })
 export class PacienteNotificacionesComponent implements OnInit, OnDestroy {

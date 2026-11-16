@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { HistorialTurnoDTO } from './historial.service';
@@ -8,6 +8,7 @@ import { HistorialTurnoDTO } from './historial.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './historial-turno-detalle.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './historial-turno-detalle.component.css', 
 })
 export class HistorialTurnoDetalleComponent implements OnInit, OnDestroy {

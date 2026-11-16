@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MedicoService } from './medico.service';
@@ -23,8 +23,9 @@ interface CambioPassword {
 @Component({
   selector: 'app-medico-perfil',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [FormsModule, ReactiveFormsModule],
   templateUrl: './medico-perfil.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medico-perfil.component.css'
 })
 export class MedicoPerfilComponent implements OnInit {

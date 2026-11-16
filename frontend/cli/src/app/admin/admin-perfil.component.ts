@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, ChangePasswordRequest, UpdateProfileRequest } from '../inicio-sesion/auth.service';
@@ -8,8 +8,9 @@ import { ModalService } from '../modal/modal.service';
 @Component({
   selector: 'app-admin-perfil',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './admin-perfil.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-perfil.component.css'
 })
 export class AdminPerfilComponent implements OnInit {

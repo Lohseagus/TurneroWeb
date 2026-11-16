@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule, NgForm } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -14,6 +14,7 @@ import { ToastService } from "../services/toast.service";
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: "./paciente-detail.component.html", 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./paciente-detail.component.css",
 })
 export class PacienteDetailComponent implements OnInit {

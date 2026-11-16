@@ -1,13 +1,14 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Especialidad } from '../../../especialidades/especialidad';
 
 @Component({
   selector: 'app-centro-atencion-especialidades-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './centro-atencion-especialidades-tab.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./centro-atencion-especialidades-tab.component.css']
 })
 export class CentroAtencionEspecialidadesTabComponent implements OnInit {

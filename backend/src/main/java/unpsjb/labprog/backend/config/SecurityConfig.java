@@ -79,8 +79,7 @@ public class SecurityConfig {
      */
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
@@ -110,16 +109,14 @@ public class SecurityConfig {
      */
     @Bean
     public RoleHierarchy roleHierarchy() {
-        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        // Definir jerarquía: ADMINISTRADOR incluye todos, MEDICO y OPERADOR incluyen PACIENTE
-        roleHierarchy.setHierarchy(
+        // Misma jerarquía de antes. fromHierarchy reemplaza al constructor y a setHierarchy, deprecados.
+        return RoleHierarchyImpl.fromHierarchy(
             "ROLE_ADMINISTRADOR > ROLE_MEDICO\n" +
             "ROLE_ADMINISTRADOR > ROLE_OPERADOR\n" +
             "ROLE_ADMINISTRADOR > ROLE_PACIENTE\n" +
             "ROLE_MEDICO > ROLE_PACIENTE\n" +
             "ROLE_OPERADOR > ROLE_PACIENTE"
         );
-        return roleHierarchy;
     }
 
     /**

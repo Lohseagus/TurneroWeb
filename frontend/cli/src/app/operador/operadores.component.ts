@@ -1,5 +1,5 @@
-import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
+
 import { Router, RouterModule } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { OperadorService } from "./operador.service";
@@ -16,8 +16,9 @@ interface SortConfig {
 @Component({
   selector: "app-operadores",
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [RouterModule, FormsModule, PaginationComponent],
   templateUrl: "./operadores.component.html", 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./operadores.component.css", 
 })
   

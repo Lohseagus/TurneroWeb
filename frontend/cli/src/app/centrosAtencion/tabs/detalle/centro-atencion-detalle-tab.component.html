@@ -7,23 +7,27 @@
       </div>
       <div>
         <h4 class="mb-0 fw-bold">
-          <ng-container *ngIf="!modoEdicion && centroAtencion.id; else nuevoTitle">
+          @if (!modoEdicion && centroAtencion.id) {
             Centro de Atención: {{ centroAtencion.nombre }}
-          </ng-container>
-          <ng-template #nuevoTitle>
-            <ng-container *ngIf="!centroAtencion.id || centroAtencion.id === 0; else editando">
+          } @else {
+            @if (!centroAtencion.id || centroAtencion.id === 0) {
               Nuevo Centro de Atención
-            </ng-container>
-            <ng-template #editando>
+            } @else {
               Editando: {{ centroAtencion.nombre }}
-            </ng-template>
-          </ng-template>
+            }
+          }
         </h4>
         <small class="opacity-75">
-          <ng-container *ngIf="!modoEdicion">Información del Centro de Atención</ng-container>
-          <ng-container *ngIf="modoEdicion && centroAtencion.id">Editando Centro de Atención</ng-container>
-          <ng-container *ngIf="modoEdicion && (!centroAtencion.id || centroAtencion.id === 0)">Creando Nuevo Centro de
-            Atención</ng-container>
+          @if (!modoEdicion) {
+            Información del Centro de Atención
+          }
+          @if (modoEdicion && centroAtencion.id) {
+            Editando Centro de Atención
+          }
+          @if (modoEdicion && (!centroAtencion.id || centroAtencion.id === 0)) {
+            Creando Nuevo Centro de
+            Atención
+          }
         </small>
       </div>
     </div>
@@ -32,234 +36,250 @@
   <!-- CUERPO DEL CARD -->
   <div class="card-body">
     <!-- MODO VISTA -->
-    <div *ngIf="!modoEdicion">
-      <div class="row">
-        <div class="col-12">
-          <div class="info-item d-flex align-items-center">
-            <div class="info-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
-              📍
-            </div>
-            <div class="flex-grow-1">
-              <div class="info-label">Dirección</div>
-              <div class="info-value">
-                <span class="centro-display">{{ centroAtencion.direccion || 'No especificada' }}</span>
+    @if (!modoEdicion) {
+      <div>
+        <div class="row">
+          <div class="col-12">
+            <div class="info-item d-flex align-items-center">
+              <div class="info-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                📍
+              </div>
+              <div class="flex-grow-1">
+                <div class="info-label">Dirección</div>
+                <div class="info-value">
+                  <span class="centro-display">{{ centroAtencion.direccion || 'No especificada' }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="col-12">
-          <div class="info-item d-flex align-items-center">
-            <div class="info-icon" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
-              🏙️
-            </div>
-            <div class="flex-grow-1">
-              <div class="info-label">Localidad</div>
-              <div class="info-value">
-                <span class="localidad-display">{{ centroAtencion.localidad || 'No especificada' }}</span>
+          <div class="col-12">
+            <div class="info-item d-flex align-items-center">
+              <div class="info-icon" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
+                🏙️
+              </div>
+              <div class="flex-grow-1">
+                <div class="info-label">Localidad</div>
+                <div class="info-value">
+                  <span class="localidad-display">{{ centroAtencion.localidad || 'No especificada' }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="col-12">
-          <div class="info-item d-flex align-items-center">
-            <div class="info-icon" style="background: linear-gradient(135deg, #fd7e14 0%, #e8630a 100%);">
-              🗺️
-            </div>
-            <div class="flex-grow-1">
-              <div class="info-label">Provincia</div>
-              <div class="info-value">
-                <span class="provincia-display">{{ centroAtencion.provincia || 'No especificada' }}</span>
+          <div class="col-12">
+            <div class="info-item d-flex align-items-center">
+              <div class="info-icon" style="background: linear-gradient(135deg, #fd7e14 0%, #e8630a 100%);">
+                🗺️
+              </div>
+              <div class="flex-grow-1">
+                <div class="info-label">Provincia</div>
+                <div class="info-value">
+                  <span class="provincia-display">{{ centroAtencion.provincia || 'No especificada' }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="col-12">
-          <div class="info-item d-flex align-items-center">
-            <div class="info-icon" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);">
-              📞
-            </div>
-            <div class="flex-grow-1">
-              <div class="info-label">Teléfono</div>
-              <div class="info-value">
-                <span class="telefono-display">{{ centroAtencion.telefono || 'No registrado' }}</span>
+          <div class="col-12">
+            <div class="info-item d-flex align-items-center">
+              <div class="info-icon" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);">
+                📞
+              </div>
+              <div class="flex-grow-1">
+                <div class="info-label">Teléfono</div>
+                <div class="info-value">
+                  <span class="telefono-display">{{ centroAtencion.telefono || 'No registrado' }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="col-12">
-          <div class="info-item d-flex align-items-center">
-            <div class="info-icon" style="background: linear-gradient(135deg, #e83e8c 0%, #d91a72 100%);">
-              🌍
-            </div>
-            <div class="flex-grow-1">
-              <div class="info-label">Coordenadas GPS</div>
-              <div class="info-value">
-                <span class="coordenadas-display">{{ centroAtencion.latitud }}, {{ centroAtencion.longitud }}</span>
+          <div class="col-12">
+            <div class="info-item d-flex align-items-center">
+              <div class="info-icon" style="background: linear-gradient(135deg, #e83e8c 0%, #d91a72 100%);">
+                🌍
+              </div>
+              <div class="flex-grow-1">
+                <div class="info-label">Coordenadas GPS</div>
+                <div class="info-value">
+                  <span class="coordenadas-display">{{ centroAtencion.latitud }}, {{ centroAtencion.longitud }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    }
 
     <!-- MODO EDICIÓN -->
-    <form *ngIf="modoEdicion" (ngSubmit)="onSave()" #centroForm="ngForm">
-      <div class="row">
-        <div class="col-12">
-          <div class="form-group-modern">
-            <label class="form-label-modern">
-              <span class="form-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">🏥</span>
-              Nombre del Centro
-            </label>
-            <input [(ngModel)]="centroAtencion.nombre" name="nombre" class="form-control form-control-modern"
-              placeholder="Nombre del centro de atención" required #nombre="ngModel">
-            <div *ngIf="nombre.invalid && (nombre.dirty || nombre.touched)" class="form-help text-danger">
-              El nombre del centro es requerido.
+    @if (modoEdicion) {
+      <form (ngSubmit)="onSave()" #centroForm="ngForm">
+        <div class="row">
+          <div class="col-12">
+            <div class="form-group-modern">
+              <label class="form-label-modern">
+                <span class="form-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">🏥</span>
+                Nombre del Centro
+              </label>
+              <input [(ngModel)]="centroAtencion.nombre" name="nombre" class="form-control form-control-modern"
+                placeholder="Nombre del centro de atención" required #nombre="ngModel">
+              @if (nombre.invalid && (nombre.dirty || nombre.touched)) {
+                <div class="form-help text-danger">
+                  El nombre del centro es requerido.
+                </div>
+              }
+              <div class="form-help">
+                Ingrese el nombre completo del centro de atención médica.
+              </div>
             </div>
-            <div class="form-help">
-              Ingrese el nombre completo del centro de atención médica.
+          </div>
+          <div class="col-12">
+            <div class="form-group-modern">
+              <label class="form-label-modern">
+                <span class="form-icon" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">📍</span>
+                Dirección
+              </label>
+              <input [(ngModel)]="centroAtencion.direccion" name="direccion" class="form-control form-control-modern"
+                placeholder="Dirección completa del centro" required #direccion="ngModel">
+              @if (direccion.invalid && (direccion.dirty || direccion.touched)) {
+                <div class="form-help text-danger">
+                  La dirección es requerida.
+                </div>
+              }
+              <div class="form-help">
+                Ingrese la dirección completa donde se ubica el centro.
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group-modern">
+              <label class="form-label-modern">
+                <span class="form-icon" style="background: linear-gradient(135deg, #fd7e14 0%, #e8630a 100%);">🏙️</span>
+                Localidad
+              </label>
+              <input [(ngModel)]="centroAtencion.localidad" name="localidad" class="form-control form-control-modern"
+                placeholder="Localidad donde se encuentra" required #localidad="ngModel">
+              @if (localidad.invalid && (localidad.dirty || localidad.touched)) {
+                <div class="form-help text-danger">
+                  La localidad es requerida.
+                </div>
+              }
+              <div class="form-help">
+                Especifique la localidad del centro de atención.
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group-modern">
+              <label class="form-label-modern">
+                <span class="form-icon" style="background: linear-gradient(135deg, #e83e8c 0%, #d91a72 100%);">🗺️</span>
+                Provincia
+              </label>
+              <input [(ngModel)]="centroAtencion.provincia" name="provincia" class="form-control form-control-modern"
+                placeholder="Provincia" required #provincia="ngModel">
+              @if (provincia.invalid && (provincia.dirty || provincia.touched)) {
+                <div class="form-help text-danger">
+                  La provincia es requerida.
+                </div>
+              }
+              <div class="form-help">
+                Indique la provincia donde se ubica el centro.
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group-modern">
+              <label class="form-label-modern">
+                <span class="form-icon" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);">📞</span>
+                Teléfono
+              </label>
+              <input [(ngModel)]="centroAtencion.telefono" name="telefono" class="form-control form-control-modern"
+                placeholder="Número de teléfono" pattern="^[0-9]*$" required #telefono="ngModel">
+              @if (telefono.invalid && (telefono.dirty || telefono.touched)) {
+                <div class="form-help text-danger">
+                  @if (telefono.errors?.['pattern']) {
+                    <div>Solo se permiten números.</div>
+                  }
+                  @if (telefono.errors?.['required']) {
+                    <div>El teléfono es requerido.</div>
+                  }
+                </div>
+              }
+              <div class="form-help">
+                Número de contacto del centro (solo números).
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group-modern">
+              <label class="form-label-modern">
+                <span class="form-icon" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">🌍</span>
+                Coordenadas GPS
+              </label>
+              <input [(ngModel)]="coordenadas" (ngModelChange)="onCoordinatesChanged()" name="coordenadas"
+                class="form-control form-control-modern" placeholder="latitud,longitud (ej: -34.6037,-58.3816)">
+              <div class="form-help">
+                Formato: latitud,longitud o use el botón para marcar en el mapa.
+              </div>
+              <button type="button" class="btn btn-modern btn-secondary mt-2" (click)="onToggleMap()">
+                <i class="fa fa-map-marker me-2"></i> Marcar en Mapa
+              </button>
             </div>
           </div>
         </div>
-
-        <div class="col-12">
-          <div class="form-group-modern">
-            <label class="form-label-modern">
-              <span class="form-icon" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">📍</span>
-              Dirección
-            </label>
-            <input [(ngModel)]="centroAtencion.direccion" name="direccion" class="form-control form-control-modern"
-              placeholder="Dirección completa del centro" required #direccion="ngModel">
-            <div *ngIf="direccion.invalid && (direccion.dirty || direccion.touched)" class="form-help text-danger">
-              La dirección es requerida.
+        <!-- Map Container -->
+        @if (showMap) {
+          <div class="mt-4">
+            <div class="map-container">
+              <div id="map" style="height: 400px; width: 100%;"></div>
             </div>
-            <div class="form-help">
-              Ingrese la dirección completa donde se ubica el centro.
+            <div class="mt-3">
+              <input [(ngModel)]="searchQuery" name="searchQuery" placeholder="Buscar ubicación..."
+                class="form-control form-control-modern me-2" style="display: inline-block; width: auto;">
+              <button type="button" class="btn btn-modern btn-success" (click)="onSearchLocation()">
+                <i class="fa fa-search me-2"></i> Buscar
+              </button>
             </div>
           </div>
-        </div>
-
-        <div class="col-12">
-          <div class="form-group-modern">
-            <label class="form-label-modern">
-              <span class="form-icon" style="background: linear-gradient(135deg, #fd7e14 0%, #e8630a 100%);">🏙️</span>
-              Localidad
-            </label>
-            <input [(ngModel)]="centroAtencion.localidad" name="localidad" class="form-control form-control-modern"
-              placeholder="Localidad donde se encuentra" required #localidad="ngModel">
-            <div *ngIf="localidad.invalid && (localidad.dirty || localidad.touched)" class="form-help text-danger">
-              La localidad es requerida.
-            </div>
-            <div class="form-help">
-              Especifique la localidad del centro de atención.
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="form-group-modern">
-            <label class="form-label-modern">
-              <span class="form-icon" style="background: linear-gradient(135deg, #e83e8c 0%, #d91a72 100%);">🗺️</span>
-              Provincia
-            </label>
-            <input [(ngModel)]="centroAtencion.provincia" name="provincia" class="form-control form-control-modern"
-              placeholder="Provincia" required #provincia="ngModel">
-            <div *ngIf="provincia.invalid && (provincia.dirty || provincia.touched)" class="form-help text-danger">
-              La provincia es requerida.
-            </div>
-            <div class="form-help">
-              Indique la provincia donde se ubica el centro.
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="form-group-modern">
-            <label class="form-label-modern">
-              <span class="form-icon" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);">📞</span>
-              Teléfono
-            </label>
-            <input [(ngModel)]="centroAtencion.telefono" name="telefono" class="form-control form-control-modern"
-              placeholder="Número de teléfono" pattern="^[0-9]*$" required #telefono="ngModel">
-            <div *ngIf="telefono.invalid && (telefono.dirty || telefono.touched)" class="form-help text-danger">
-              <div *ngIf="telefono.errors?.['pattern']">Solo se permiten números.</div>
-              <div *ngIf="telefono.errors?.['required']">El teléfono es requerido.</div>
-            </div>
-            <div class="form-help">
-              Número de contacto del centro (solo números).
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="form-group-modern">
-            <label class="form-label-modern">
-              <span class="form-icon" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">🌍</span>
-              Coordenadas GPS
-            </label>
-            <input [(ngModel)]="coordenadas" (ngModelChange)="onCoordinatesChanged()" name="coordenadas"
-              class="form-control form-control-modern" placeholder="latitud,longitud (ej: -34.6037,-58.3816)">
-            <div class="form-help">
-              Formato: latitud,longitud o use el botón para marcar en el mapa.
-            </div>
-            <button type="button" class="btn btn-modern btn-secondary mt-2" (click)="onToggleMap()">
-              <i class="fa fa-map-marker me-2"></i> Marcar en Mapa
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Map Container -->
-      <div *ngIf="showMap" class="mt-4">
-        <div class="map-container">
-          <div id="map" style="height: 400px; width: 100%;"></div>
-        </div>
-        <div class="mt-3">
-          <input [(ngModel)]="searchQuery" name="searchQuery" placeholder="Buscar ubicación..."
-            class="form-control form-control-modern me-2" style="display: inline-block; width: auto;">
-          <button type="button" class="btn btn-modern btn-success" (click)="onSearchLocation()">
-            <i class="fa fa-search me-2"></i> Buscar
-          </button>
-        </div>
-      </div>
-    </form>
+        }
+      </form>
+    }
   </div>
 
   <!-- FOOTER DEL CARD -->
   <div class="card-footer">
     <div class="d-flex gap-2 flex-wrap">
       <!-- Botones en modo vista -->
-      <ng-container *ngIf="!modoEdicion">
+      @if (!modoEdicion) {
         <button type="button" class="btn btn-modern btn-back" (click)="onGoBack()">
           ← Volver
         </button>
         <!-- Solo SUPERADMIN puede editar/eliminar -->
-        <button type="button" class="btn btn-modern btn-edit" (click)="onActivarEdicion()" *ngIf="canEdit">
-          ✏️ Editar
-        </button>
-        <button type="button" class="btn btn-modern btn-delete ms-auto" (click)="onConfirmDelete(centroAtencion)"
-          *ngIf="centroAtencion.id && canEdit">
-          🗑️ Eliminar
-        </button>
-      </ng-container>
+        @if (canEdit) {
+          <button type="button" class="btn btn-modern btn-edit" (click)="onActivarEdicion()">
+            ✏️ Editar
+          </button>
+        }
+        @if (centroAtencion.id && canEdit) {
+          <button type="button" class="btn btn-modern btn-delete ms-auto" (click)="onConfirmDelete(centroAtencion)"
+            >
+            🗑️ Eliminar
+          </button>
+        }
+      }
 
       <!-- Botones en modo edición -->
-      <ng-container *ngIf="modoEdicion">
+      @if (modoEdicion) {
         <button type="submit" class="btn btn-modern btn-save" [disabled]="onAllFieldsEmpty()" (click)="onSave()">
           💾 Guardar
         </button>
         <button type="button" class="btn btn-modern btn-cancel" (click)="onCancelar()">
           ❌ Cancelar
         </button>
-      </ng-container>
+      }
     </div>
   </div>
 </div>
 
 <!-- Map Modal Component -->
-<app-map-modal *ngIf="showMap" (locationSelected)="onLocationSelected($event)">
-</app-map-modal>
+@if (showMap) {
+  <app-map-modal (locationSelected)="onLocationSelected($event)">
+  </app-map-modal>
+}

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,6 +13,7 @@ import { TurnoModalComponent } from './turno-modal.component';
   standalone: true,
   imports: [CommonModule, FormsModule, TurnoModalComponent],
   templateUrl: './audit-dashboard.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./audit-dashboard.component.css']
 })
 export class AuditDashboardComponent implements OnInit {

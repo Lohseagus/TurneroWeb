@@ -42,11 +42,11 @@ public interface EsquemaTurnoRepository extends JpaRepository<EsquemaTurno, Inte
         JOIN et.consultorio c
         JOIN et.centroAtencion ca
         WHERE (:staffMedico IS NULL OR 
-               LOWER(CONCAT(m.nombre, ' ', m.apellido)) LIKE LOWER(CONCAT('%', :staffMedico, '%')))
+               LOWER(CONCAT(m.nombre, ' ', m.apellido)) LIKE LOWER(CONCAT('%', CAST(:staffMedico AS string), '%')))
            AND (:consultorio IS NULL OR 
-                LOWER(c.nombre) LIKE LOWER(CONCAT('%', :consultorio, '%')))
+                LOWER(c.nombre) LIKE LOWER(CONCAT('%', CAST(:consultorio AS string), '%')))
            AND (:centro IS NULL OR 
-                LOWER(ca.nombre) LIKE LOWER(CONCAT('%', :centro, '%')))
+                LOWER(ca.nombre) LIKE LOWER(CONCAT('%', CAST(:centro AS string), '%')))
         """)
     Page<EsquemaTurno> findByFiltros(@Param("staffMedico") String staffMedico,
                                      @Param("consultorio") String consultorio,

@@ -1,5 +1,5 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ObraSocialService } from './obraSocial.service';
@@ -10,8 +10,9 @@ import { DataPackage } from '../data.package';
 @Component({
   selector: 'app-obra-social-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './obraSocial-detail.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './obraSocial-detail.component.css'
 })
 export class ObraSocialDetailComponent implements OnInit {

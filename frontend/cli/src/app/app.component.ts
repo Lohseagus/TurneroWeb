@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from "@angular/core";
 import {
   RouterOutlet,
   Router,
@@ -6,7 +6,7 @@ import {
   RouterLink,
 } from "@angular/router";
 import { NgbDropdownModule } from "@ng-bootstrap/ng-bootstrap";
-import { CommonModule } from "@angular/common";
+
 import { filter, map, combineLatest } from "rxjs/operators";
 import { NotificacionService } from "./services/notificacion.service";
 import { Subscription, Observable } from "rxjs";
@@ -19,8 +19,9 @@ import { ToastComponent } from "./components/toast/toast.component";
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [RouterOutlet, NgbDropdownModule, CommonModule, RouterLink, SidebarComponent, ToastComponent],
+  imports: [RouterOutlet, NgbDropdownModule, RouterLink, SidebarComponent, ToastComponent],
   templateUrl: "./app.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./app.component.css", 
 })
 export class AppComponent implements OnInit, OnDestroy {

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router } from '@angular/router';
 import { DisponibilidadMedicoService } from '../disponibilidadMedicos/disponibilidadMedico.service';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
@@ -18,8 +18,9 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-esquema-turno',
   standalone: true,
-  imports: [CommonModule, RouterModule, PaginationComponent,FormsModule],
+  imports: [RouterModule, PaginationComponent, FormsModule],
   templateUrl: './esquemaTurno.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './esquemaTurno.component.css'
 })
 export class EsquemaTurnoComponent {

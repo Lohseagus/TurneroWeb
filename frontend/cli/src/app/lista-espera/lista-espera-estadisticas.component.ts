@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ListaEsperaService } from './lista-espera.service';
 import { EspecialidadService } from '../especialidades/especialidad.service';
@@ -26,8 +26,9 @@ interface EstadisticaEspecialidad {
 @Component({
     selector: 'app-lista-espera-estadisticas',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [ReactiveFormsModule],
     templateUrl: './lista-espera-estadisticas.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrls: ['./lista-espera-estadisticas.component.css']
 })
 export class ListaEsperaEstadisticasComponent implements OnInit {

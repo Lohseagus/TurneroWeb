@@ -17,7 +17,7 @@ public class JacksonConfig {
         mapper.registerModule(new JavaTimeModule());
         
         // Configuración adicional para no incluir propiedades nulas
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         
         // Desactivar la escritura de fechas como timestamps
         mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

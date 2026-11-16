@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -18,6 +18,7 @@ import { ModalService } from "../modal/modal.service";
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: "./turno-detail.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./turno-detail.component.css",
 })
 export class TurnoDetailComponent {

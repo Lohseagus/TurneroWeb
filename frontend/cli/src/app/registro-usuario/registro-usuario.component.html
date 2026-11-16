@@ -10,7 +10,7 @@
   <!-- Card de Registro centrado -->
   <div class="login-page-content">
     <div class="card login-card" [@slideUp]>
-      
+
       <!-- Link de login -->
       <div class="register-prompt">
         <p class="text-small">
@@ -20,22 +20,26 @@
       </div>
 
       <form #registroForm="ngForm" (ngSubmit)="onSubmit(registroForm)" novalidate>
-        
+
         <h3>Crea tu cuenta de paciente</h3>
 
         <!-- Mensajes de estado -->
-        <div class="alert-success" *ngIf="successMessage" [@fadeIn]>
-          <span class="material-symbols-outlined">check_circle</span>
-          <span>{{ successMessage }}</span>
-        </div>
+        @if (successMessage) {
+          <div class="alert-success" [@fadeIn]>
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>{{ successMessage }}</span>
+          </div>
+        }
 
-        <div class="alert-error" *ngIf="errorMessage" [@fadeIn]>
-          <span class="material-symbols-outlined">error</span>
-          <span>{{ errorMessage }}</span>
-          <button type="button" class="btn-close-alert" (click)="limpiarMensajes()">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
+        @if (errorMessage) {
+          <div class="alert-error" [@fadeIn]>
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="btn-close-alert" (click)="limpiarMensajes()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        }
 
         <!-- Nombre y Apellido -->
         <div class="form-row">
@@ -59,10 +63,12 @@
               (keypress)="onlyText($event)"
               (paste)="validateTextPaste($event)"
               autocomplete="given-name"
-            />
-            <small class="invalid-feedback" *ngIf="nombre.invalid && nombre.touched">
-              El nombre es requerido
-            </small>
+              />
+            @if (nombre.invalid && nombre.touched) {
+              <small class="invalid-feedback">
+                El nombre es requerido
+              </small>
+            }
           </div>
 
           <div class="form-group">
@@ -85,10 +91,12 @@
               (keypress)="onlyText($event)"
               (paste)="validateTextPaste($event)"
               autocomplete="family-name"
-            />
-            <small class="invalid-feedback" *ngIf="apellido.invalid && apellido.touched">
-              El apellido es requerido
-            </small>
+              />
+            @if (apellido.invalid && apellido.touched) {
+              <small class="invalid-feedback">
+                El apellido es requerido
+              </small>
+            }
           </div>
         </div>
 
@@ -114,10 +122,12 @@
             (keypress)="onlyNumbers($event)"
             (paste)="validateNumberPaste($event)"
             autocomplete="off"
-          />
-          <small class="invalid-feedback" *ngIf="dni.invalid && dni.touched">
-            Campo obligatorio (7 a 10 dígitos)
-          </small>
+            />
+          @if (dni.invalid && dni.touched) {
+            <small class="invalid-feedback">
+              Campo obligatorio (7 a 10 dígitos)
+            </small>
+          }
         </div>
 
         <!-- Teléfono -->
@@ -134,7 +144,7 @@
               [(ngModel)]="usuario.codigoPais"
               required
               #countryCode="ngModel"
-            >
+              >
               <option value="+54">🇦🇷 AR (+54)</option>
               <option value="+55">🇧🇷 BR (+55)</option>
               <option value="+56">🇨🇱 CL (+56)</option>
@@ -163,12 +173,14 @@
               (keypress)="onlyNumbers($event)"
               (paste)="validateNumberPaste($event)"
               autocomplete="tel"
-            />
+              />
           </div>
           <small class="form-text">Selecciona el país e ingresa tu número de teléfono</small>
-          <small class="invalid-feedback" *ngIf="telefono.invalid && telefono.touched">
-            Número de teléfono inválido
-          </small>
+          @if (telefono.invalid && telefono.touched) {
+            <small class="invalid-feedback">
+              Número de teléfono inválido
+            </small>
+          }
         </div>
 
         <!-- Email -->
@@ -190,10 +202,12 @@
             title="Ingresa un email válido"
             #email="ngModel"
             autocomplete="email"
-          />
-          <small class="invalid-feedback" *ngIf="email.invalid && email.touched">
-            Ingresa un email válido
-          </small>
+            />
+          @if (email.invalid && email.touched) {
+            <small class="invalid-feedback">
+              Ingresa un email válido
+            </small>
+          }
         </div>
 
         <!-- Contraseña y Confirmar Contraseña -->
@@ -217,13 +231,21 @@
               title="Mínimo 8 caracteres, debe incluir letras y números"
               #password="ngModel"
               autocomplete="new-password"
-            />
+              />
             <small class="form-text">Mínimo 8 caracteres con letras y números</small>
-            <small class="invalid-feedback" *ngIf="password.invalid && password.touched">
-              <span *ngIf="password.errors?.['required']">La contraseña es requerida</span>
-              <span *ngIf="password.errors?.['minlength']">Mínimo 8 caracteres</span>
-              <span *ngIf="password.errors?.['pattern']">Debe incluir letras y números</span>
-            </small>
+            @if (password.invalid && password.touched) {
+              <small class="invalid-feedback">
+                @if (password.errors?.['required']) {
+                  <span>La contraseña es requerida</span>
+                }
+                @if (password.errors?.['minlength']) {
+                  <span>Mínimo 8 caracteres</span>
+                }
+                @if (password.errors?.['pattern']) {
+                  <span>Debe incluir letras y números</span>
+                }
+              </small>
+            }
           </div>
 
           <div class="form-group">
@@ -243,14 +265,18 @@
               title="Debe coincidir con la contraseña"
               #confirmPassword="ngModel"
               autocomplete="new-password"
-            />
+              />
             <small class="form-text">Debe coincidir con la contraseña</small>
-            <small class="invalid-feedback" *ngIf="confirmPassword.invalid && confirmPassword.touched">
-              Confirma tu contraseña
-            </small>
-            <small class="invalid-feedback" *ngIf="!passwordsMatch() && confirmPassword.touched">
-              Las contraseñas no coinciden
-            </small>
+            @if (confirmPassword.invalid && confirmPassword.touched) {
+              <small class="invalid-feedback">
+                Confirma tu contraseña
+              </small>
+            }
+            @if (!passwordsMatch() && confirmPassword.touched) {
+              <small class="invalid-feedback">
+                Las contraseñas no coinciden
+              </small>
+            }
           </div>
         </div>
 
@@ -258,9 +284,13 @@
           type="submit"
           class="btn btn-success btn-full-width"
           [disabled]="registroForm.invalid || !passwordsMatch() || isLoading"
-        >
-          <span class="material-symbols-outlined" *ngIf="!isLoading">person_add</span>
-          <span class="material-symbols-outlined spinner" *ngIf="isLoading">sync</span>
+          >
+          @if (!isLoading) {
+            <span class="material-symbols-outlined">person_add</span>
+          }
+          @if (isLoading) {
+            <span class="material-symbols-outlined spinner">sync</span>
+          }
           {{ isLoading ? "Registrando..." : "Crear Cuenta" }}
         </button>
       </form>

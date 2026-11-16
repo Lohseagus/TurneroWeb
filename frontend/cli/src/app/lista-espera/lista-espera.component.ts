@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CentroAtencionService } from '../centrosAtencion/centroAtencion.service';
@@ -26,6 +26,7 @@ import { CommonModule, DatePipe } from '@angular/common';
         RouterModule
     ],
     templateUrl: './lista-espera.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrls: ['./lista-espera.component.css']
 })
 export class ListaEsperaComponent implements OnInit {

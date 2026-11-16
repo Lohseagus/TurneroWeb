@@ -1,5 +1,5 @@
-import { Component, OnInit, AfterViewInit, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, Input, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
@@ -13,8 +13,9 @@ import { DisponibilidadMedicoService } from '../../../disponibilidadMedicos/disp
 @Component({
   selector: 'app-esquema-turno-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   styleUrl: './esquema-turno-modal.component.css',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './esquema-turno-modal.component.html',
 })
 export class EsquemaTurnoModalComponent implements OnInit, AfterViewInit {

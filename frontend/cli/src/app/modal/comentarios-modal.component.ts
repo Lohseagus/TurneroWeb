@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { EncuestaDetalle } from '../models/encuesta-detalle';
 
@@ -8,6 +8,7 @@ import { EncuestaDetalle } from '../models/encuesta-detalle';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './comentarios-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./comentarios-modal.component.css']
 })
 export class ComentariosModalComponent {

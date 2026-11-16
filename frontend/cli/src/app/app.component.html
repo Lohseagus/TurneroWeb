@@ -1,9 +1,10 @@
 <!-- SIDEBAR DINÁMICO (Menú lateral basado en roles) - Solo visible para usuarios autenticados -->
-<app-sidebar 
-  *ngIf="isAuthenticated()" 
-  [class.sidebar-closed]="!sidebarOpen"
-  (toggleSidebar)="sidebarOpen = !sidebarOpen">
-</app-sidebar>
+@if (isAuthenticated()) {
+  <app-sidebar
+    [class.sidebar-closed]="!sidebarOpen"
+    (toggleSidebar)="sidebarOpen = !sidebarOpen">
+  </app-sidebar>
+}
 
 <!-- NAVBAR SUPERIOR SIMPLIFICADO -->
 <nav class="modern-navbar">
@@ -24,64 +25,69 @@
     <!-- USER SECTION -->
     <div class="user-section">
       <!-- Quick Access Audit Buttons (Admin only) -->
-      <div class="quick-access" *ngIf="isAdmin()">
-        <button
-          class="quick-btn audit-btn"
-          (click)="navigateTo('/turnos/audit-dashboard')"
-          title="Dashboard de Auditoría"
-        >
-          <span class="material-symbols-outlined">shield</span>
-        </button>
-      </div>
+      @if (isAdmin()) {
+        <div class="quick-access">
+          <button
+            class="quick-btn audit-btn"
+            (click)="navigateTo('/turnos/audit-dashboard')"
+            title="Dashboard de Auditoría"
+            >
+            <span class="material-symbols-outlined">shield</span>
+          </button>
+        </div>
+      }
 
       <!-- Login Button (for non-authenticated users) -->
-      <button
-        class="btn btn-primary login-button"
-        *ngIf="!isAuthenticated()"
-        (click)="goToLogin()"
-      >
-        <span class="material-symbols-outlined">login</span>
-        <span>Iniciar Sesión</span>
-      </button>
+      @if (!isAuthenticated()) {
+        <button
+          class="btn btn-primary login-button"
+          (click)="goToLogin()"
+          >
+          <span class="material-symbols-outlined">login</span>
+          <span>Iniciar Sesión</span>
+        </button>
+      }
 
       <!-- User Menu (for authenticated users) -->
-      <div ngbDropdown class="nav-dropdown" *ngIf="isAuthenticated()">
-        <button class="user-button" ngbDropdownToggle id="userDropdown">
-          <div class="user-avatar">
-            <span class="material-symbols-outlined">person</span>
-          </div>
-          <div class="user-info">
-            <span class="user-name">{{ getUserName() }}</span>
-            <span class="user-role">{{ getUserRoleDisplay() }}</span>
-          </div>
-        </button>
-        <div
-          ngbDropdownMenu
-          class="modern-dropdown user-dropdown"
-          aria-labelledby="userDropdown"
-        >
-          <a
-            ngbDropdownItem
-            class="dropdown-item"
-            (click)="goToUserProfile()"
-          >
-            <span class="material-symbols-outlined icon-item icon-configuracion">
-              settings
-            </span>
-            <div class="item-content">
-              <span class="item-title">Configuración</span>
+      @if (isAuthenticated()) {
+        <div ngbDropdown class="nav-dropdown">
+          <button class="user-button" ngbDropdownToggle id="userDropdown">
+            <div class="user-avatar">
+              <span class="material-symbols-outlined">person</span>
             </div>
-          </a>
-          <a ngbDropdownItem class="dropdown-item" (click)="logout()">
-            <span class="material-symbols-outlined icon-item icon-logout">
-              logout
-            </span>
-            <div class="item-content">
-              <span class="item-title">Cerrar Sesión</span>
+            <div class="user-info">
+              <span class="user-name">{{ getUserName() }}</span>
+              <span class="user-role">{{ getUserRoleDisplay() }}</span>
             </div>
-          </a>
+          </button>
+          <div
+            ngbDropdownMenu
+            class="modern-dropdown user-dropdown"
+            aria-labelledby="userDropdown"
+            >
+            <a
+              ngbDropdownItem
+              class="dropdown-item"
+              (click)="goToUserProfile()"
+              >
+              <span class="material-symbols-outlined icon-item icon-configuracion">
+                settings
+              </span>
+              <div class="item-content">
+                <span class="item-title">Configuración</span>
+              </div>
+            </a>
+            <a ngbDropdownItem class="dropdown-item" (click)="logout()">
+              <span class="material-symbols-outlined icon-item icon-logout">
+                logout
+              </span>
+              <div class="item-content">
+                <span class="item-title">Cerrar Sesión</span>
+              </div>
+            </a>
+          </div>
         </div>
-      </div>
+      }
     </div>
   </div>
 </nav>
@@ -91,7 +97,7 @@
   class="main-content"
   [class.main-content--no-sidebar]="!isAuthenticated()"
   [class.sidebar-closed]="!sidebarOpen && isAuthenticated()"
->
+  >
   <router-outlet></router-outlet>
 </main>
 

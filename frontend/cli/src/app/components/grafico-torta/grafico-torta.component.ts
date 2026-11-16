@@ -1,12 +1,13 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { NgChartsModule } from 'ng2-charts';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+
+import { BaseChartDirective } from 'ng2-charts';
 
 @Component({
   selector: 'app-grafico-torta',
   standalone: true,
-  imports: [CommonModule, NgChartsModule],
+  imports: [BaseChartDirective],
   templateUrl: './grafico-torta.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./grafico-torta.component.css']
 })
 export class GraficoTortaComponent {

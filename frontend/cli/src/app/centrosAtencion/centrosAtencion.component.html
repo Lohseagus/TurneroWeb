@@ -9,18 +9,19 @@
           <p class="text-muted mb-0 mt-sm">Gestión de centros médicos y establecimientos de salud</p>
         </div>
       </div>
-      
+
       <!-- Solo SUPERADMIN puede crear centros -->
-      <button
-        *ngIf="isSuperAdmin"
-        type="button"
-        class="btn btn-primary"
-        (click)="router.navigate(['/centrosAtencion/new'])"
-        aria-label="Crear nuevo centro de atención"
-      >
-        <span class="material-symbols-outlined me-2" aria-hidden="true">add</span>
-        <span class="d-none d-sm-inline">Nuevo Centro</span>
-      </button>
+      @if (isSuperAdmin) {
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="router.navigate(['/centrosAtencion/new'])"
+          aria-label="Crear nuevo centro de atención"
+          >
+          <span class="material-symbols-outlined me-2" aria-hidden="true">add</span>
+          <span class="d-none d-sm-inline">Nuevo Centro</span>
+        </button>
+      }
     </div>
 
     <!-- Tabla -->
@@ -73,72 +74,79 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            *ngFor="let centro of resultsPage.content || []; let i = index"
-            [class.selected]="centro.id === selectedId"
-            (click)="goToDetail(centro.id)"
-            role="button"
-            [attr.aria-label]="'Ver detalles de ' + centro.nombre"
-            tabindex="0"
-          >
-            <td>
-              <div class="d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined text-primary" aria-hidden="true">local_hospital</span>
-                <strong>{{ centro.nombre }}</strong>
-              </div>
-            </td>
-            <td>{{ centro.direccion }}</td>
-            <td>{{ centro.localidad }}</td>
-            <td>{{ centro.provincia }}</td>
-            <td>
-              <div class="d-flex align-items-center gap-xs">
-                <span class="material-symbols-outlined text-muted phone-icon" aria-hidden="true">call</span>
-                {{ centro.telefono }}
-              </div>
-            </td>
-            <td>
-              <div class="d-flex align-items-center gap-xs">
-                <span class="text-muted">{{ centro.latitud }}, {{ centro.longitud }}</span>
-              </div>
-            </td>
-            <td>
-              <!-- Solo SUPERADMIN puede editar/eliminar centros -->
-              <div class="d-flex gap-xs" *ngIf="isSuperAdmin">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  (click)="goToEdit(centro.id); $event.stopPropagation()"
-                  [attr.aria-label]="'Editar ' + centro.nombre"
-                  title="Editar centro"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-danger"
-                  (click)="remove(centro); $event.stopPropagation()"
-                  [attr.aria-label]="'Eliminar ' + centro.nombre"
-                  title="Eliminar centro"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </div>
-              <!-- Para otros roles, solo ver -->
-              <div *ngIf="!isSuperAdmin" class="text-muted">
-                <span class="material-symbols-outlined">visibility</span>
-              </div>
-            </td>
-          </tr>
-          
+          @for (centro of resultsPage.content || []; track centro; let i = $index) {
+            <tr
+              [class.selected]="centro.id === selectedId"
+              (click)="goToDetail(centro.id)"
+              role="button"
+              [attr.aria-label]="'Ver detalles de ' + centro.nombre"
+              tabindex="0"
+              >
+              <td>
+                <div class="d-flex align-items-center gap-sm">
+                  <span class="material-symbols-outlined text-primary" aria-hidden="true">local_hospital</span>
+                  <strong>{{ centro.nombre }}</strong>
+                </div>
+              </td>
+              <td>{{ centro.direccion }}</td>
+              <td>{{ centro.localidad }}</td>
+              <td>{{ centro.provincia }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-xs">
+                  <span class="material-symbols-outlined text-muted phone-icon" aria-hidden="true">call</span>
+                  {{ centro.telefono }}
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-xs">
+                  <span class="text-muted">{{ centro.latitud }}, {{ centro.longitud }}</span>
+                </div>
+              </td>
+              <td>
+                <!-- Solo SUPERADMIN puede editar/eliminar centros -->
+                @if (isSuperAdmin) {
+                  <div class="d-flex gap-xs">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
+                      (click)="goToEdit(centro.id); $event.stopPropagation()"
+                      [attr.aria-label]="'Editar ' + centro.nombre"
+                      title="Editar centro"
+                      >
+                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger"
+                      (click)="remove(centro); $event.stopPropagation()"
+                      [attr.aria-label]="'Eliminar ' + centro.nombre"
+                      title="Eliminar centro"
+                      >
+                      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                    </button>
+                  </div>
+                }
+                <!-- Para otros roles, solo ver -->
+                @if (!isSuperAdmin) {
+                  <div class="text-muted">
+                    <span class="material-symbols-outlined">visibility</span>
+                  </div>
+                }
+              </td>
+            </tr>
+          }
+
           <!-- Estado vacío -->
-          <tr *ngIf="resultsPage.content?.length === 0">
-            <td colspan="8" class="text-center py-5">
-              <div class="d-flex flex-column align-items-center gap-md">
-                <span class="material-symbols-outlined empty-state-icon" aria-hidden="true">local_hospital</span>
-                <p class="text-muted mb-0">No hay centros de atención registrados</p>
-              </div>
-            </td>
-          </tr>
+          @if (resultsPage.content?.length === 0) {
+            <tr>
+              <td colspan="8" class="text-center py-5">
+                <div class="d-flex flex-column align-items-center gap-md">
+                  <span class="material-symbols-outlined empty-state-icon" aria-hidden="true">local_hospital</span>
+                  <p class="text-muted mb-0">No hay centros de atención registrados</p>
+                </div>
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
@@ -150,7 +158,7 @@
         [currentPage]="currentPage"
         (pageChangeRequested)="onPageChangeRequested($event)"
         [number]="resultsPage.number"
-      >
+        >
       </app-pagination>
     </div>
   </div>

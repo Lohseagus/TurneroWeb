@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { Consultorio, HorarioConsultorio } from '../../../consultorios/consultorio';
@@ -9,8 +9,9 @@ import { DataPackage } from '../../../data.package';
 @Component({
   selector: 'app-horarios-consultorio-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './horarios-consultorio-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './horarios-consultorio-modal.component.css' 
 })
 export class HorariosConsultorioModalComponent implements OnInit {

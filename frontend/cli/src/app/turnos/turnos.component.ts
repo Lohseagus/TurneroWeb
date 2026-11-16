@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { PaginationComponent } from '../pagination/pagination.component';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './turnos.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './turnos.component.css'
 })
 export class TurnosComponent {

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EspecialidadService } from './especialidad.service';
@@ -10,8 +10,9 @@ import { DataPackage } from '../data.package';
 @Component({
   selector: 'app-especialidad-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './especialidad-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './especialidad-detail.component.css'
 })
 export class EspecialidadDetailComponent {

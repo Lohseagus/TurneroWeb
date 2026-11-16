@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule, FormControl } from '@angular/forms';
 import { ListaEspera } from './lista-espera.model';
 import { PacienteService } from '../pacientes/paciente.service';
@@ -18,8 +18,9 @@ import { ToastService } from '../services/toast.service';
 @Component({
   selector: 'app-lista-espera-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [ReactiveFormsModule, FormsModule],
   templateUrl: './lista-espera-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./lista-espera-form.component.css']
 })
 export class ListaEsperaFormComponent implements OnInit {
