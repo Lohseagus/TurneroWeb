@@ -571,8 +571,10 @@ export class AuthService {
       },
       error: (error) => {
         console.log('❌ Error en refresh silencioso:', error);
-        // Si falla el refresh silencioso, la sesión ha expirado completamente
-        this.handleTokenExpired('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
+        // Es un intento silencioso (ej. al abrir la app con tokens viejos).
+        // Si falla, limpiar tokens sin mostrar el modal de "Sesión Expirada".
+        this.clearAllStorageData();
+        this.authStateSubject.next(false);
       }
     });
   }
@@ -1012,6 +1014,14 @@ export class AuthService {
    */
   public handleAuthError(error: any, customMessage?: string): void {
     if (error.status === 401 || error.status === 403) {
+      // Solo avisar "Sesión Expirada" si realmente había una sesión (tokens en storage).
+      // Para visitantes sin sesión activa, limpiar en silencio y no mostrar el modal.
+      const teniaSesion = !!this.getToken() || !!this.getRefreshToken();
+      if (!teniaSesion) {
+        this.clearAllStorageData();
+        this.authStateSubject.next(false);
+        return;
+      }
       const message = customMessage || 'Su sesión ha expirado o no tiene permisos. Por favor, inicie sesión nuevamente.';
       this.handleTokenExpired(message);
     }

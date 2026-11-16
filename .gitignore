@@ -5,3 +5,4 @@ image-tag.env
 node_modules/
 backend/target/
 .netlify
+docker-compose.override.yml
