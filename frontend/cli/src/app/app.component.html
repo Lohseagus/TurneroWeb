@@ -39,6 +39,7 @@
 
       <!-- Login Button (for non-authenticated users) -->
       @if (!isAuthenticated()) {
+        <a class="btn btn-outline-primary" routerLink="/planes">Planes</a>
         <button
           class="btn btn-primary login-button"
           (click)="goToLogin()"
@@ -98,6 +99,9 @@
   [class.main-content--no-sidebar]="!isAuthenticated()"
   [class.sidebar-closed]="!sidebarOpen && isAuthenticated()"
   >
+  @if (isAuthenticated()) {
+    <app-suscripcion-banner></app-suscripcion-banner>
+  }
   <router-outlet></router-outlet>
 </main>
 

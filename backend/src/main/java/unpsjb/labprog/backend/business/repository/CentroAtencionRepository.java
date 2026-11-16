@@ -52,4 +52,13 @@ public interface CentroAtencionRepository
     @Query("SELECT c FROM CentroAtencion c WHERE c.nombre = ?1")
     CentroAtencion findByNombre(String nombre);
 
+    long countByOrganizacion_Id(Integer organizacionId);
+
+    java.util.List<CentroAtencion> findByOrganizacionIsNull();
+
+    java.util.List<CentroAtencion> findByOrganizacion_Id(Integer organizacionId);
+
+    @Query("select count(distinct e.id) from CentroAtencion c join c.especialidades e where c.organizacion.id = :orgId")
+    long countEspecialidadesByOrganizacion(@Param("orgId") Integer orgId);
+
 }

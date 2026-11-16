@@ -207,6 +207,12 @@ public class SecurityConfig {
                                 .requestMatchers("/api/auth/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/publica", "/api/agenda/publica/**").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/deep-links/validate").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/saas/planes").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saas/cotizar").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saas/registro").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saas/webhooks/mercadopago").permitAll()
+                                .requestMatchers("/api/saas/admin/**").hasRole("SUPERADMIN")
+                                .requestMatchers("/api/saas/mi-suscripcion/**").hasRole("ADMINISTRADOR")
 
                                 // SUPERADMIN. El alta de operadores del centro sigue siendo de ADMINISTRADOR.
                                 .requestMatchers("/api/email/**").hasRole("SUPERADMIN")

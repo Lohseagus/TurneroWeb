@@ -76,4 +76,13 @@ public interface StaffMedicoRepository extends JpaRepository<StaffMedico, Intege
     @Query("SELECT COUNT(sm) > 0 FROM StaffMedico sm WHERE sm.medico.id = :medicoId AND sm.centroAtencion.id = :centroId")
     boolean existsByMedicoIdAndCentroId(@Param("medicoId") Integer medicoId, @Param("centroId") Integer centroId);
 
+    @Query("select count(distinct s.medico.id) from StaffMedico s where s.centroAtencion.organizacion.id = :orgId")
+    long countDistinctMedicosByOrganizacion(@Param("orgId") Integer orgId);
+
+    @Query("""
+            select count(distinct s.medico.id) from StaffMedico s
+            where s.centroAtencion.organizacion.id = :orgId and s.medico.id = :medicoId
+            """)
+    long countMedicoEnOrganizacion(@Param("orgId") Integer orgId, @Param("medicoId") Integer medicoId);
+
 }

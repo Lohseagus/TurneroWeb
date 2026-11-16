@@ -15,11 +15,12 @@ import { UserContextService, UserContext } from "./services/user-context.service
 import { SidebarComponent } from "./components/sidebar.component";
 import { MenuService } from "./services/menu.service";
 import { ToastComponent } from "./components/toast/toast.component";
+import { SuscripcionBannerComponent } from "./saas/suscripcion-banner.component";
 
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [RouterOutlet, NgbDropdownModule, RouterLink, SidebarComponent, ToastComponent],
+  imports: [RouterOutlet, NgbDropdownModule, RouterLink, SidebarComponent, ToastComponent, SuscripcionBannerComponent],
   templateUrl: "./app.component.html",
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./app.component.css", 

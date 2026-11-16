@@ -1,0 +1,93 @@
+<div class="saas-page" *ngIf="suscripcion as s">
+  <h1>Mi plan</h1>
+  <p class="saas-lead">{{ s.organizacion.nombre }} · {{ etiquetaEstado(s.estado) }}</p>
+
+  <div class="saas-alert aviso" *ngIf="s.soloLectura">
+    La cuenta está en solo lectura. No se pueden crear turnos ni recursos nuevos. Los datos de los pacientes siguen disponibles.
+    Registrá un pago o pedile a soporte que extienda la prueba.
+  </div>
+  <div class="saas-alert ok" *ngIf="s.estado === 'TRIAL'">
+    Te quedan {{ s.diasTrialRestantes }} días de prueba. No hace falta tarjeta hasta que decidas pagar.
+  </div>
+  <div class="saas-alert aviso" *ngIf="s.heredada">
+    Este centro ya operaba en CheTurno. La suscripción quedó activa para no interrumpir el trabajo y todavía no se factura.
+  </div>
+  <div class="saas-alert error" *ngIf="error">{{ error }}</div>
+  <div class="saas-alert ok" *ngIf="ok">{{ ok }}</div>
+
+  <div class="saas-kpis">
+    <div class="saas-kpi"><span>Plan</span><strong>{{ s.plan.nombre }}</strong></div>
+    <div class="saas-kpi"><span>Precio neto del período</span><strong>{{ formatoArs(s.precioVigente.neto) }}</strong></div>
+    <div class="saas-kpi"><span>Con IVA</span><strong>{{ formatoArs(s.precioVigente.total) }}</strong></div>
+    <div class="saas-kpi" *ngIf="s.estado === 'TRIAL'"><span>Fin de la prueba</span><strong>{{ s.fechaFinTrial }}</strong></div>
+  </div>
+
+  <section class="saas-panel" style="margin-bottom: 16px">
+    <h2>Uso y límites</h2>
+    <ul>
+      <li>Médicos: {{ s.uso.medicos }} / {{ tope(s.uso.maxMedicos) }}</li>
+      <li>Operadores: {{ s.uso.operadores }} / {{ tope(s.uso.maxOperadores) }}</li>
+      <li>Consultorios: {{ s.uso.consultorios }} / {{ tope(s.uso.maxConsultorios) }}</li>
+      <li>Sedes: {{ s.uso.centros }} / {{ tope(s.uso.maxCentros) }} ({{ s.uso.sedesIncluidas }} incluidas, {{ s.uso.sedesExtra }} extra)</li>
+      <li *ngIf="s.soportePrioritario">Soporte prioritario incluido</li>
+    </ul>
+    <p class="saas-nota">Mensual {{ formatoArs(s.precioMensual.neto) }} + IVA · Anual {{ formatoArs(s.precioAnual.neto) }} + IVA</p>
+  </section>
+
+  <form class="saas-form saas-panel" (ngSubmit)="guardar()" *ngIf="catalogo">
+    <h2>Cambiar plan o cupo</h2>
+    <label>Plan
+      <select name="plan" [(ngModel)]="planCodigo">
+        <option *ngFor="let plan of catalogo.planes" [value]="plan.codigo">{{ plan.nombre }}</option>
+      </select>
+    </label>
+    <label>Ciclo
+      <select name="ciclo" [(ngModel)]="ciclo">
+        <option value="MENSUAL">Mensual</option>
+        <option value="ANUAL">Anual</option>
+      </select>
+    </label>
+    <label>Profesionales contratados
+      <input type="number" name="cupo" [(ngModel)]="cupo" min="1">
+    </label>
+    <label class="saas-check" *ngFor="let addon of catalogo.addons">
+      <input type="checkbox" [checked]="addons.includes(addon.codigo)" (change)="toggleAddon(addon.codigo, $any($event.target).checked)">
+      <span>{{ addon.nombre }} — {{ formatoArs(addon.precioMensualNeto) }} + IVA<span *ngIf="addon.placeholder"> (placeholder)</span></span>
+    </label>
+    <div class="saas-actions">
+      <button class="btn btn-outline-primary" type="submit">Guardar cambios</button>
+      <button class="btn btn-primary" type="button" (click)="pagar()">Pagar ahora (simulado)</button>
+    </div>
+  </form>
+
+  <form class="saas-form saas-panel" style="margin-top: 16px" *ngIf="puedeAgregarSede" (ngSubmit)="crearSede()">
+    <h2>Agregar sede</h2>
+    <label>Nombre<input name="nombre" [(ngModel)]="sede.nombre" required></label>
+    <label>Dirección<input name="direccion" [(ngModel)]="sede.direccion" required></label>
+    <label>Localidad<input name="localidad" [(ngModel)]="sede.localidad" required></label>
+    <label>Provincia<input name="provincia" [(ngModel)]="sede.provincia" required></label>
+    <label>Teléfono<input name="telefono" [(ngModel)]="sede.telefono" required></label>
+    <button class="btn btn-outline-primary" type="submit">Crear sede</button>
+  </form>
+
+  <section class="saas-panel" style="margin-top: 16px" *ngIf="s.pagos.length">
+    <h2>Pagos</h2>
+    <div class="saas-table-wrap">
+      <table class="saas-table">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Total con IVA</th><th>Referencia</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let pago of s.pagos">
+            <td>{{ pago.fecha }}</td>
+            <td>{{ pago.tipo }}</td>
+            <td>{{ pago.estado }}</td>
+            <td>{{ formatoArs(pago.total) }}</td>
+            <td>{{ pago.mpPaymentId }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<div class="saas-page" *ngIf="!suscripcion && error">
+  <div class="saas-alert error">{{ error }}</div>
+</div>

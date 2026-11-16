@@ -19,6 +19,8 @@ import unpsjb.labprog.backend.dto.EspecialidadDTO;
 import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.Especialidad;
 import unpsjb.labprog.backend.model.AuditLog;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class EspecialidadService {
@@ -31,6 +33,9 @@ public class EspecialidadService {
     private CentroAtencionService centroAtencionService;
     @Autowired
     private AuditLogService auditLogService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     public List<EspecialidadDTO> findAll() {
         return repository.findAll().stream()
@@ -220,6 +225,7 @@ public class EspecialidadService {
             throw new IllegalStateException("La especialidad ya está asociada a este centro");
         }
 
+        suscripcionAccessService.assertOperacion(centroId, RecursoSaas.ESPECIALIDAD);
         centro.getEspecialidades().add(especialidad);
 
         centroAtencionService.save(centro);

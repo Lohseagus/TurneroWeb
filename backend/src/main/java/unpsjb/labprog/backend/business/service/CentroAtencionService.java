@@ -15,6 +15,8 @@ import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.dto.CentroAtencionDTO;
 import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.AuditLog;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class CentroAtencionService {
@@ -22,9 +24,13 @@ public class CentroAtencionService {
     private final CentroAtencionRepository repository;
     private final AuditLogService auditLogService;
 
-    public CentroAtencionService(CentroAtencionRepository repository, AuditLogService auditLogService) {
+    private final SuscripcionAccessService suscripcionAccessService;
+
+    public CentroAtencionService(CentroAtencionRepository repository, AuditLogService auditLogService,
+            SuscripcionAccessService suscripcionAccessService) {
         this.repository = repository;
         this.auditLogService = auditLogService;
+        this.suscripcionAccessService = suscripcionAccessService;
     }
 
     /**
@@ -133,6 +139,15 @@ public class CentroAtencionService {
 
         if (centro.getId() == null) {
             // 🚀 CREACIÓN
+            Integer centroDelActor = TenantContext.getCurrentCentroId();
+            if (centroDelActor != null) {
+                repository.findById(centroDelActor).ifPresent(origen -> {
+                    if (origen.getOrganizacion() != null) {
+                        suscripcionAccessService.assertOperacion(origen.getId(), RecursoSaas.CENTRO);
+                        centro.setOrganizacion(origen.getOrganizacion());
+                    }
+                });
+            }
             if (repository.existsByNombreAndDireccion(centro.getNombre(), centro.getDireccion())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Ya existe un centro de atención con ese nombre y dirección");
@@ -166,6 +181,9 @@ public class CentroAtencionService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Ya existe un centro de atención con ese nombre");
             }
+        }
+        if (!isNew && existente != null) {
+            centro.setOrganizacion(existente.getOrganizacion());
         }
         // Actualizar los datos
         centro.setNombre(dto.getNombre());

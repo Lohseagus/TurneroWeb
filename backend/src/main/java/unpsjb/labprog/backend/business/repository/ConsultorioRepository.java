@@ -20,4 +20,6 @@ public interface ConsultorioRepository extends JpaRepository<Consultorio, Intege
     boolean existsByNombreAndCentroAtencion(String nombre, CentroAtencion centro);
 
     List<Consultorio> findByNombreContainingIgnoreCase(String term);
+
+    long countByCentroAtencion_Organizacion_Id(Integer organizacionId);
 }

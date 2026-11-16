@@ -58,6 +58,10 @@
               <span class="material-symbols-outlined">search</span>
               Buscar centros cercanos
             </button>
+            <a class="btn btn-ghost" routerLink="/planes">
+              <span class="material-symbols-outlined">sell</span>
+              Planes para centros
+            </a>
             <button type="button" class="btn btn-ghost" routerLink="/paciente-agenda">
               <span class="material-symbols-outlined">calendar_today</span>
               Ver turnos disponibles
@@ -270,6 +274,7 @@
           @if (!isAuthenticated) {
             <a routerLink="/ingresar">Ingresar</a>
           }
+          <a routerLink="/planes">Planes</a>
           <a (click)="scrollToSection('buscador')">Buscar centro</a>
         </div>
         <div class="footer-column">

@@ -46,6 +46,8 @@ import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.business.repository.OperadorRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.exception.TenantAccessException;
 
 @Service
@@ -92,6 +94,9 @@ public class TurnoService {
 
     @Autowired
     private EncuestaInvitacionService encuestaInvitacionService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     // === VALIDACIONES DE TRANSICIÓN DE ESTADO ===
 
@@ -222,6 +227,20 @@ public class TurnoService {
             validarSolapamiento(turno, permitir);
 
             boolean isNewTurno = dto.getId() == null || dto.getId() == 0;
+            if (isNewTurno) {
+                Integer centroSuscripcionId = dto.getCentroId();
+                if (centroSuscripcionId == null && dto.getStaffMedicoId() != null) {
+                    centroSuscripcionId = staffMedicoRepository.findById(dto.getStaffMedicoId())
+                            .map(staff -> staff.getCentroAtencion().getId())
+                            .orElse(null);
+                }
+                if (centroSuscripcionId == null && dto.getConsultorioId() != null) {
+                    centroSuscripcionId = consultorioRepository.findById(dto.getConsultorioId())
+                            .map(consultorio -> consultorio.getCentroAtencion().getId())
+                            .orElse(null);
+                }
+                suscripcionAccessService.assertOperacion(centroSuscripcionId, RecursoSaas.TURNO);
+            }
             EstadoTurno previousStatus = null;
 
             if (!isNewTurno) {

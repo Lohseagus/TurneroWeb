@@ -46,6 +46,9 @@ public class UserService implements UserDetailsService {
     private AuditLogService auditLogService;
 
     @Autowired
+    private unpsjb.labprog.backend.saas.SuscripcionAccessService suscripcionAccessService;
+
+    @Autowired
     @Lazy
     private PacienteService pacienteService;
 
@@ -506,6 +509,9 @@ public class UserService implements UserDetailsService {
         if (performingAdmin.getCentroAtencion() == null) {
             throw new IllegalArgumentException("El administrador no tiene un centro asignado");
         }
+        suscripcionAccessService.assertOperacion(
+                performingAdmin.getCentroAtencion().getId(),
+                unpsjb.labprog.backend.saas.RecursoSaas.OPERADOR);
 
         // Generar contraseña temporal
         String temporaryPassword = UUID.randomUUID().toString().substring(0, 12);

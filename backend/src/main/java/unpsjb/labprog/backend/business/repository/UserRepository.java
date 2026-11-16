@@ -98,4 +98,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Cuenta usuarios habilitados (global)
      */
     long countByEnabled(boolean enabled);
+
+    long countByRoleAndCentroAtencion_Organizacion_Id(unpsjb.labprog.backend.model.Role role, Integer organizacionId);
+
+    boolean existsByTelefono(String telefono);
 }
