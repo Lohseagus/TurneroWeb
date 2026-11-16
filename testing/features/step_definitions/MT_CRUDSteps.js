@@ -66,8 +66,8 @@ When('intento crear un operador forzando centroAtencionId a {int}', function (ce
   };
   
   const result = POST(ENDPOINTS.ADMINS_CREATE_OPERADOR, operadorData, this.accessToken);
-  this.statusCode = result.dataPackageStatusCode; // Status del DataPackage
-  this.httpStatusCode = result.statusCode; // HTTP status
+  this.statusCode = result.statusCode; // status_code del DataPackage
+  this.httpStatusCode = result.httpStatusCode;
   this.response = result.response;
   this.lastCreatedOperador = result.response.data;
 });
@@ -173,8 +173,8 @@ When('creo un consultorio con:', function (dataTable) {
     result = POST(ENDPOINTS.CONSULTORIOS, consultorioData, this.accessToken);
   }
   
-  this.statusCode = result.dataPackageStatusCode || result.statusCode;
-  this.httpStatusCode = result.statusCode;
+  this.statusCode = result.statusCode;
+  this.httpStatusCode = result.httpStatusCode;
   this.response = result.response;
   this.lastCreatedConsultorio = result.response?.data;
 });
@@ -256,6 +256,12 @@ Then('NO veo consultorios de otros centros', function () {
   });
 });
 
+Then('veo al menos {int} consultorios', function (cantidad) {
+  const consultorios = this.response.data || [];
+  assert.ok(consultorios.length >= cantidad,
+    `Se esperaban al menos ${cantidad} consultorios, hay ${consultorios.length}`);
+});
+
 Then('la cantidad de consultorios es {int}', function (cantidad) {
   const consultorios = this.response.data;
   assert.strictEqual(consultorios.length, cantidad,
@@ -292,8 +298,8 @@ When('creo un administrador con:', function (dataTable) {
   };
   
   const result = POST(ENDPOINTS.ADMINS, adminData, this.accessToken);
-  this.statusCode = result.dataPackageStatusCode; // Status del DataPackage
-  this.httpStatusCode = result.statusCode; // HTTP status  
+  this.statusCode = result.statusCode; // status_code del DataPackage
+  this.httpStatusCode = result.httpStatusCode;  
   this.response = result.response;
   
   // Guardar RegisterSuccessResponse (email, fullName, message)
@@ -318,7 +324,7 @@ When('intento crear un administrador con email {string}', function (email) {
   };
   
   const result = POST(ENDPOINTS.ADMINS, adminData, this.accessToken);
-  this.statusCode = result.dataPackageStatusCode; // Status del DataPackage
+  this.statusCode = result.statusCode; // status_code del DataPackage
   this.response = result.response;
 });
 
@@ -334,8 +340,8 @@ When('intento crear un administrador via POST \\/admins', function () {
   };
   
   const result = POST(ENDPOINTS.ADMINS, adminData, this.accessToken);
-  this.statusCode = result.dataPackageStatusCode; // Status del DataPackage
-  this.httpStatusCode = result.statusCode; // HTTP status
+  this.statusCode = result.statusCode; // status_code del DataPackage
+  this.httpStatusCode = result.httpStatusCode;
   this.response = result.response;
 });
 
@@ -351,8 +357,8 @@ When('creo un administrador asignándolo al centro {int}', function (centroId) {
   };
   
   const result = POST(ENDPOINTS.ADMINS, adminData, this.accessToken);
-  this.statusCode = result.dataPackageStatusCode; // Status del DataPackage
-  this.httpStatusCode = result.statusCode; // HTTP status
+  this.statusCode = result.statusCode; // status_code del DataPackage
+  this.httpStatusCode = result.httpStatusCode;
   this.response = result.response;
   
   // Guardar RegisterSuccessResponse (email, fullName, message)
@@ -455,14 +461,23 @@ When('creo un médico con:', function (dataTable) {
   this.lastCreatedMedico = result.response.data;
 });
 
+function primeraEspecialidad(token) {
+  const result = GET(ENDPOINTS.ESPECIALIDADES, token);
+  const lista = (result.response && result.response.data) || [];
+  return lista.find((esp) => esp && esp.id) || null;
+}
+
 When('creo un médico usando el endpoint \\/medicos\\/create-by-admin con:', function (dataTable) {
   const data = dataTable.rowsHash();
+  const especialidad = primeraEspecialidad(this.accessToken);
   const medicoData = {
     nombre: data.nombre,
     apellido: data.apellido,
     email: data.email,
     dni: data.dni,
-    matricula: data.matricula
+    matricula: data.matricula,
+    telefono: `549${String(Date.now()).slice(-8)}`,
+    especialidadIds: especialidad ? [especialidad.id] : []
   };
   
   const result = POST(ENDPOINTS.MEDICOS_CREATE_BY_ADMIN, medicoData, this.accessToken);
@@ -511,6 +526,66 @@ Then('se crea automáticamente una asociación staff-medico con el centro {int}'
 // TURNOS
 // =====================================================================
 
+let turnoSlot = 0;
+
+function prepararAgendaLunes(centroId, token) {
+  const staffResult = GET(`${ENDPOINTS.STAFF_MEDICO}/centro/${centroId}`, token);
+  const staffMedico = staffResult.response && staffResult.response.data && staffResult.response.data[0];
+  const consultoriosResult = GET(`${ENDPOINTS.CONSULTORIOS}/centrosAtencion/${centroId}/consultorios`, token);
+  const consultorio = consultoriosResult.response && consultoriosResult.response.data && consultoriosResult.response.data[0];
+  if (!staffMedico || !consultorio) {
+    return null;
+  }
+  const horario = { dia: 'LUNES', horaInicio: '08:00:00', horaFin: '12:00:00' };
+  const disp = POST(ENDPOINTS.DISPONIBILIDADES_MEDICO, {
+    staffMedicoId: staffMedico.id,
+    horarios: [horario]
+  }, token);
+  let disponibilidadMedicoId = disp.response && disp.response.data && disp.response.data.id;
+  if (!disponibilidadMedicoId) {
+    const existente = GET(`${ENDPOINTS.DISPONIBILIDADES_MEDICO}/staffMedico/${staffMedico.id}`, token);
+    const lista = existente.response && existente.response.data;
+    disponibilidadMedicoId = Array.isArray(lista) && lista[0] ? lista[0].id : null;
+  }
+  if (disponibilidadMedicoId) {
+    POST(ENDPOINTS.ESQUEMA_TURNO, {
+      staffMedicoId: staffMedico.id,
+      consultorioId: consultorio.id,
+      centroId: centroId,
+      disponibilidadMedicoId: disponibilidadMedicoId,
+      intervalo: 20,
+      horarios: [horario]
+    }, token);
+  }
+  return { staffMedico, consultorio };
+}
+
+function proximoHorarioTurno() {
+  const index = turnoSlot++;
+  const date = new Date();
+  // Lunes futuro: la disponibilidad de prueba del médico de seed es los lunes
+  // de 08:00 a 12:00, y no se puede cancelar un turno del mismo día.
+  const weekday = date.getDay();
+  let add = (8 - weekday) % 7;
+  if (add === 0) add = 7;
+  add += Math.floor(index / 8) * 7;
+  date.setDate(date.getDate() + add);
+  const minutos = (8 * 60) + ((index % 8) * 20);
+  const fin = minutos + 20;
+  const hhmm = (total) => {
+    const h = String(Math.floor(total / 60)).padStart(2, '0');
+    const m = String(total % 60).padStart(2, '0');
+    return `${h}:${m}:00`;
+  };
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return {
+    fecha: `${date.getFullYear()}-${month}-${day}`,
+    horaInicio: hhmm(minutos),
+    horaFin: hhmm(fin)
+  };
+}
+
 When('creo un turno con:', function (dataTable) {
   const data = dataTable.rowsHash();
   
@@ -539,13 +614,15 @@ When('creo un turno con:', function (dataTable) {
   }
   const horaFin = data.horaFin || '10:30:00';
   
+  const agenda = prepararAgendaLunes(1, this.accessToken);
+  const slot = proximoHorarioTurno();
   const turnoData = {
     pacienteId: parseInt(pacienteId),
-    consultorioId: parseInt(consultorioId),
-    staffMedicoId: this.medicoDisponible?.id || 1,
-    fecha: fecha,
-    horaInicio: horaInicio,
-    horaFin: horaFin
+    consultorioId: agenda ? agenda.consultorio.id : parseInt(consultorioId),
+    staffMedicoId: (agenda && agenda.staffMedico.id) || this.medicoDisponible?.id || 1,
+    fecha: slot.fecha || fecha,
+    horaInicio: slot.horaInicio,
+    horaFin: slot.horaFin
   };
   
   const result = POST(ENDPOINTS.TURNOS, turnoData, this.accessToken);
@@ -561,14 +638,18 @@ When('creo un turno en un consultorio del centro {int}', function (centroId) {
   const consultoriosResult = GET(`${ENDPOINTS.CONSULTORIOS}/centrosAtencion/${centroId}/consultorios`, this.accessToken);
   
   if (consultoriosResult.statusCode === 200 && consultoriosResult.response.data?.length > 0) {
-    const consultorio = consultoriosResult.response.data[0];
-    
+    const agenda = prepararAgendaLunes(centroId, this.accessToken);
+    const consultorio = agenda ? agenda.consultorio : consultoriosResult.response.data[0];
+    const slot = proximoHorarioTurno();
+    const staffId = agenda ? agenda.staffMedico.id : 1;
+
     const turnoData = {
       pacienteId: 1,
       consultorioId: consultorio.id,
-      fecha: getFutureDate(7),
-      horaInicio: '10:00:00',
-      horaFin: '10:30:00'
+      staffMedicoId: staffId,
+      fecha: slot.fecha,
+      horaInicio: slot.horaInicio,
+      horaFin: slot.horaFin
     };
     
     const result = POST(ENDPOINTS.TURNOS, turnoData, this.accessToken);
@@ -682,7 +763,10 @@ Then('NO veo turnos de centros {int} y {int}', function (centro1, centro2) {
 // =====================================================================
 
 When('creo una especialidad con nombre {string}', function (nombre) {
-  const especialidadData = { nombre };
+  const especialidadData = {
+    nombre,
+    descripcion: `Descripción de ${nombre}`
+  };
   
   const result = POST(ENDPOINTS.ESPECIALIDADES, especialidadData, this.accessToken);
   this.statusCode = result.statusCode;
@@ -719,8 +803,8 @@ When('creo un centro de atención con:', function (dataTable) {
   };
   
   const result = POST(ENDPOINTS.CENTROS_ATENCION, centroData, this.accessToken);
-  this.statusCode = result.dataPackageStatusCode; // Status del DataPackage, no HTTP
-  this.httpStatusCode = result.statusCode; // HTTP status para debugging
+  this.statusCode = result.statusCode; // status_code del DataPackage, no HTTP
+  this.httpStatusCode = result.httpStatusCode;
   this.response = result.response;
   
   // Guardar el centro creado - response.data contiene el CentroAtencionDTO completo
@@ -884,18 +968,18 @@ Given('existe un turno en el centro {int}', function (centroId) {
   // Crear turno usando SUPERADMIN
   const superadminLogin = login('superadmin@turnero.com', 'password');
   
-  // Obtener consultorio del centro
-  const consultoriosResult = GET(`${ENDPOINTS.CONSULTORIOS}/centrosAtencion/${centroId}/consultorios`, superadminLogin.accessToken);
-  let consultorio = consultoriosResult.response.data[0];
-  
-  // Crear turno
+  const agenda = prepararAgendaLunes(centroId, superadminLogin.accessToken);
+  if (!agenda) {
+    return;
+  }
+  const slot = proximoHorarioTurno();
   const turnoData = {
     pacienteId: 1,
-    consultorioId: consultorio.id,
-    staffMedicoId: 1,
-    fecha: getFutureDate(7),
-    horaInicio: '10:00:00',
-    horaFin: '10:30:00'
+    consultorioId: agenda.consultorio.id,
+    staffMedicoId: agenda.staffMedico.id,
+    fecha: slot.fecha,
+    horaInicio: slot.horaInicio,
+    horaFin: slot.horaFin
   };
   
   const result = POST(ENDPOINTS.TURNOS, turnoData, superadminLogin.accessToken);
@@ -943,13 +1027,38 @@ Then('el estado es CANCELADO', function () {
 });
 
 Then('se registra quién canceló el turno', function () {
-  // Verificar que hay información de auditoría
-  assert.ok(this.response.data.performedBy || this.response.data.canceladoPor, 'Debería registrar quién canceló');
+  if (this.response.data && (this.response.data.performedBy || this.response.data.canceladoPor)) {
+    return;
+  }
+  const turnoId = (this.lastCreatedTurno && this.lastCreatedTurno.id) || (this.response.data && this.response.data.id);
+  assert.ok(turnoId, 'No hay turno cancelado para auditar');
+  const audit = GET(`${ENDPOINTS.TURNOS}/${turnoId}/audit`, this.accessToken);
+  const logs = (audit.response && audit.response.data) || [];
+  const lista = Array.isArray(logs) ? logs : [logs];
+  assert.ok(
+    lista.some((log) => log && log.performedBy),
+    `La auditoría no registra quién canceló: ${JSON.stringify(audit.response)}`
+  );
 });
 
 Given('conozco el ID de un turno del centro {int}', function (centroId) {
-  // Guardar un ID de turno del otro centro (simulado)
-  this.turnoOtroCentroId = 9999; // ID que no pertenece al centro actual
+  const superadminLogin = login('superadmin@turnero.com', 'password');
+  assert.ok(superadminLogin.success, 'No se pudo autenticar como superadmin');
+  const agenda = prepararAgendaLunes(centroId, superadminLogin.accessToken);
+  assert.ok(agenda, `No hay agenda para el centro ${centroId}`);
+  const slot = proximoHorarioTurno();
+  const result = POST(ENDPOINTS.TURNOS, {
+    pacienteId: 1,
+    consultorioId: agenda.consultorio.id,
+    staffMedicoId: agenda.staffMedico.id,
+    fecha: slot.fecha,
+    horaInicio: slot.horaInicio,
+    horaFin: slot.horaFin
+  }, superadminLogin.accessToken);
+  assert.ok(result.statusCode === 200, `No se pudo crear el turno del centro ${centroId}: ${result.response && result.response.status_text}`);
+  this.turnoOtroCentroId = result.response.data.id;
+  this.savedData = this.savedData || {};
+  this.savedData.turnoOtroCentro = result.response.data;
 });
 
 When('intento cancelar ese turno', function () {
@@ -965,7 +1074,7 @@ Then('el turno NO cambia de estado', function () {
   // Si recibimos 403 o 404, el turno no cambió
   assert.ok(
     this.statusCode === 403 || this.statusCode === 404,
-    `Se esperaba 403 o 404, recibido: ${this.statusCode}`
+    `Se esperaba 403 o 404, recibido: ${this.statusCode} ${(this.response && this.response.status_text) || ''}`
   );
 });
 
@@ -1345,13 +1454,16 @@ Given('existe un turno programado para hoy en el centro {int}', function (centro
   fechaDisponible.setDate(hoy.getDate() + diasHastaDisponible);
   const fecha = `${fechaDisponible.getFullYear()}-${String(fechaDisponible.getMonth() + 1).padStart(2, '0')}-${String(fechaDisponible.getDate()).padStart(2, '0')}`;
   
+  const minutos = 8 * 60 + (turnoSlot % 8) * 20;
+  turnoSlot += 1;
+  const aHora = (total) => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}:00`;
   const turnoData = {
     pacienteId: 1,
     consultorioId: consultorio.id,
     staffMedicoId: staffMedico.id,
     fecha: fecha,
-    horaInicio: '10:00:00',
-    horaFin: '10:30:00'
+    horaInicio: aHora(minutos),
+    horaFin: aHora(minutos + 20)
   };
   
   const result = POST(ENDPOINTS.TURNOS, turnoData, superadminLogin.accessToken);

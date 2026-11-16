@@ -1,6 +1,6 @@
 const { When, Then, Given } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
 
 Given('que existe un sistema de gestión de centros de atención para MedicosCentro', function () {
 });
@@ -56,7 +56,10 @@ When(
   }
 );
 Then('el sistema responde con status_code {string} y status_text {string} para MedicosCentro', function (expectedStatus, expectedText) {
-  assert.strictEqual(String(this.statusCode), expectedStatus, `Status esperado: ${expectedStatus}, recibido: ${this.statusCode}`);
+  const actual = this.response && this.response.status_code != null
+    ? this.response.status_code
+    : this.statusCode;
+  assert.strictEqual(String(actual), expectedStatus, `Status esperado: ${expectedStatus}, recibido: ${actual}`);
   assert.ok(
     (this.response.status_text || this.response).toLowerCase().includes(expectedText.toLowerCase()),
     `Esperado status_text que contenga "${expectedText}", pero fue "${this.response.status_text || this.response}"`

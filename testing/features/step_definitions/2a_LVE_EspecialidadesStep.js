@@ -1,6 +1,6 @@
 const { Given, When, Then, BeforeAll } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
 
 
 Given('que la especialidad {string} existe en el sistema con la descripción {string}', async function (nombre, descripcion) {

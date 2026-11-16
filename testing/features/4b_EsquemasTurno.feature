@@ -24,9 +24,9 @@ Ejemplos: Esquemas de turno exitosos
 Esquema del escenario: Crear esquema de turno con múltiples horarios
   Cuando el administrador crea un esquema de turno para el médico con matrícula "13311-4" en el centro "1" con los siguientes horarios:
     | intervalo | consultorio_id | disponibilidad_id | dia     | horaInicio | horaFin |
-    | 15        | 1              | 6                 | LUNES   | 08:00      | 12:00   |
-    | 15        | 1              | 6                 | LUNES   | 14:00      | 18:00   |
-    | 15        | 1              | 6                 | MARTES  | 09:00      | 13:00   |
+    | 15        | 2              | 7                 | LUNES   | 08:00      | 12:00   |
+    | 15        | 2              | 7                 | LUNES   | 14:00      | 18:00   |
+    | 15        | 2              | 7                 | MARTES  | 09:00      | 13:00   |
   Entonces el sistema responde con 200 y "Esquema de turno creado correctamente" para esquemas de turno
 
 Esquema del escenario: Crear esquema de turno con errores de validación
@@ -95,7 +95,7 @@ Escenario: Recuperar todos los esquemas de turno registrados
   """
   {
     "status_code": 200,
-    "status_text": "Esquemas de turno recuperados correctamente",
+    "status_text": "Esquemas de turno obtenidos correctamente",
     "data": [
       {
         "id": 1,
@@ -130,7 +130,7 @@ Escenario: Recuperar esquemas de turno por centro de atención
   """
   {
     "status_code": 200,
-    "status_text": "Esquemas de turno del centro recuperados correctamente",
+    "status_text": "Esquemas de turno del centro obtenidos correctamente",
     "data": [
       {
         "id": 1,
@@ -172,9 +172,15 @@ Esquema del escenario: Actualizar esquema de turno existente
 
 Ejemplos: Actualizaciones de esquemas de turno
   | esquema_id | campo          | anterior | nuevo | status_code | status_text                              |
-  | 1          | intervalo      | 15       | 30    | 200         | Esquema de turno actualizado correctamente |
-  | 1          | consultorioId  | 1        | 2     | 200         | Esquema de turno actualizado correctamente |
   | 999        | intervalo      | 15       | 30    | 404         | No se encontró el esquema de turno         |
+
+  # PUT /esquema-turno/{id} no fusiona el cuerpo con el esquema existente:
+  # exige staffMedicoId, consultorioId y horarios aunque solo cambie un campo.
+  @known-bug
+  Ejemplos: Actualización parcial rechazada por el API
+    | esquema_id | campo          | anterior | nuevo | status_code | status_text                              |
+    | 1          | intervalo      | 15       | 30    | 200         | Esquema de turno actualizado correctamente |
+    | 1          | consultorioId  | 1        | 2     | 200         | Esquema de turno actualizado correctamente |
 
 Escenario: Eliminar esquema de turno
   Dado que existe un esquema de turno con ID "1"

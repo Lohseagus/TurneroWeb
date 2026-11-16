@@ -10,17 +10,18 @@
  */
 
 const request = require('sync-request');
+const { apiUrl, API_BASE_URL } = require('../../support/config');
 
 // =====================================================================
 // CONFIGURACIÓN BASE
 // =====================================================================
 
-const BASE_URL = 'http://backend:8080';
+const BASE_URL = API_BASE_URL;
 
 const ENDPOINTS = {
-  // Autenticación
-  LOGIN: '/api/auth/login',
-  REFRESH: '/api/auth/refresh',
+  // Autenticación (relativas a API_BASE_URL, que ya incluye /api)
+  LOGIN: '/auth/login',
+  REFRESH: '/auth/refresh',
   
   // Entidades principales
   CENTROS_ATENCION: '/centrosAtencion',
@@ -196,7 +197,7 @@ const CENTROS = {
  * @returns {object} { statusCode, response }
  */
 function httpRequest(method, endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
+  const url = apiUrl(endpoint);
   const requestOptions = {
     retry: false,
     timeout: 5000
