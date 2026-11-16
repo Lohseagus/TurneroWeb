@@ -2768,7 +2768,7 @@ public class TurnoService {
         }
 
         // Construir especificación base: SIEMPRE filtrar por paciente
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId));
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId);
 
         // 🔥 CORRECCIÓN: Aplicar filtro de estado SOLO si estadoEnum no es null
         if (estadoEnum != null) {
@@ -2910,7 +2910,7 @@ public class TurnoService {
         LocalDate fechaLimite = hoy.plusDays(diasAdelante != null ? diasAdelante : 30);
 
         // Crear especificación para turnos futuros del paciente
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId))
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId)
                 .and(TurnoRepository.hasFechaDesde(hoy))
                 .and(TurnoRepository.hasFechaHasta(fechaLimite))
                 .and(TurnoRepository.hasEstado(EstadoTurno.PROGRAMADO)
@@ -2960,7 +2960,7 @@ public class TurnoService {
     public boolean tieneTurnosPendientes(Integer pacienteId) {
         LocalDate hoy = LocalDate.now();
 
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId))
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId)
                 .and(TurnoRepository.hasFechaDesde(hoy))
                 .and(TurnoRepository.hasEstado(EstadoTurno.PROGRAMADO)
                         .or(TurnoRepository.hasEstado(EstadoTurno.CONFIRMADO))
@@ -3006,7 +3006,7 @@ public class TurnoService {
         }
 
         // Construir especificación con filtros
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId));
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId);
 
         if (estadoEnum != null) {
             spec = spec.and(TurnoRepository.hasEstado(estadoEnum));

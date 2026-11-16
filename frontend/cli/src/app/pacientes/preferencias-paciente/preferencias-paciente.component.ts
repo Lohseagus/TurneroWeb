@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -23,6 +23,7 @@ import { DataPackage } from '../../data.package';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './preferencias-paciente.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./preferencias-paciente.component.css']
 })
 export class PreferenciasPacienteComponent implements OnInit {

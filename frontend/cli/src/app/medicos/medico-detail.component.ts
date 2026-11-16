@@ -1,5 +1,5 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MedicoService } from './medico.service';
@@ -13,8 +13,9 @@ import { AuthService } from '../inicio-sesion/auth.service';
 @Component({
   selector: 'app-medico-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './medico-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medico-detail.component.css'
 })
 export class MedicoDetailComponent implements OnInit {

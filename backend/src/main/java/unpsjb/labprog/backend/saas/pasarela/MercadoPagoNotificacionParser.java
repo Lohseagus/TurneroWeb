@@ -1,7 +1,7 @@
 package unpsjb.labprog.backend.saas.pasarela;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Lee el cuerpo de un webhook de Mercado Pago.

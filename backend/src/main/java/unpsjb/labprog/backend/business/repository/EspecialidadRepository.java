@@ -24,7 +24,7 @@ public interface EspecialidadRepository extends JpaRepository<Especialidad, Inte
 
     // Buscar especialidades cuyo nombre contenga un término dado (ignorando
     // mayúsculas/minúsculas)
-    @Query("SELECT e FROM Especialidad e WHERE UPPER(e.nombre) LIKE CONCAT('%', UPPER(?1), '%')")
+    @Query("SELECT e FROM Especialidad e WHERE UPPER(e.nombre) LIKE CONCAT('%', CAST(UPPER(?1) AS string), '%')")
     List<Especialidad> findByNombreContainingIgnoreCase(String term);
 
 }

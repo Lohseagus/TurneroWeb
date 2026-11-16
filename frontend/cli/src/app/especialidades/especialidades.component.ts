@@ -1,6 +1,6 @@
 // src/app/playType/play-types.component.ts
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router } from '@angular/router';
 import { EspecialidadService } from './especialidad.service';
 import { Especialidad } from './especialidad';
@@ -11,8 +11,9 @@ import { PaginationComponent } from '../pagination/pagination.component';
 @Component({
   selector: 'app-especialidades',
   standalone: true,
-  imports: [CommonModule, RouterModule, PaginationComponent],
+  imports: [RouterModule, PaginationComponent],
   templateUrl: './especialidades.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './especialidades.component.css'
 })
 export class EspecialidadesComponent {

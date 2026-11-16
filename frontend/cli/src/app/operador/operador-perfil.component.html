@@ -22,36 +22,37 @@
         <h2>Información Personal</h2>
       </div>
       <div class="section-body">
-        <form *ngIf="!editMode; else editForm">
-          <div class="info-group">
-            <label>Nombre:</label>
-            <p>{{ userData.nombre || "No especificado" }}</p>
-          </div>
-          <div class="info-group">
-            <label>Apellido:</label>
-            <p>{{ userData.apellido || "No especificado" }}</p>
-          </div>
-          <div class="info-group">
-            <label>Email:</label>
-            <p>{{ userData.email }}</p>
-          </div>
-          <div class="info-group">
-            <label>Teléfono:</label>
-            <p>{{ userData.telefono || "No especificado" }}</p>
-          </div>
-          <div class="info-group">
-            <label>DNI:</label>
-            <p>{{ userData.dni || "No especificado" }}</p>
-          </div>
-          <div class="info-group">
-            <label>Rol:</label>
-            <p class="role-badge operador">{{ getUserRole() }}</p>
-          </div>
-          <button class="btn-secondary" type="button" (click)="editMode = true">
-            <i class="fas fa-edit"></i> Editar Datos
-          </button>
-        </form>
-        <ng-template #editForm>
+        @if (!editMode) {
+          <form>
+            <div class="info-group">
+              <label>Nombre:</label>
+              <p>{{ userData.nombre || "No especificado" }}</p>
+            </div>
+            <div class="info-group">
+              <label>Apellido:</label>
+              <p>{{ userData.apellido || "No especificado" }}</p>
+            </div>
+            <div class="info-group">
+              <label>Email:</label>
+              <p>{{ userData.email }}</p>
+            </div>
+            <div class="info-group">
+              <label>Teléfono:</label>
+              <p>{{ userData.telefono || "No especificado" }}</p>
+            </div>
+            <div class="info-group">
+              <label>DNI:</label>
+              <p>{{ userData.dni || "No especificado" }}</p>
+            </div>
+            <div class="info-group">
+              <label>Rol:</label>
+              <p class="role-badge operador">{{ getUserRole() }}</p>
+            </div>
+            <button class="btn-secondary" type="button" (click)="editMode = true">
+              <i class="fas fa-edit"></i> Editar Datos
+            </button>
+          </form>
+        } @else {
           <div class="info-group">
             <label>Nombre:</label>
             <input
@@ -59,7 +60,7 @@
               [(ngModel)]="editUserData.nombre"
               name="nombre"
               required
-            />
+              />
           </div>
           <div class="info-group">
             <label>Apellido:</label>
@@ -67,7 +68,7 @@
               class="form-control"
               [(ngModel)]="editUserData.apellido"
               name="apellido"
-            />
+              />
           </div>
           <div class="info-group">
             <label>Email:</label>
@@ -77,7 +78,7 @@
               name="email"
               type="email"
               required
-            />
+              />
           </div>
           <div class="info-group">
             <label>Teléfono:</label>
@@ -85,7 +86,7 @@
               class="form-control"
               [(ngModel)]="editUserData.telefono"
               name="telefono"
-            />
+              />
           </div>
           <div class="info-group">
             <label>DNI:</label>
@@ -93,7 +94,7 @@
               class="form-control"
               [(ngModel)]="editUserData.dni"
               name="dni"
-            />
+              />
           </div>
           <div class="info-group">
             <label>Rol:</label>
@@ -103,13 +104,13 @@
             class="btn-primary"
             type="button"
             (click)="savePersonalData()"
-          >
+            >
             <i class="fas fa-save"></i> Guardar
           </button>
           <button class="btn-secondary" type="button" (click)="cancelEdit()">
             Cancelar
           </button>
-        </ng-template>
+        }
       </div>
     </div>
 
@@ -128,7 +129,7 @@
             [(ngModel)]="changePasswordForm.currentPassword"
             class="form-control"
             placeholder="Ingrese su contraseña actual"
-          />
+            />
         </div>
         <div class="form-group">
           <label for="newPassword">Nueva Contraseña:</label>
@@ -138,7 +139,7 @@
             [(ngModel)]="changePasswordForm.newPassword"
             class="form-control"
             placeholder="Ingrese la nueva contraseña"
-          />
+            />
         </div>
         <div class="form-group">
           <label for="confirmPassword">Confirmar Nueva Contraseña:</label>
@@ -148,7 +149,7 @@
             [(ngModel)]="changePasswordForm.confirmPassword"
             class="form-control"
             placeholder="Confirme la nueva contraseña"
-          />
+            />
         </div>
         <button class="btn-primary" (click)="changePassword()">
           <i class="fas fa-save"></i>
@@ -169,7 +170,7 @@
             type="checkbox"
             id="notifications"
             [(ngModel)]="systemConfig.notifications"
-          />
+            />
           <label for="notifications">Recibir notificaciones por email</label>
         </div>
         <div class="config-option">
@@ -177,7 +178,7 @@
             type="checkbox"
             id="autoRefresh"
             [(ngModel)]="systemConfig.autoRefresh"
-          />
+            />
           <label for="autoRefresh">Actualización automática de datos</label>
         </div>
         <button class="btn-secondary" (click)="saveSystemConfig()">

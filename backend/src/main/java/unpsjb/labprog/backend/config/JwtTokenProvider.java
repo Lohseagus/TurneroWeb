@@ -1,10 +1,11 @@
 package unpsjb.labprog.backend.config;
 
-import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+
+import javax.crypto.SecretKey;
 
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import unpsjb.labprog.backend.model.User;
@@ -65,10 +65,8 @@ public class JwtTokenProvider {
     public Long extractUserId(String token) {
         Claims claims = extractAllClaims(token);
         Object userIdObj = claims.get("userId");
-        if (userIdObj instanceof Integer) {
-            return ((Integer) userIdObj).longValue();
-        } else if (userIdObj instanceof Long) {
-            return (Long) userIdObj;
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).longValue();
         }
         return null;
     }
@@ -89,8 +87,8 @@ public class JwtTokenProvider {
     public Integer extractCentroAtencionId(String token) {
         Claims claims = extractAllClaims(token);
         Object centroIdObj = claims.get("centroAtencionId");
-        if (centroIdObj instanceof Integer) {
-            return (Integer) centroIdObj;
+        if (centroIdObj instanceof Number) {
+            return ((Number) centroIdObj).intValue();
         }
         return null;
     }
@@ -107,12 +105,11 @@ public class JwtTokenProvider {
      * Extrae todos los claims del token
      */
     private Claims extractAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
-                .setSigningKey(getSignKey())
+        return Jwts.parser()
+                .verifyWith(getSignKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     /**
@@ -176,11 +173,11 @@ public class JwtTokenProvider {
      */
     private String createToken(Map<String, Object> claims, String subject, long expiration) {
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSignKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -208,7 +205,7 @@ public class JwtTokenProvider {
     /**
      * Obtiene la clave de firma para los tokens
      */
-    private Key getSignKey() {
+    private SecretKey getSignKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }

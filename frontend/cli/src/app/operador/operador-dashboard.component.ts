@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -13,6 +13,7 @@ import { OperadorService } from "./operador.service"; // Asumiendo que existe es
   selector: "app-operador-dashboard",
   imports: [CommonModule, FormsModule],
   templateUrl: "./operador-dashboard.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./operador-dashboard.component.css",
 })
 export class OperadorDashboardComponent implements OnInit {

@@ -1,11 +1,12 @@
-import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, SimpleChanges } from '@angular/core';
+
+import { Component, EventEmitter, Input, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-pagination',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pagination.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './pagination.component.css',
 })
 export class PaginationComponent {

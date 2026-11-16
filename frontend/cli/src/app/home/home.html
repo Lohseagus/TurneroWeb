@@ -5,23 +5,23 @@
       <div class="hero-gradient"></div>
       <div class="hero-pattern"></div>
     </div>
-    
+
     <div class="hero-container">
       <div class="hero-content">
         <div class="hero-badge animate-fade-in">
           <span class="material-symbols-outlined">verified</span>
           <span>Plataforma SaaS de Salud</span>
         </div>
-        
+
         <h1 class="hero-title animate-fade-in-up">
           Tu salud,<br><span class="highlight">sin esperas</span>
         </h1>
-        
+
         <p class="hero-subtitle animate-fade-in-up delay-1">
-          Plataforma integral de gestión de turnos médicos para pacientes y centros de atención. 
+          Plataforma integral de gestión de turnos médicos para pacientes y centros de atención.
           Reserva online, sin llamadas, desde cualquier dispositivo.
         </p>
-        
+
         <div class="hero-stats animate-fade-in-up delay-2">
           <div class="stat-item">
             <span class="stat-number">100%</span>
@@ -39,7 +39,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- BUSCADOR INTEGRADO EN HERO (GLASSMORPHISM) -->
       <div class="buscador-glass animate-fade-in-up delay-2" id="buscador">
         <div class="buscador-header">
@@ -49,7 +49,7 @@
             <p>Busca el centro de atención más cercano y reserva tu turno ahora</p>
           </div>
         </div>
-        
+
         <form (ngSubmit)="buscarCAPS()" #capForm="ngForm" class="buscador-form">
 
 
@@ -75,7 +75,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="scroll-indicator animate-bounce">
       <span class="material-symbols-outlined">expand_more</span>
     </div>
@@ -246,10 +246,12 @@
             <span class="material-symbols-outlined">search</span>
             Buscar un centro
           </button>
-          <button *ngIf="!isAuthenticated" class="btn btn-outline btn-large" routerLink="/ingresar">
-            <span class="material-symbols-outlined">login</span>
-            Ingresar al sistema
-          </button>
+          @if (!isAuthenticated) {
+            <button class="btn btn-outline btn-large" routerLink="/ingresar">
+              <span class="material-symbols-outlined">login</span>
+              Ingresar al sistema
+            </button>
+          }
         </div>
       </div>
     </div>
@@ -265,11 +267,13 @@
         </div>
         <p class="footer-tagline">Tu salud, sin esperas</p>
       </div>
-      
+
       <div class="footer-links">
         <div class="footer-column">
           <h4>Plataforma</h4>
-          <a *ngIf="!isAuthenticated" routerLink="/ingresar">Ingresar</a>
+          @if (!isAuthenticated) {
+            <a routerLink="/ingresar">Ingresar</a>
+          }
           <a routerLink="/planes">Planes</a>
           <a (click)="scrollToSection('buscador')">Buscar centro</a>
         </div>
@@ -288,7 +292,7 @@
           <span class="footer-contact-note">Consultas sobre contratación y servicios</span>
         </div>
       </div>
-      
+
       <div class="footer-bottom">
         <p class="footer-institution">Universidad Nacional de la Patagonia San Juan Bosco</p>
         <p class="footer-year">© 2025 CheTurno. Todos los derechos reservados.</p>
@@ -297,14 +301,15 @@
   </footer>
 
   <!-- MODAL DE MAPA DE CENTROS -->
-  <app-centros-mapa-modal
-    *ngIf="showMapaModal"
-    [centros]="centrosAtencionCompletos"
-    [especialidades]="especialidadesCompletas"
-    [slotsDisponibles]="slotsOriginales"
-    [especialidadSeleccionadaInicial]="especialidadSeleccionadaInicial"
-    (centroSeleccionado)="onCentroSeleccionadoDelMapa($event)"
-    (modalCerrado)="cerrarMapaModal()"
-  >
-  </app-centros-mapa-modal>
+  @if (showMapaModal) {
+    <app-centros-mapa-modal
+      [centros]="centrosAtencionCompletos"
+      [especialidades]="especialidadesCompletas"
+      [slotsDisponibles]="slotsOriginales"
+      [especialidadSeleccionadaInicial]="especialidadSeleccionadaInicial"
+      (centroSeleccionado)="onCentroSeleccionadoDelMapa($event)"
+      (modalCerrado)="cerrarMapaModal()"
+      >
+    </app-centros-mapa-modal>
+  }
 </div>

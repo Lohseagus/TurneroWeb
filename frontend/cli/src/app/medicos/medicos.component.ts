@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MedicoService } from './medico.service';
@@ -11,8 +11,9 @@ import { PaginationComponent } from '../pagination/pagination.component';
 @Component({
   selector: 'app-medicos',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [RouterModule, FormsModule, PaginationComponent],
   templateUrl: './medicos.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medicos.component.css'
 })
 export class MedicosComponent {

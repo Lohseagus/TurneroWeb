@@ -179,7 +179,7 @@ public class ExportService {
                         // Título del documento
                         Paragraph title = new Paragraph("REPORTE DE TURNOS MÉDICOS")
                                         .setFontSize(18)
-                                        .setBold()
+                                        .simulateBold()
                                         .setTextAlignment(TextAlignment.CENTER);
                         document.add(title);
 
@@ -192,7 +192,7 @@ public class ExportService {
 
                         Paragraph totalTurnos = new Paragraph("Total de turnos: " + turnos.size())
                                         .setFontSize(12)
-                                        .setBold()
+                                        .simulateBold()
                                         .setTextAlignment(TextAlignment.LEFT);
                         document.add(totalTurnos);
 
@@ -205,14 +205,14 @@ public class ExportService {
                                         .setWidth(UnitValue.createPercentValue(100));
 
                         // Encabezados de la tabla
-                        table.addHeaderCell(new Cell().add(new Paragraph("ID").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Fecha").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Inicio").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Fin").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Estado").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Paciente").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Médico").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Especialidad").setBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("ID").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Fecha").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Inicio").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Fin").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Estado").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Paciente").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Médico").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Especialidad").simulateBold()));
 
                         // Agregar datos a la tabla
                         for (TurnoDTO turno : turnos) {
@@ -333,15 +333,15 @@ public class ExportService {
 
                         Paragraph title = new Paragraph("Métricas de Calidad")
                                         .setFontSize(16)
-                                        .setBold()
+                                        .simulateBold()
                                         .setTextAlignment(TextAlignment.CENTER);
                         document.add(title);
 
                         document.add(new Paragraph(" "));
                         Table table = new Table(UnitValue.createPercentArray(new float[] { 3, 5 }))
                                         .setWidth(UnitValue.createPercentValue(100));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Métrica").setBold()));
-                        table.addHeaderCell(new Cell().add(new Paragraph("Valor").setBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Métrica").simulateBold()));
+                        table.addHeaderCell(new Cell().add(new Paragraph("Valor").simulateBold()));
 
                         table.addCell(new Cell().add(new Paragraph("Tiempo promedio solicitud->asignación (min)")));
                         table.addCell(new Cell().add(new Paragraph(String.format("%.2f",

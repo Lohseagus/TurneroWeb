@@ -45,7 +45,7 @@ interface SlotDisponible {
     { provide: LOCALE_ID, useValue: 'es' }
   ],
   templateUrl: './admin-agenda.component.html',
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.Eager,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 
   styleUrl: './admin-agenda.component.css'

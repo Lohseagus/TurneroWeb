@@ -1,5 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from "@angular/core";
+
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
@@ -9,9 +9,8 @@ import { DataPackage } from "../data.package";
 import { AgendaService } from "../agenda/agenda.service";
 import { TurnoModalComponent } from "./turno-modal.component";
 
-// Declaraciones para librerías externas
-declare var html2canvas: any;
-declare var jsPDF: any;
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 // Interface para slots disponibles
 interface SlotDisponible {
@@ -32,8 +31,9 @@ interface SlotDisponible {
 @Component({
   selector: "app-turno-advanced-search",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: "./turno-advanced-search.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ["./turno-advanced-search.component.css"],
 })
 export class TurnoAdvancedSearchComponent implements OnInit {
@@ -1435,41 +1435,31 @@ export class TurnoAdvancedSearchComponent implements OnInit {
     fileName: string
   ): Promise<void> {
     try {
-      // Si html2canvas está disponible, usarlo
-      if ((window as any).html2canvas) {
-        const canvas = await (window as any).html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-        });
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
 
-        // Crear PDF con jsPDF si está disponible
-        if ((window as any).jsPDF) {
-          const imgData = canvas.toDataURL("image/png");
-          const pdf = new (window as any).jsPDF("p", "mm", "a4");
-          const imgWidth = 210;
-          const pageHeight = 295;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          let heightLeft = imgHeight;
-          let position = 0;
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
 
-          while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-          }
-
-          pdf.save(fileName);
-          return;
-        }
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
 
-      // Fallback: usar window.print()
-      this.fallbackPrintPDF(element);
+      pdf.save(fileName);
     } catch (error) {
       console.error("Error generando PDF:", error);
       // Fallback en caso de error

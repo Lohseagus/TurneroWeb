@@ -22,8 +22,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import unpsjb.labprog.backend.business.repository.AuditLogRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
@@ -81,7 +81,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar datos de auditoría: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de auditoría", e);
         } catch (Exception e) {
@@ -893,7 +893,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar datos de cambio de rol: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de cambio de rol", e);
         }
@@ -925,7 +925,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar datos de creación de usuario: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de creación de usuario", e);
         }
@@ -951,7 +951,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar datos de actualización de usuario: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de actualización de usuario", e);
         }
@@ -985,7 +985,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar datos de cambio de estado: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de cambio de estado", e);
         }
@@ -1271,7 +1271,7 @@ public class AuditLogService {
             AuditLog auditLog = new AuditLog(entityType, entityId, action, performedBy,
                     estadoAnterior, estadoNuevo, oldValuesJson, newValuesJson, reason);
             return auditLogRepository.save(auditLog);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("Error al serializar datos de auditoría", e);
         }
     }
@@ -1341,7 +1341,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar cambio de config: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de auditoría de config", e);
         } catch (Exception e) {
@@ -1413,7 +1413,7 @@ public class AuditLogService {
             AuditLog saved = auditLogRepository.save(auditLog);
             return saved;
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             System.err.println("❌ ERROR: Error al serializar reset de configs: " + e.getMessage());
             throw new RuntimeException("Error al serializar datos de auditoría de reset", e);
         } catch (Exception e) {

@@ -29,11 +29,13 @@
           class="form-control"
           placeholder="Ingrese el nombre"
           [class.is-invalid]="form.get('nombre')?.invalid && form.get('nombre')?.touched"
-        />
-        <div *ngIf="form.get('nombre')?.invalid && form.get('nombre')?.touched" class="text-danger d-flex align-items-center gap-xs mt-xs">
-          <span class="material-symbols-outlined">error</span>
-          <small>El nombre es requerido</small>
-        </div>
+          />
+        @if (form.get('nombre')?.invalid && form.get('nombre')?.touched) {
+          <div class="text-danger d-flex align-items-center gap-xs mt-xs">
+            <span class="material-symbols-outlined">error</span>
+            <small>El nombre es requerido</small>
+          </div>
+        }
       </div>
 
       <!-- Apellido -->
@@ -48,11 +50,13 @@
           class="form-control"
           placeholder="Ingrese el apellido"
           [class.is-invalid]="form.get('apellido')?.invalid && form.get('apellido')?.touched"
-        />
-        <div *ngIf="form.get('apellido')?.invalid && form.get('apellido')?.touched" class="text-danger d-flex align-items-center gap-xs mt-xs">
-          <span class="material-symbols-outlined">error</span>
-          <small>El apellido es requerido</small>
-        </div>
+          />
+        @if (form.get('apellido')?.invalid && form.get('apellido')?.touched) {
+          <div class="text-danger d-flex align-items-center gap-xs mt-xs">
+            <span class="material-symbols-outlined">error</span>
+            <small>El apellido es requerido</small>
+          </div>
+        }
       </div>
 
       <!-- DNI -->
@@ -68,11 +72,13 @@
           class="form-control"
           placeholder="Ingrese el DNI"
           [class.is-invalid]="form.get('dni')?.invalid && form.get('dni')?.touched"
-        />
-        <div *ngIf="form.get('dni')?.invalid && form.get('dni')?.touched" class="text-danger d-flex align-items-center gap-xs mt-xs">
-          <span class="material-symbols-outlined">error</span>
-          <small>El DNI es requerido</small>
-        </div>
+          />
+        @if (form.get('dni')?.invalid && form.get('dni')?.touched) {
+          <div class="text-danger d-flex align-items-center gap-xs mt-xs">
+            <span class="material-symbols-outlined">error</span>
+            <small>El DNI es requerido</small>
+          </div>
+        }
       </div>
 
       <!-- Email -->
@@ -88,12 +94,18 @@
           class="form-control"
           placeholder="ejemplo@correo.com"
           [class.is-invalid]="form.get('email')?.invalid && form.get('email')?.touched"
-        />
-        <div *ngIf="form.get('email')?.invalid && form.get('email')?.touched" class="text-danger d-flex align-items-center gap-xs mt-xs">
-          <span class="material-symbols-outlined">error</span>
-          <small *ngIf="form.get('email')?.errors?.['required']">El correo electrónico es requerido</small>
-          <small *ngIf="form.get('email')?.errors?.['email']">Debe ser un correo electrónico válido</small>
-        </div>
+          />
+        @if (form.get('email')?.invalid && form.get('email')?.touched) {
+          <div class="text-danger d-flex align-items-center gap-xs mt-xs">
+            <span class="material-symbols-outlined">error</span>
+            @if (form.get('email')?.errors?.['required']) {
+              <small>El correo electrónico es requerido</small>
+            }
+            @if (form.get('email')?.errors?.['email']) {
+              <small>Debe ser un correo electrónico válido</small>
+            }
+          </div>
+        }
       </div>
 
       <!-- Teléfono -->
@@ -108,7 +120,7 @@
           type="text"
           class="form-control"
           placeholder="Ingrese el teléfono (opcional)"
-        />
+          />
         <small class="text-muted d-flex align-items-center gap-xs mt-xs">
           <span class="material-symbols-outlined">info</span>
           Campo opcional
@@ -116,63 +128,71 @@
       </div>
 
       <!-- Centro de Atención (Solo SUPERADMIN) -->
-      <div class="col-12" *ngIf="isSuperAdmin">
-        <label for="centroAtencionId" class="form-label">
-          <span class="material-symbols-outlined me-2">local_hospital</span>
-          Centro de Atención <span class="text-danger">*</span>
-        </label>
-        <select
-          formControlName="centroAtencionId"
-          id="centroAtencionId"
-          class="form-select"
-          [class.is-invalid]="form.get('centroAtencionId')?.invalid && form.get('centroAtencionId')?.touched"
-          [disabled]="loadingCentros"
-        >
-          <option value="" disabled selected>
-            {{ loadingCentros ? 'Cargando centros...' : 'Seleccione un centro de atención' }}
-          </option>
-          <option *ngFor="let centro of centrosDisponibles" [value]="centro.id">
-            {{ centro.nombre }} - {{ centro.localidad }}, {{ centro.provincia }}
-          </option>
-        </select>
-        <div *ngIf="form.get('centroAtencionId')?.invalid && form.get('centroAtencionId')?.touched" class="text-danger d-flex align-items-center gap-xs mt-xs">
-          <span class="material-symbols-outlined">error</span>
-          <small>Debe seleccionar un centro de atención</small>
+      @if (isSuperAdmin) {
+        <div class="col-12">
+          <label for="centroAtencionId" class="form-label">
+            <span class="material-symbols-outlined me-2">local_hospital</span>
+            Centro de Atención <span class="text-danger">*</span>
+          </label>
+          <select
+            formControlName="centroAtencionId"
+            id="centroAtencionId"
+            class="form-select"
+            [class.is-invalid]="form.get('centroAtencionId')?.invalid && form.get('centroAtencionId')?.touched"
+            [disabled]="loadingCentros"
+            >
+            <option value="" disabled selected>
+              {{ loadingCentros ? 'Cargando centros...' : 'Seleccione un centro de atención' }}
+            </option>
+            @for (centro of centrosDisponibles; track centro) {
+              <option [value]="centro.id">
+                {{ centro.nombre }} - {{ centro.localidad }}, {{ centro.provincia }}
+              </option>
+            }
+          </select>
+          @if (form.get('centroAtencionId')?.invalid && form.get('centroAtencionId')?.touched) {
+            <div class="text-danger d-flex align-items-center gap-xs mt-xs">
+              <span class="material-symbols-outlined">error</span>
+              <small>Debe seleccionar un centro de atención</small>
+            </div>
+          }
+          <small class="text-muted d-flex align-items-center gap-xs mt-xs">
+            <span class="material-symbols-outlined">info</span>
+            El administrador solo podrá gestionar usuarios y recursos de este centro
+          </small>
         </div>
-        <small class="text-muted d-flex align-items-center gap-xs mt-xs">
-          <span class="material-symbols-outlined">info</span>
-          El administrador solo podrá gestionar usuarios y recursos de este centro
-        </small>
-      </div>
+      }
 
       <!-- Información sobre contraseña automática -->
-      <div class="col-12" *ngIf="!route.snapshot.params['id']">
-        <div class="info-badge">
-          <span class="material-symbols-outlined me-2">info</span>
-          <div>
-            <strong>Contraseña automática:</strong> Se generará una contraseña segura automáticamente y será enviada por correo electrónico al administrador.
+      @if (!route.snapshot.params['id']) {
+        <div class="col-12">
+          <div class="info-badge">
+            <span class="material-symbols-outlined me-2">info</span>
+            <div>
+              <strong>Contraseña automática:</strong> Se generará una contraseña segura automáticamente y será enviada por correo electrónico al administrador.
+            </div>
           </div>
         </div>
-      </div>
+      }
 
       <!-- Botones de acción -->
       <div class="col-12">
         <div class="d-flex gap-md flex-wrap justify-content-end">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             class="btn btn-primary"
             [disabled]="form.invalid || isSubmitting"
             aria-label="Guardar administrador"
-          >
+            >
             <span class="material-symbols-outlined me-2">save</span>
             {{ isSubmitting ? 'Guardando...' : 'Guardar' }}
           </button>
-          <button 
-            type="button" 
-            class="btn btn-secondary" 
+          <button
+            type="button"
+            class="btn btn-secondary"
             (click)="router.navigate(['/admin/users'])"
             aria-label="Cancelar y volver"
-          >
+            >
             <span class="material-symbols-outlined me-2">close</span>
             Cancelar
           </button>

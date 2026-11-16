@@ -1,6 +1,5 @@
 .perfil-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: transparent;
   position: relative;
   overflow-x: hidden;
   padding: 2rem 1rem;
@@ -1074,3 +1073,136 @@ input:checked + .slider:before {
 .form-group:nth-child(6) {
   animation-delay: 0.35s;
 }
+
+/* ============================================================
+   REDISENO UNIFICADO — molde = Dashboard del medico
+   Header blanco con barra de acento + cards legibles + tokens
+   (bloque agregado al final: gana por cascade)
+   ============================================================ */
+
+.perfil-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+  background: transparent;
+}
+
+/* ---- Header como card con barra de acento ---- */
+.perfil-container .perfil-header {
+  position: relative;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+.perfil-container .perfil-header::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--color-accent, #0d6efd) 0%, #764ba2 100%);
+}
+.perfil-container .perfil-header .header-title {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.perfil-container .title-icon {
+  width: 60px; height: 60px; min-width: 60px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(13,110,253,0.12) 0%, rgba(118,75,162,0.12) 100%) !important;
+  box-shadow: none !important;
+}
+.perfil-container .title-icon i {
+  font-size: 1.8rem;
+  color: var(--color-accent, #0d6efd) !important;
+  -webkit-text-fill-color: initial;
+}
+.perfil-container .title-content { flex: 1; min-width: 200px; }
+.perfil-container .title-content h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.6rem; font-weight: 700; line-height: 1.2;
+  color: var(--text-main, #212529) !important;
+  background: none !important;
+  -webkit-text-fill-color: initial !important;
+  -webkit-background-clip: border-box !important;
+}
+.perfil-container .title-content p {
+  margin: 0; color: var(--text-secondary, #6c757d); font-size: 0.95rem;
+}
+.perfil-container .perfil-header .btn-back {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: var(--color-background, #f1f3f5);
+  color: var(--text-main, #212529);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.perfil-container .perfil-header .btn-back:hover {
+  background: var(--color-accent, #0d6efd); color: #fff; border-color: var(--color-accent, #0d6efd);
+}
+
+/* ---- Secciones como cards ---- */
+.perfil-container .perfil-section {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.5rem;
+}
+.perfil-container .section-header {
+  display: flex; align-items: center; gap: 0.85rem;
+  margin-bottom: 1.25rem; padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #eceef1);
+}
+.perfil-container .section-icon {
+  width: 44px; height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  background: rgba(13, 110, 253, 0.10) !important;
+  box-shadow: none !important;
+}
+.perfil-container .section-icon i {
+  font-size: 1.3rem; color: var(--color-accent, #0d6efd) !important;
+  -webkit-text-fill-color: initial;
+}
+.perfil-container .section-icon.security { background: rgba(220, 53, 69, 0.10) !important; }
+.perfil-container .section-icon.security i { color: #dc3545 !important; }
+.perfil-container .section-title h2,
+.perfil-container .section-title h3 {
+  margin: 0; font-size: 1.15rem; font-weight: 700;
+  color: var(--text-main, #212529) !important;
+  background: none !important; -webkit-text-fill-color: initial !important;
+}
+.perfil-container .section-title p {
+  margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--text-secondary, #6c757d);
+}
+
+/* ---- Grid de informacion legible ---- */
+.perfil-container .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.perfil-container .info-card {
+  background: var(--color-background, #f8f9fa);
+  border: 1px solid var(--border-color, #e9ecef);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  box-shadow: none;
+}
+.perfil-container .info-card label {
+  display: block;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-secondary, #6c757d);
+  margin-bottom: 0.4rem;
+}
+.perfil-container .info-card .info-value {
+  font-size: 1rem; font-weight: 600; color: var(--text-main, #212529);
+  display: flex; align-items: center; gap: 0.5rem; line-height: 1.4;
+}
+.perfil-container .info-card .info-value i { color: var(--color-accent, #0d6efd); }

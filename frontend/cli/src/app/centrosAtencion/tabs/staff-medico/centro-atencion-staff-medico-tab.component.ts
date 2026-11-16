@@ -6,8 +6,9 @@ import {
   OnInit,
   OnChanges,
   SimpleChanges,
+  ChangeDetectionStrategy
 } from "@angular/core";
-import { CommonModule } from "@angular/common";
+
 import { FormsModule } from "@angular/forms";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { StaffMedico } from "../../../staffMedicos/staffMedico";
@@ -20,8 +21,9 @@ import { DisponibilidadMedicoService } from "../../../disponibilidadMedicos/disp
 @Component({
   selector: "app-centro-atencion-staff-medico-tab",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: "./centro-atencion-staff-medico-tab.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ["./centro-atencion-staff-medico-tab.component.css"],
 })
 export class CentroAtencionStaffMedicoTabComponent

@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { EncuestaService } from '../../services/encuesta.service';
@@ -8,8 +8,9 @@ import { ModalService } from '../../modal/modal.service';
 
 @Component({
   selector: 'app-encuesta',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './encuesta.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./encuesta.component.css']
 })
 export class EncuestaComponent implements OnInit {

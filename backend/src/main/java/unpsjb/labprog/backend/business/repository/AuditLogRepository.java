@@ -223,8 +223,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
 
        @Query("SELECT a.id, a.turno.id, a.entityType, a.entityId, a.action, a.performedAt, a.performedBy, " +
                      "a.estadoAnterior, a.estadoNuevo, a.reason FROM AuditLog a WHERE " +
-                     "(:entidad IS NULL OR LOWER(a.entityType) LIKE LOWER(CONCAT('%', :entidad, '%'))) AND " +
-                     "(:usuario IS NULL OR LOWER(a.performedBy) LIKE LOWER(CONCAT('%', :usuario, '%'))) AND " +
+                     "(:entidad IS NULL OR LOWER(a.entityType) LIKE LOWER(CONCAT('%', CAST(:entidad AS string), '%'))) AND " +
+                     "(:usuario IS NULL OR LOWER(a.performedBy) LIKE LOWER(CONCAT('%', CAST(:usuario AS string), '%'))) AND " +
                      "(:tipoAccion IS NULL OR a.action = :tipoAccion) AND " +
                      "a.performedAt >= :fechaDesde AND a.performedAt <= :fechaHasta")
        Page<Object[]> findByFilters(@Param("entidad") String entidad,

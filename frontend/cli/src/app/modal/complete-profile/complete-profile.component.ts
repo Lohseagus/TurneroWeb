@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { PacienteService } from '../../pacientes/paciente.service';
 import { ModalService } from '../modal.service';
 import { Router } from '@angular/router';
@@ -24,8 +24,9 @@ export interface CompleteProfileData {
 @Component({
   selector: 'app-complete-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './complete-profile.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./complete-profile.component.css']
 })
 export class CompleteProfileComponent implements OnInit {

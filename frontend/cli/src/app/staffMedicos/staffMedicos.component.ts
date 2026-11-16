@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StaffMedicoService } from './staffMedico.service';
@@ -12,8 +12,9 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 @Component({
   selector: 'app-staff-medicos',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [RouterModule, FormsModule, PaginationComponent],
   templateUrl: './staffMedicos.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './staffMedicos.component.css'
 })  
 

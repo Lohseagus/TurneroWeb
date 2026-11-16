@@ -107,7 +107,7 @@ public interface ListaEsperaRepository extends JpaRepository<ListaEspera, Long> 
          * Cuenta solicitudes pendientes urgentes por especialidad
          */
         @Query("SELECT COUNT(le) FROM ListaEspera le WHERE le.especialidad = :especialidad " +
-                        "AND le.estado = 'PENDIENTE' AND le.urgenciaMedica = true")
+                        "AND le.estado = 'PENDIENTE' AND le.urgenciaMedica IN ('ALTA', 'URGENTE')")
         long contarUrgentesePorEspecialidad(@Param("especialidad") Especialidad especialidad);
 
         /**

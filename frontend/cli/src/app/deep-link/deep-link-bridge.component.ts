@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { DeepLinkService } from '../services/deep-link.service';
 import { TurnoService } from '../turnos/turno.service';
@@ -17,8 +17,9 @@ import { TurnoService } from '../turnos/turno.service';
 @Component({
   selector: 'app-deep-link-bridge',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './deep-link-brigde.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './deep-link-bridge.component.css'
 })
 export class DeepLinkBridgeComponent implements OnInit {

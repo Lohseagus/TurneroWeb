@@ -24,9 +24,9 @@ public interface ObraSocialRepository extends JpaRepository<ObraSocial, Integer>
     @Query("""
         SELECT os FROM ObraSocial os
         WHERE (:nombre IS NULL OR 
-               LOWER(os.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')))
+               LOWER(os.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%')))
            AND (:codigo IS NULL OR 
-                LOWER(os.codigo) LIKE LOWER(CONCAT('%', :codigo, '%')))
+                LOWER(os.codigo) LIKE LOWER(CONCAT('%', CAST(:codigo AS string), '%')))
         """)
     Page<ObraSocial> findByFiltros(@Param("nombre") String nombre,
                                    @Param("codigo") String codigo,

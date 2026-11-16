@@ -9,8 +9,9 @@ import {
   OnDestroy,
   ChangeDetectorRef,
   AfterViewInit,
+  ChangeDetectionStrategy
 } from "@angular/core";
-import { CommonModule, Location } from "@angular/common";
+import { Location } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
 import * as L from "leaflet";
@@ -34,8 +35,9 @@ interface CentroMapaInfo extends CentroAtencion {
 @Component({
   selector: "app-centros-mapa-modal",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: "./centros-mapa-modal.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./centros-mapa-modal.component.css",
 })
 export class CentrosMapaModalComponent implements OnInit, OnDestroy, AfterViewInit {

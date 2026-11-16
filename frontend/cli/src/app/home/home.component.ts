@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, AfterViewInit } from "@angular/core";
+import { Component, OnInit, OnDestroy, AfterViewInit, ChangeDetectionStrategy } from "@angular/core";
 import { Subscription } from 'rxjs';
 import { UserContextService } from '../services/user-context.service';
-import { CommonModule } from "@angular/common";
+
 import { FormsModule } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
 import { CentrosMapaModalComponent } from "../modal/centros-mapa-modal.component";
@@ -12,8 +12,9 @@ import { Especialidad } from "../especialidades/especialidad";
 
 @Component({
   selector: "app-home",
-  imports: [CommonModule, FormsModule, RouterModule, CentrosMapaModalComponent],
+  imports: [FormsModule, RouterModule, CentrosMapaModalComponent],
   templateUrl: "./home.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./home.css",
 })
 export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {

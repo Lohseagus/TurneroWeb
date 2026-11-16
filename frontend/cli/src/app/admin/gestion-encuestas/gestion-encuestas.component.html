@@ -5,10 +5,12 @@
   <section class="crear-pregunta card mb-4 p-3" [ngClass]="editandoPreguntaId ? 'bg-warning-subtle' : 'bg-light'">
     <h3 class="mb-3">
       {{ editandoPreguntaId ? '✏️ Editar Pregunta' : '➕ Crear Pregunta' }}
-      <button *ngIf="editandoPreguntaId" class="btn btn-sm btn-outline-secondary float-end"
-        (click)="cancelarEdicionPregunta()">
-        ✖ Cancelar
-      </button>
+      @if (editandoPreguntaId) {
+        <button class="btn btn-sm btn-outline-secondary float-end"
+          (click)="cancelarEdicionPregunta()">
+          ✖ Cancelar
+        </button>
+      }
     </h3>
 
     <div class="mb-3">
@@ -21,9 +23,11 @@
     <div class="mb-3">
       <label class="form-label"><strong>Tipo de pregunta:</strong></label>
       <select class="form-select" [(ngModel)]="nuevaPreguntaTipo">
-        <option *ngFor="let tipo of tiposDisponibles" [value]="tipo.value">
-          {{ tipo.label }} - {{ tipo.description }}
-        </option>
+        @for (tipo of tiposDisponibles; track tipo) {
+          <option [value]="tipo.value">
+            {{ tipo.label }} - {{ tipo.description }}
+          </option>
+        }
       </select>
     </div>
 
@@ -36,10 +40,12 @@
   <section class="crear-plantilla card mb-4 p-3" [ngClass]="editandoPlantillaId ? 'bg-warning-subtle' : 'bg-light'">
     <h3 class="mb-3">
       {{ editandoPlantillaId ? '✏️ Editar Plantilla' : '📋 Crear Plantilla' }}
-      <button *ngIf="editandoPlantillaId" class="btn btn-sm btn-outline-secondary float-end"
-        (click)="cancelarEdicionPlantilla()">
-        ✖ Cancelar
-      </button>
+      @if (editandoPlantillaId) {
+        <button class="btn btn-sm btn-outline-secondary float-end"
+          (click)="cancelarEdicionPlantilla()">
+          ✖ Cancelar
+        </button>
+      }
     </h3>
 
     <div class="mb-3">
@@ -61,341 +67,431 @@
       <div class="card p-3">
         <h4 class="mb-3">📝 Preguntas Disponibles ({{ preguntas.length }})</h4>
 
-        <div *ngIf="preguntas.length === 0" class="alert alert-info">
-          No hay preguntas creadas. Crea una pregunta arriba para comenzar.
-        </div>
+        @if (preguntas.length === 0) {
+          <div class="alert alert-info">
+            No hay preguntas creadas. Crea una pregunta arriba para comenzar.
+          </div>
+        }
 
         <ul class="list-group mb-3">
-          <li *ngFor="let p of preguntas" class="list-group-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="flex-grow-1">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" [id]="'pregunta-' + p.id"
-                    [checked]="selectedPreguntaIds.indexOf(p.id) !== -1" (change)="togglePreguntaSeleccion(p)" />
-                  <label class="form-check-label" [for]="'pregunta-' + p.id">
-                    <strong>{{ p.textoPregunta }}</strong>
-                    <br>
-                    <small class="text-muted">
-                      <span class="badge bg-secondary">{{ getTipoLabel(p.tipo) }}</span>
-                      ID: {{ p.id }}
-                    </small>
-                  </label>
-                </div>
-              </div>
-              <div class="btn-group-vertical btn-group-sm ms-2">
-                <button class="btn btn-outline-primary btn-sm" (click)="editarPregunta(p)" title="Editar">
-                  ✏️
-                </button>
-                <button class="btn btn-outline-danger btn-sm" (click)="eliminarPregunta(p)" title="Eliminar">
-                  🗑️
-                </button>
-              </div>
-            </div>
-          </li>
-        </ul>
-
-        <div class="actions">
-          <label class="form-label"><strong>Plantilla destino:</strong></label>
-          <select [(ngModel)]="selectedPlantillaId" class="form-select mb-2">
-            <option [ngValue]="null">-- Seleccionar plantilla --</option>
-            <option *ngFor="let pl of plantillas" [ngValue]="pl.id">
-              {{ pl.nombre }} (ID: {{ pl.id }})
-            </option>
-          </select>
-
-          <button class="btn btn-success w-100" (click)="agregarPreguntasSeleccionadas()"
-            [disabled]="selectedPreguntaIds.length === 0 || !selectedPlantillaId">
-            ➕ Agregar {{ selectedPreguntaIds.length }} pregunta(s) seleccionada(s)
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- COLUMNA: PLANTILLAS -->
-    <div class="col-md-6 listado-plantillas">
-      <div class="card p-3">
-        <h4 class="mb-3">📋 Plantillas ({{ plantillas.length }})</h4>
-
-        <div *ngIf="plantillas.length === 0" class="alert alert-info">
-          No hay plantillas creadas. Crea una plantilla arriba para comenzar.
-        </div>
-
-        <ul class="list-group mb-3">
-          <li *ngFor="let pl of plantillas" class="list-group-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="flex-grow-1">
-                <strong>{{ pl.nombre }}</strong>
-                <br>
-                <small class="text-muted">
-                  ID: {{ pl.id }} |
-                  Preguntas: {{ pl.preguntas?.length || 0 }}
-                  <span *ngIf="pl.centroAtencionId"> | Centro: {{ pl.centroAtencionId }}</span>
-                  <span *ngIf="pl.especialidadId"> | Especialidad: {{ pl.especialidadId }}</span>
-                </small>
-
-                <!-- Lista de preguntas de la plantilla -->
-                <div *ngIf="pl.preguntas && pl.preguntas.length > 0" class="mt-2">
-                  <small class="text-muted d-block mb-1"><strong>Preguntas:</strong></small>
-                  <div *ngFor="let pregunta of pl.preguntas" class="ms-3 mb-1">
-                    <small>
-                      <span class="badge bg-info">{{ pregunta.tipo }}</span>
-                      {{ pregunta.textoPregunta }}
-                      <button class="btn btn-outline-danger btn-sm ms-2 py-0 px-1"
-                        (click)="removerPreguntaPlantilla(pl.id, pregunta.id, pregunta.textoPregunta)"
-                        title="Remover pregunta">
-                        ✖
-                      </button>
-                    </small>
+          @for (p of preguntas; track p) {
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" [id]="'pregunta-' + p.id"
+                      [checked]="selectedPreguntaIds.indexOf(p.id) !== -1" (change)="togglePreguntaSeleccion(p)" />
+                    <label class="form-check-label" [for]="'pregunta-' + p.id">
+                      <strong>{{ p.textoPregunta }}</strong>
+                      <br>
+                        <small class="text-muted">
+                          <span class="badge bg-secondary">{{ getTipoLabel(p.tipo) }}</span>
+                          ID: {{ p.id }}
+                        </small>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="btn-group-vertical btn-group-sm ms-2">
+                    <button class="btn btn-outline-primary btn-sm" (click)="editarPregunta(p)" title="Editar">
+                      ✏️
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" (click)="eliminarPregunta(p)" title="Eliminar">
+                      🗑️
+                    </button>
                   </div>
                 </div>
-              </div>
+              </li>
+            }
+          </ul>
 
-              <div class="btn-group-vertical btn-group-sm ms-2">
-                <button class="btn btn-outline-info btn-sm" (click)="abrirPreview(pl)" title="Vista previa">
-                  👁️
-                </button>
-                <button class="btn btn-outline-primary btn-sm" (click)="editarPlantilla(pl)" title="Editar">
-                  ✏️
-                </button>
-                <button class="btn btn-outline-danger btn-sm" (click)="eliminarPlantilla(pl)" title="Eliminar">
-                  🗑️
-                </button>
-              </div>
-            </div>
-          </li>
-        </ul>
-
-        <div class="assign-actions">
-          <h5 class="mb-3">🔗 Asignar Plantilla Seleccionada</h5>
-
-          <div class="mb-4">
-            <label class="form-label"><strong>Plantilla a configurar:</strong></label>
-            <select [(ngModel)]="selectedPlantillaId" class="form-select">
+          <div class="actions">
+            <label class="form-label"><strong>Plantilla destino:</strong></label>
+            <select [(ngModel)]="selectedPlantillaId" class="form-select mb-2">
               <option [ngValue]="null">-- Seleccionar plantilla --</option>
-              <option *ngFor="let pl of plantillas" [ngValue]="pl.id">
-                {{ pl.nombre }} (ID: {{ pl.id }})
-                <span *ngIf="pl.centroAtencion"> - Centro: {{ pl.centroAtencion.nombre }}</span>
-                <span *ngIf="pl.especialidad"> - Esp: {{ pl.especialidad.nombre }}</span>
-              </option>
+              @for (pl of plantillas; track pl) {
+                <option [ngValue]="pl.id">
+                  {{ pl.nombre }} (ID: {{ pl.id }})
+                </option>
+              }
             </select>
 
-            <!-- Mostrar asignaciones actuales -->
-            <div *ngIf="selectedPlantillaId" class="mt-2">
-              <small class="text-muted d-block">
-                <strong>Asignaciones actuales:</strong>
-              </small>
-              <div *ngIf="getPlantillaSeleccionada() as plantilla">
-                <span *ngIf="plantilla.centroAtencion" class="badge bg-info me-1">
-                  🏥 {{ plantilla.centroAtencion.nombre }}
-                </span>
-                <span *ngIf="plantilla.especialidad" class="badge bg-info me-1">
-                  🩺 {{ plantilla.especialidad.nombre }}
-                </span>
-                <span *ngIf="!plantilla.centroAtencion && !plantilla.especialidad" class="text-muted">
-                  Sin asignaciones
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ASIGNAR CENTRO DE ATENCIÓN -->
-          <div class="mb-3 assignment-box">
-
-
-            <!-- Campo de búsqueda (solo para SUPERADMIN) -->
-            <input *ngIf="!centroDeshabilitado" type="text" class="form-control mb-2" [(ngModel)]="searchCentro"
-              placeholder="🔍 Buscar centro por nombre..." (ngModelChange)="onSearchCentro($event)" />
-
-            <!-- Centro seleccionado (solo para SUPERADMIN) -->
-            <div *ngIf="!centroDeshabilitado && selectedCentro" class="alert alert-success py-2 mb-2">
-              ✅ Seleccionado: <strong>{{ selectedCentro.nombre }}</strong>
-              <button class="btn btn-sm btn-outline-secondary float-end py-0" (click)="selectedCentro = null">✖</button>
-            </div>
-
-            <!-- Lista de centros filtrados (solo para SUPERADMIN) -->
-            <div *ngIf="!centroDeshabilitado && !selectedCentro && (searchCentro || centrosFiltrados.length > 0)"
-              class="list-group max-height-200 mb-2">
-              <button *ngFor="let centro of centrosFiltrados.slice(0, 5)" type="button"
-                class="list-group-item list-group-item-action" (click)="seleccionarCentro(centro)">
-                <strong>{{ centro.nombre }}</strong>
-                <br>
-                <small class="text-muted">{{ centro.direccion || 'Sin dirección' }}</small>
-              </button>
-              <div *ngIf="centrosFiltrados.length === 0 && searchCentro" class="list-group-item text-muted">
-                No se encontraron centros con "{{ searchCentro }}"
-              </div>
-              <div *ngIf="centrosFiltrados.length > 5" class="list-group-item text-muted text-center">
-                ... y {{ centrosFiltrados.length - 5 }} más (sigue escribiendo)
-              </div>
-            </div>
-
-            <button *ngIf="!centroDeshabilitado" class="btn btn-success w-100" (click)="asignarCentro()"
-              [disabled]="!selectedPlantillaId || !selectedCentro">
-              <span *ngIf="!selectedCentro">🔍 Busca y selecciona un centro</span>
-              <span *ngIf="selectedCentro">✅ Asignar "{{ selectedCentro.nombre }}"</span>
+            <button class="btn btn-success w-100" (click)="agregarPreguntasSeleccionadas()"
+              [disabled]="selectedPreguntaIds.length === 0 || !selectedPlantillaId">
+              ➕ Agregar {{ selectedPreguntaIds.length }} pregunta(s) seleccionada(s)
             </button>
-          </div>
-
-          <hr class="my-3">
-
-          <!-- ASIGNAR ESPECIALIDAD -->
-          <div class="mb-3 assignment-box">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <label class="form-label mb-0"><strong>🩺 Especialidad:</strong></label>
-              <button *ngIf="getPlantillaSeleccionada()?.especialidad" class="btn btn-sm btn-outline-danger"
-                (click)="desasignarEspecialidad()" title="Quitar especialidad asignada">
-                🗑️ Quitar
-              </button>
-            </div>
-
-            <!-- Campo de búsqueda -->
-            <input type="text" class="form-control mb-2" [(ngModel)]="searchEspecialidad"
-              placeholder="🔍 Buscar especialidad por nombre..." (ngModelChange)="onSearchEspecialidad($event)" />
-
-            <!-- Especialidad seleccionada -->
-            <div *ngIf="selectedEspecialidad" class="alert alert-success py-2 mb-2">
-              ✅ Seleccionado: <strong>{{ selectedEspecialidad.nombre }}</strong>
-              <button class="btn btn-sm btn-outline-secondary float-end py-0"
-                (click)="selectedEspecialidad = null">✖</button>
-            </div>
-
-            <!-- Lista de especialidades filtradas -->
-            <div *ngIf="!selectedEspecialidad && (searchEspecialidad || especialidadesFiltradas.length > 0)"
-              class="list-group max-height-200 mb-2">
-              <button *ngFor="let esp of especialidadesFiltradas.slice(0, 5)" type="button"
-                class="list-group-item list-group-item-action" (click)="seleccionarEspecialidad(esp)">
-                <strong>{{ esp.nombre }}</strong>
-              </button>
-              <div *ngIf="especialidadesFiltradas.length === 0 && searchEspecialidad"
-                class="list-group-item text-muted">
-                No se encontraron especialidades con "{{ searchEspecialidad }}"
-              </div>
-              <div *ngIf="especialidadesFiltradas.length > 5" class="list-group-item text-muted text-center">
-                ... y {{ especialidadesFiltradas.length - 5 }} más (sigue escribiendo)
-              </div>
-            </div>
-
-            <button class="btn btn-success w-100" (click)="asignarEspecialidad()"
-              [disabled]="!selectedPlantillaId || !selectedEspecialidad">
-              <span *ngIf="!selectedEspecialidad">🔍 Busca y selecciona una especialidad</span>
-              <span *ngIf="selectedEspecialidad">✅ Asignar "{{ selectedEspecialidad.nombre }}"</span>
-            </button>
-          </div>
-
-          <!-- BOTÓN DE DESASIGNAR TODO (Movido a un lugar más visible pero separado) -->
-          <div *ngIf="getPlantillaSeleccionada()?.centroAtencion || getPlantillaSeleccionada()?.especialidad"
-            class="mt-4">
-            <hr>
-            <div class="alert alert-warning">
-              <h6 class="alert-heading">⚠️ Desasignar todo</h6>
-              <p class="mb-2">Esta acción removerá TODAS las asignaciones (centro y especialidad) de la plantilla.</p>
-              <button class="btn btn-warning w-100" (click)="desasignarPlantillaCompleta()"
-                [disabled]="!selectedPlantillaId">
-                🔓 Desasignar Centro y Especialidad
-              </button>
-            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-</div>
 
-<!-- MODAL DE PREVIEW -->
-<div *ngIf="showPreview" class="modal-overlay" (click)="cerrarPreview()">
-  <div class="modal-content-preview card" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>👁️ Vista Previa: {{ previewPlantilla?.nombre }}</h3>
-      <button class="btn btn-close" (click)="cerrarPreview()"></button>
-    </div>
+      <!-- COLUMNA: PLANTILLAS -->
+      <div class="col-md-6 listado-plantillas">
+        <div class="card p-3">
+          <h4 class="mb-3">📋 Plantillas ({{ plantillas.length }})</h4>
 
-    <div class="modal-body">
-      <p class="text-muted">Esta es una vista previa de cómo verán los pacientes esta encuesta.</p>
+          @if (plantillas.length === 0) {
+            <div class="alert alert-info">
+              No hay plantillas creadas. Crea una plantilla arriba para comenzar.
+            </div>
+          }
 
-      <form *ngIf="previewPlantilla?.preguntas">
-        <div *ngFor="let pregunta of previewPlantilla.preguntas; let idx = index"
-          class="form-group mb-4 preview-question">
-          <label class="form-label"><strong>{{ idx + 1 }}. {{ pregunta.textoPregunta }}</strong></label>
-          <small class="d-block text-muted mb-2">
-            <span class="badge bg-secondary">{{ getTipoLabel(pregunta.tipo) }}</span>
-          </small>
+          <ul class="list-group mb-3">
+            @for (pl of plantillas; track pl) {
+              <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <strong>{{ pl.nombre }}</strong>
+                    <br>
+                      <small class="text-muted">
+                        ID: {{ pl.id }} |
+                        Preguntas: {{ pl.preguntas?.length || 0 }}
+                        @if (pl.centroAtencionId) {
+                          <span> | Centro: {{ pl.centroAtencionId }}</span>
+                        }
+                        @if (pl.especialidadId) {
+                          <span> | Especialidad: {{ pl.especialidadId }}</span>
+                        }
+                      </small>
+                      <!-- Lista de preguntas de la plantilla -->
+                      @if (pl.preguntas && pl.preguntas.length > 0) {
+                        <div class="mt-2">
+                          <small class="text-muted d-block mb-1"><strong>Preguntas:</strong></small>
+                          @for (pregunta of pl.preguntas; track pregunta) {
+                            <div class="ms-3 mb-1">
+                              <small>
+                                <span class="badge bg-info">{{ pregunta.tipo }}</span>
+                                {{ pregunta.textoPregunta }}
+                                <button class="btn btn-outline-danger btn-sm ms-2 py-0 px-1"
+                                  (click)="removerPreguntaPlantilla(pl.id, pregunta.id, pregunta.textoPregunta)"
+                                  title="Remover pregunta">
+                                  ✖
+                                </button>
+                              </small>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="btn-group-vertical btn-group-sm ms-2">
+                      <button class="btn btn-outline-info btn-sm" (click)="abrirPreview(pl)" title="Vista previa">
+                        👁️
+                      </button>
+                      <button class="btn btn-outline-primary btn-sm" (click)="editarPlantilla(pl)" title="Editar">
+                        ✏️
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm" (click)="eliminarPlantilla(pl)" title="Eliminar">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
 
-          <div [ngSwitch]="pregunta.tipo">
-            <!-- NPS -->
-            <div *ngSwitchCase="'NPS'" class="nps-control">
-              <div class="nps-options">
-                <label *ngFor="let v of [0,1,2,3,4,5,6,7,8,9,10]" class="nps-option">
-                  <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
-                    [(ngModel)]="previewRespuestas[pregunta.id]" />
-                  <span>{{v}}</span>
-                </label>
+            <div class="assign-actions">
+              <h5 class="mb-3">🔗 Asignar Plantilla Seleccionada</h5>
+
+              <div class="mb-4">
+                <label class="form-label"><strong>Plantilla a configurar:</strong></label>
+                <select [(ngModel)]="selectedPlantillaId" class="form-select">
+                  <option [ngValue]="null">-- Seleccionar plantilla --</option>
+                  @for (pl of plantillas; track pl) {
+                    <option [ngValue]="pl.id">
+                      {{ pl.nombre }} (ID: {{ pl.id }})
+                      @if (pl.centroAtencion) {
+                        <span> - Centro: {{ pl.centroAtencion.nombre }}</span>
+                      }
+                      @if (pl.especialidad) {
+                        <span> - Esp: {{ pl.especialidad.nombre }}</span>
+                      }
+                    </option>
+                  }
+                </select>
+
+                <!-- Mostrar asignaciones actuales -->
+                @if (selectedPlantillaId) {
+                  <div class="mt-2">
+                    <small class="text-muted d-block">
+                      <strong>Asignaciones actuales:</strong>
+                    </small>
+                    @if (getPlantillaSeleccionada(); as plantilla) {
+                      <div>
+                        @if (plantilla.centroAtencion) {
+                          <span class="badge bg-info me-1">
+                            🏥 {{ plantilla.centroAtencion.nombre }}
+                          </span>
+                        }
+                        @if (plantilla.especialidad) {
+                          <span class="badge bg-info me-1">
+                            🩺 {{ plantilla.especialidad.nombre }}
+                          </span>
+                        }
+                        @if (!plantilla.centroAtencion && !plantilla.especialidad) {
+                          <span class="text-muted">
+                            Sin asignaciones
+                          </span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
               </div>
-              <small class="text-muted">0 = Muy insatisfecho, 10 = Muy satisfecho</small>
-            </div>
 
-            <!-- RATING ESPERA -->
-            <div *ngSwitchCase="'RATING_ESPERA'" class="rating-control">
-              <label *ngFor="let v of [1,2,3,4,5]" class="rating-option">
-                <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
-                  [(ngModel)]="previewRespuestas[pregunta.id]" />
-                <span>⭐ {{v}}</span>
-              </label>
-              <br>
-              <small class="text-muted">1 = Muy largo, 5 = Muy corto</small>
-            </div>
+              <!-- ASIGNAR CENTRO DE ATENCIÓN -->
+              <div class="mb-3 assignment-box">
 
-            <!-- RATING TRATO -->
-            <div *ngSwitchCase="'RATING_TRATO'" class="rating-control">
-              <label *ngFor="let v of [1,2,3,4,5]" class="rating-option">
-                <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
-                  [(ngModel)]="previewRespuestas[pregunta.id]" />
-                <span>⭐ {{v}}</span>
-              </label>
-              <br>
-              <small class="text-muted">1 = Muy malo, 5 = Excelente</small>
-            </div>
 
-            <!-- CSAT -->
-            <div *ngSwitchCase="'CSAT'" class="csat-control">
-              <label *ngFor="let v of [1,2,3,4,5]" class="csat-option">
-                <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
-                  [(ngModel)]="previewRespuestas[pregunta.id]" />
-                <span>{{v}}</span>
-              </label>
-              <br>
-              <small class="text-muted">1 = Muy insatisfecho, 5 = Muy satisfecho</small>
-            </div>
+                <!-- Campo de búsqueda (solo para SUPERADMIN) -->
+                @if (!centroDeshabilitado) {
+                  <input type="text" class="form-control mb-2" [(ngModel)]="searchCentro"
+                    placeholder="🔍 Buscar centro por nombre..." (ngModelChange)="onSearchCentro($event)" />
+                }
 
-            <!-- TEXTO LIBRE -->
-            <div *ngSwitchCase="'TEXTO_LIBRE'">
-              <textarea class="form-control" [(ngModel)]="previewRespuestas[pregunta.id]"
-                [name]="'preview-' + pregunta.id" rows="4" placeholder="Escriba su respuesta aquí..."></textarea>
-            </div>
+                <!-- Centro seleccionado (solo para SUPERADMIN) -->
+                @if (!centroDeshabilitado && selectedCentro) {
+                  <div class="alert alert-success py-2 mb-2">
+                    ✅ Seleccionado: <strong>{{ selectedCentro.nombre }}</strong>
+                    <button class="btn btn-sm btn-outline-secondary float-end py-0" (click)="selectedCentro = null">✖</button>
+                  </div>
+                }
 
-            <!-- Default -->
-            <div *ngSwitchDefault>
-              <input class="form-control" type="text" [(ngModel)]="previewRespuestas[pregunta.id]"
-                [name]="'preview-' + pregunta.id" placeholder="Respuesta" />
+                <!-- Lista de centros filtrados (solo para SUPERADMIN) -->
+                @if (!centroDeshabilitado && !selectedCentro && (searchCentro || centrosFiltrados.length > 0)) {
+                  <div
+                    class="list-group max-height-200 mb-2">
+                    @for (centro of centrosFiltrados.slice(0, 5); track centro) {
+                      <button type="button"
+                        class="list-group-item list-group-item-action" (click)="seleccionarCentro(centro)">
+                        <strong>{{ centro.nombre }}</strong>
+                        <br>
+                          <small class="text-muted">{{ centro.direccion || 'Sin dirección' }}</small>
+                        </button>
+                      }
+                      @if (centrosFiltrados.length === 0 && searchCentro) {
+                        <div class="list-group-item text-muted">
+                          No se encontraron centros con "{{ searchCentro }}"
+                        </div>
+                      }
+                      @if (centrosFiltrados.length > 5) {
+                        <div class="list-group-item text-muted text-center">
+                          ... y {{ centrosFiltrados.length - 5 }} más (sigue escribiendo)
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (!centroDeshabilitado) {
+                    <button class="btn btn-success w-100" (click)="asignarCentro()"
+                      [disabled]="!selectedPlantillaId || !selectedCentro">
+                      @if (!selectedCentro) {
+                        <span>🔍 Busca y selecciona un centro</span>
+                      }
+                      @if (selectedCentro) {
+                        <span>✅ Asignar "{{ selectedCentro.nombre }}"</span>
+                      }
+                    </button>
+                  }
+                </div>
+
+                <hr class="my-3">
+
+                <!-- ASIGNAR ESPECIALIDAD -->
+                <div class="mb-3 assignment-box">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label mb-0"><strong>🩺 Especialidad:</strong></label>
+                    @if (getPlantillaSeleccionada()?.especialidad) {
+                      <button class="btn btn-sm btn-outline-danger"
+                        (click)="desasignarEspecialidad()" title="Quitar especialidad asignada">
+                        🗑️ Quitar
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Campo de búsqueda -->
+                  <input type="text" class="form-control mb-2" [(ngModel)]="searchEspecialidad"
+                    placeholder="🔍 Buscar especialidad por nombre..." (ngModelChange)="onSearchEspecialidad($event)" />
+
+                  <!-- Especialidad seleccionada -->
+                  @if (selectedEspecialidad) {
+                    <div class="alert alert-success py-2 mb-2">
+                      ✅ Seleccionado: <strong>{{ selectedEspecialidad.nombre }}</strong>
+                      <button class="btn btn-sm btn-outline-secondary float-end py-0"
+                      (click)="selectedEspecialidad = null">✖</button>
+                    </div>
+                  }
+
+                  <!-- Lista de especialidades filtradas -->
+                  @if (!selectedEspecialidad && (searchEspecialidad || especialidadesFiltradas.length > 0)) {
+                    <div
+                      class="list-group max-height-200 mb-2">
+                      @for (esp of especialidadesFiltradas.slice(0, 5); track esp) {
+                        <button type="button"
+                          class="list-group-item list-group-item-action" (click)="seleccionarEspecialidad(esp)">
+                          <strong>{{ esp.nombre }}</strong>
+                        </button>
+                      }
+                      @if (especialidadesFiltradas.length === 0 && searchEspecialidad) {
+                        <div
+                          class="list-group-item text-muted">
+                          No se encontraron especialidades con "{{ searchEspecialidad }}"
+                        </div>
+                      }
+                      @if (especialidadesFiltradas.length > 5) {
+                        <div class="list-group-item text-muted text-center">
+                          ... y {{ especialidadesFiltradas.length - 5 }} más (sigue escribiendo)
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <button class="btn btn-success w-100" (click)="asignarEspecialidad()"
+                    [disabled]="!selectedPlantillaId || !selectedEspecialidad">
+                    @if (!selectedEspecialidad) {
+                      <span>🔍 Busca y selecciona una especialidad</span>
+                    }
+                    @if (selectedEspecialidad) {
+                      <span>✅ Asignar "{{ selectedEspecialidad.nombre }}"</span>
+                    }
+                  </button>
+                </div>
+
+                <!-- BOTÓN DE DESASIGNAR TODO (Movido a un lugar más visible pero separado) -->
+                @if (getPlantillaSeleccionada()?.centroAtencion || getPlantillaSeleccionada()?.especialidad) {
+                  <div
+                    class="mt-4">
+                    <hr>
+                      <div class="alert alert-warning">
+                        <h6 class="alert-heading">⚠️ Desasignar todo</h6>
+                        <p class="mb-2">Esta acción removerá TODAS las asignaciones (centro y especialidad) de la plantilla.</p>
+                        <button class="btn btn-warning w-100" (click)="desasignarPlantillaCompleta()"
+                          [disabled]="!selectedPlantillaId">
+                          🔓 Desasignar Centro y Especialidad
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
-      </form>
 
-      <div *ngIf="!previewPlantilla?.preguntas || previewPlantilla.preguntas.length === 0" class="alert alert-warning">
-        ⚠️ Esta plantilla no tiene preguntas asociadas. Agregue preguntas para poder visualizarlas.
-      </div>
-    </div>
+        <!-- MODAL DE PREVIEW -->
+        @if (showPreview) {
+          <div class="modal-overlay" (click)="cerrarPreview()">
+            <div class="modal-content-preview card" (click)="$event.stopPropagation()">
+              <div class="modal-header">
+                <h3>👁️ Vista Previa: {{ previewPlantilla?.nombre }}</h3>
+                <button class="btn btn-close" (click)="cerrarPreview()"></button>
+              </div>
+              <div class="modal-body">
+                <p class="text-muted">Esta es una vista previa de cómo verán los pacientes esta encuesta.</p>
+                @if (previewPlantilla?.preguntas) {
+                  <form>
+                    @for (pregunta of previewPlantilla.preguntas; track pregunta; let idx = $index) {
+                      <div
+                        class="form-group mb-4 preview-question">
+                        <label class="form-label"><strong>{{ idx + 1 }}. {{ pregunta.textoPregunta }}</strong></label>
+                        <small class="d-block text-muted mb-2">
+                          <span class="badge bg-secondary">{{ getTipoLabel(pregunta.tipo) }}</span>
+                        </small>
+                        <div>
+                          @switch (pregunta.tipo) {
+                            <!-- NPS -->
+                            @case ('NPS') {
+                              <div class="nps-control">
+                                <div class="nps-options">
+                                  @for (v of [0,1,2,3,4,5,6,7,8,9,10]; track v) {
+                                    <label class="nps-option">
+                                      <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
+                                        [(ngModel)]="previewRespuestas[pregunta.id]" />
+                                      <span>{{v}}</span>
+                                    </label>
+                                  }
+                                </div>
+                                <small class="text-muted">0 = Muy insatisfecho, 10 = Muy satisfecho</small>
+                              </div>
+                            }
+                            <!-- RATING ESPERA -->
+                            @case ('RATING_ESPERA') {
+                              <div class="rating-control">
+                                @for (v of [1,2,3,4,5]; track v) {
+                                  <label class="rating-option">
+                                    <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
+                                      [(ngModel)]="previewRespuestas[pregunta.id]" />
+                                    <span>⭐ {{v}}</span>
+                                  </label>
+                                }
+                                <br>
+                                  <small class="text-muted">1 = Muy largo, 5 = Muy corto</small>
+                                </div>
+                              }
+                              <!-- RATING TRATO -->
+                              @case ('RATING_TRATO') {
+                                <div class="rating-control">
+                                  @for (v of [1,2,3,4,5]; track v) {
+                                    <label class="rating-option">
+                                      <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
+                                        [(ngModel)]="previewRespuestas[pregunta.id]" />
+                                      <span>⭐ {{v}}</span>
+                                    </label>
+                                  }
+                                  <br>
+                                    <small class="text-muted">1 = Muy malo, 5 = Excelente</small>
+                                  </div>
+                                }
+                                <!-- CSAT -->
+                                @case ('CSAT') {
+                                  <div class="csat-control">
+                                    @for (v of [1,2,3,4,5]; track v) {
+                                      <label class="csat-option">
+                                        <input type="radio" [name]="'preview-' + pregunta.id" [value]="v"
+                                          [(ngModel)]="previewRespuestas[pregunta.id]" />
+                                        <span>{{v}}</span>
+                                      </label>
+                                    }
+                                    <br>
+                                      <small class="text-muted">1 = Muy insatisfecho, 5 = Muy satisfecho</small>
+                                    </div>
+                                  }
+                                  <!-- TEXTO LIBRE -->
+                                  @case ('TEXTO_LIBRE') {
+                                    <div>
+                                      <textarea class="form-control" [(ngModel)]="previewRespuestas[pregunta.id]"
+                                      [name]="'preview-' + pregunta.id" rows="4" placeholder="Escriba su respuesta aquí..."></textarea>
+                                    </div>
+                                  }
+                                  <!-- Default -->
+                                  @default {
+                                    <div>
+                                      <input class="form-control" type="text" [(ngModel)]="previewRespuestas[pregunta.id]"
+                                        [name]="'preview-' + pregunta.id" placeholder="Respuesta" />
+                                    </div>
+                                  }
+                                }
+                              </div>
+                            </div>
+                          }
+                        </form>
+                      }
+                      @if (!previewPlantilla?.preguntas || previewPlantilla.preguntas.length === 0) {
+                        <div class="alert alert-warning">
+                          ⚠️ Esta plantilla no tiene preguntas asociadas. Agregue preguntas para poder visualizarlas.
+                        </div>
+                      }
+                    </div>
+                    <div class="modal-footer">
+                      <button class="btn btn-secondary" (click)="cerrarPreview()">Cerrar Preview</button>
+                    </div>
+                  </div>
+                </div>
+              }
 
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="cerrarPreview()">Cerrar Preview</button>
-    </div>
-  </div>
-</div>
-
-<!-- LOADING -->
-<div *ngIf="loading" class="text-center mt-4">
-  <div class="spinner-border" role="status">
-    <span class="visually-hidden">Cargando...</span>
-  </div>
-  <p>Cargando datos...</p>
-</div>
+              <!-- LOADING -->
+              @if (loading) {
+                <div class="text-center mt-4">
+                  <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                  </div>
+                  <p>Cargando datos...</p>
+                </div>
+              }

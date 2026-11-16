@@ -9,13 +9,13 @@
           <p class="text-white mb-0 mt-sm">Gestión de especialidades médicas del sistema</p>
         </div>
       </div>
-      
+
       <button
         type="button"
         class="btn btn-primary"
         (click)="router.navigate(['/especialidades/new'])"
         aria-label="Crear nueva especialidad"
-      >
+        >
         <span class="material-symbols-outlined me-2" aria-hidden="true">add</span>
         <span class="d-none d-sm-inline">Nueva Especialidad</span>
       </button>
@@ -47,75 +47,80 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            *ngFor="let especialidad of resultsPage.content || []; let i = index"
-            [class.selected]="especialidad.id === selectedId"
-            (click)="goToDetail(especialidad.id)"
-            role="button"
-            [attr.aria-label]="'Ver detalles de ' + especialidad.nombre"
-            tabindex="0"
-          >
-            <td>
-              <div class="d-flex align-items-center gap-sm">
-                <div class="entity-avatar entity-avatar-especialidad">
-                  <span class="material-symbols-outlined text-primary" aria-hidden="true">medical_services</span>
+          @for (especialidad of resultsPage.content || []; track especialidad; let i = $index) {
+            <tr
+              [class.selected]="especialidad.id === selectedId"
+              (click)="goToDetail(especialidad.id)"
+              role="button"
+              [attr.aria-label]="'Ver detalles de ' + especialidad.nombre"
+              tabindex="0"
+              >
+              <td>
+                <div class="d-flex align-items-center gap-sm">
+                  <div class="entity-avatar entity-avatar-especialidad">
+                    <span class="material-symbols-outlined text-primary" aria-hidden="true">medical_services</span>
+                  </div>
+                  <div class="entity-details">
+                    <strong>{{ especialidad.nombre }}</strong>
+                  </div>
                 </div>
-                <div class="entity-details">
-                  <strong>{{ especialidad.nombre }}</strong>
+              </td>
+              <td>
+                <div class="descripcion-text text-muted">
+                  {{ especialidad.descripcion || 'Sin descripción' }}
                 </div>
-              </div>
-            </td>
-            <td>
-              <div class="descripcion-text text-muted">
-                {{ especialidad.descripcion || 'Sin descripción' }}
-              </div>
-            </td>
-            <td>
-              <div class="d-flex gap-xs">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  (click)="goToEdit(especialidad.id); $event.stopPropagation()"
-                  [attr.aria-label]="'Editar ' + especialidad.nombre"
-                  title="Editar especialidad"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-danger"
-                  (click)="remove(especialidad); $event.stopPropagation()"
-                  [attr.aria-label]="'Eliminar ' + especialidad.nombre"
-                  title="Eliminar especialidad"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </td>
-          </tr>
-          
+              </td>
+              <td>
+                <div class="d-flex gap-xs">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    (click)="goToEdit(especialidad.id); $event.stopPropagation()"
+                    [attr.aria-label]="'Editar ' + especialidad.nombre"
+                    title="Editar especialidad"
+                    >
+                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    (click)="remove(especialidad); $event.stopPropagation()"
+                    [attr.aria-label]="'Eliminar ' + especialidad.nombre"
+                    title="Eliminar especialidad"
+                    >
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+
           <!-- Estado vacío -->
-          <tr *ngIf="resultsPage.content?.length === 0">
-            <td colspan="4" class="text-center py-5">
-              <div class="d-flex flex-column align-items-center gap-md">
-                <span class="material-symbols-outlined empty-state-icon" aria-hidden="true">medical_services</span>
-                <p class="text-muted mb-0">No hay especialidades registradas</p>
-              </div>
-            </td>
-          </tr>
+          @if (resultsPage.content?.length === 0) {
+            <tr>
+              <td colspan="4" class="text-center py-5">
+                <div class="d-flex flex-column align-items-center gap-md">
+                  <span class="material-symbols-outlined empty-state-icon" aria-hidden="true">medical_services</span>
+                  <p class="text-muted mb-0">No hay especialidades registradas</p>
+                </div>
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
 
     <!-- Footer/Paginación -->
-    <div class="d-flex justify-content-center mt-lg pt-lg border-top" *ngIf="resultsPage.totalPages > 1">
-      <app-pagination
-        [totalPages]="resultsPage.totalPages"
-        [currentPage]="currentPage"
-        (pageChangeRequested)="onPageChangeRequested($event)"
-        [number]="resultsPage.number"
-      >
-      </app-pagination>
-    </div>
+    @if (resultsPage.totalPages > 1) {
+      <div class="d-flex justify-content-center mt-lg pt-lg border-top">
+        <app-pagination
+          [totalPages]="resultsPage.totalPages"
+          [currentPage]="currentPage"
+          (pageChangeRequested)="onPageChangeRequested($event)"
+          [number]="resultsPage.number"
+          >
+        </app-pagination>
+      </div>
+    }
   </div>
 </div>

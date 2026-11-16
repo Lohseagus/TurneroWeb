@@ -30,8 +30,8 @@ public interface OperadorRepository extends JpaRepository<Operador, Long> {
      * Utiliza LIKE para búsqueda parcial insensible a mayúsculas/minúsculas.
      */
     @Query("SELECT o FROM Operador o WHERE " +
-           "(:nombre IS NULL OR LOWER(o.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
-           "(:email IS NULL OR LOWER(o.email) LIKE LOWER(CONCAT('%', :email, '%'))) AND " +
+           "(:nombre IS NULL OR LOWER(o.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%'))) AND " +
+           "(:email IS NULL OR LOWER(o.email) LIKE LOWER(CONCAT('%', CAST(:email AS string), '%'))) AND " +
            "(:estado IS NULL OR o.activo = :estado)")
     Page<Operador> findByFiltros(@Param("nombre") String nombre,
                                  @Param("email") String email,

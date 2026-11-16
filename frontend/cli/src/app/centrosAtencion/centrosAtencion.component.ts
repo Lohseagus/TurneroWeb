@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CentroAtencionService } from './centroAtencion.service';
 import { CentroAtencion } from './centroAtencion';
@@ -11,8 +11,9 @@ import { UserContextService } from '../services/user-context.service';
 @Component({
   selector: 'app-centros-atencion',
   standalone: true,
-  imports: [CommonModule, RouterModule, PaginationComponent],
+  imports: [RouterModule, PaginationComponent],
   templateUrl: './centrosAtencion.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './centrosAtencion.component.css' 
 })
 export class CentrosAtencionComponent {
