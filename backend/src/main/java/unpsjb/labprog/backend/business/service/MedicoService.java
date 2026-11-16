@@ -30,6 +30,8 @@ import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.model.AuditLog;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class MedicoService {
@@ -47,6 +49,9 @@ public class MedicoService {
     
     @Autowired
     private CentroAtencionRepository centroAtencionRepository;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
      @Autowired
     private RegistrationService registrationService;
@@ -243,6 +248,7 @@ public class MedicoService {
         }
         
         // PASO 2: SIEMPRE crear StaffMedico vinculando al centro
+        suscripcionAccessService.assertOperacion(centroId, RecursoSaas.MEDICO, medico.getId());
         CentroAtencion centro = centroAtencionRepository.findById(centroId)
             .orElseThrow(() -> new IllegalStateException("Centro no encontrado"));
         

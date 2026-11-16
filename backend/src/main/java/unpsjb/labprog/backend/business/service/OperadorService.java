@@ -19,6 +19,8 @@ import unpsjb.labprog.backend.model.Operador;
 import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.model.AuditLog;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class OperadorService {
@@ -37,6 +39,9 @@ public class OperadorService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     private static final Logger logger = LoggerFactory.getLogger(OperadorService.class);
 
@@ -159,6 +164,10 @@ public class OperadorService {
 
         // Validaciones de duplicados
         if (operador.getId() == null || operador.getId() <= 0L) {
+            Integer centroLimiteId = operador.getCentroAtencion() != null
+                    ? operador.getCentroAtencion().getId()
+                    : TenantContext.getCurrentCentroId();
+            suscripcionAccessService.assertOperacion(centroLimiteId, RecursoSaas.OPERADOR);
             if (repository.existsByDni(operador.getDni())) {
                 throw new IllegalStateException("Ya existe un operador con el DNI: " + operador.getDni());
             }

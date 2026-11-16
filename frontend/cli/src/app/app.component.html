@@ -35,6 +35,7 @@
       </div>
 
       <!-- Login Button (for non-authenticated users) -->
+      <a class="btn btn-outline-primary" *ngIf="!isAuthenticated()" routerLink="/planes">Planes</a>
       <button
         class="btn btn-primary login-button"
         *ngIf="!isAuthenticated()"
@@ -92,6 +93,7 @@
   [class.main-content--no-sidebar]="!isAuthenticated()"
   [class.sidebar-closed]="!sidebarOpen && isAuthenticated()"
 >
+  <app-suscripcion-banner *ngIf="isAuthenticated()"></app-suscripcion-banner>
   <router-outlet></router-outlet>
 </main>
 

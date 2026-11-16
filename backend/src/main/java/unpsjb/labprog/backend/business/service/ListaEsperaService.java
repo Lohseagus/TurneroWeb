@@ -9,6 +9,8 @@ import unpsjb.labprog.backend.dto.TurnoDTO;
 import unpsjb.labprog.backend.model.*;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +29,9 @@ public class ListaEsperaService {
 
     @Autowired
     private ListaEsperaRepository repository;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     @Autowired
     private NotificacionService notificacionService;
@@ -109,6 +114,9 @@ public class ListaEsperaService {
 
         // Validar la solicitud
         validarSolicitud(listaEspera);
+        if (dto.getId() == null || dto.getId() == 0) {
+            suscripcionAccessService.assertOperacion(dto.getCentroAtencionId(), RecursoSaas.LISTA_ESPERA);
+        }
 
         // Guardar y convertir resultado a DTO
         return convertToDTO(repository.save(listaEspera));
@@ -518,6 +526,13 @@ public class ListaEsperaService {
     // ========== MÉTODO: crearNuevoTurno (ACTUALIZADO) ==========
     private TurnoDTO crearNuevoTurno(ListaEspera solicitud, Turno turnoCancelado) {
         try {
+            CentroAtencion centroDelTurno = turnoCancelado.getCentroAtencion();
+            if (centroDelTurno == null && turnoCancelado.getStaffMedico() != null) {
+                centroDelTurno = turnoCancelado.getStaffMedico().getCentroAtencion();
+            }
+            if (centroDelTurno != null) {
+                suscripcionAccessService.assertOperacion(centroDelTurno.getId(), RecursoSaas.TURNO);
+            }
             // Crear la entidad Turno directamente sin pasar por TurnoService
             Turno nuevoTurno = new Turno();
 

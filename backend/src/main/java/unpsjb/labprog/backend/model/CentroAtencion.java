@@ -6,15 +6,19 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,6 +54,15 @@ public class CentroAtencion {
 
     @Column(nullable = false)
     private Double longitud;
+
+    /**
+     * Organización (tenant SaaS) dueña del centro. Null solo hasta el seed
+     * o si un SUPERADMIN crea un centro todavía no vinculado.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organizacion_id")
+    @JsonIgnore
+    private Organizacion organizacion;
 
     // Relación uno a muchos con StaffMedico
     @OneToMany(mappedBy = "centroAtencion", cascade = CascadeType.PERSIST)

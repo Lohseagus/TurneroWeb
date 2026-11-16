@@ -26,6 +26,8 @@ import unpsjb.labprog.backend.model.DisponibilidadMedico;
 import unpsjb.labprog.backend.model.EsquemaTurno;
 import unpsjb.labprog.backend.model.StaffMedico;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class EsquemaTurnoService {
@@ -41,6 +43,9 @@ public class EsquemaTurnoService {
 
     @Autowired
     private ConsultorioRepository consultorioRepository;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
     
     @Autowired
     private ConsultorioDistribucionService consultorioDistribucionService;
@@ -309,6 +314,16 @@ public class EsquemaTurnoService {
     @Transactional
     public EsquemaTurnoDTO saveOrUpdate(EsquemaTurnoDTO dto) {
         completarActualizacionParcial(dto);
+        if (dto.getId() == null || dto.getId() == 0) {
+            if (dto.getConsultorioId() != null) {
+                consultorioRepository.findById(dto.getConsultorioId()).ifPresent(consultorio -> {
+                    if (consultorio.getCentroAtencion() != null) {
+                        suscripcionAccessService.assertOperacion(
+                                consultorio.getCentroAtencion().getId(), RecursoSaas.ESQUEMA);
+                    }
+                });
+            }
+        }
 
         // Validación: Staff Médico
         if (dto.getStaffMedicoId() == null) {

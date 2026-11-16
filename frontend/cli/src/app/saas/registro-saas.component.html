@@ -1,0 +1,62 @@
+<div class="saas-page">
+  <h1>Empezar la prueba</h1>
+  <p class="saas-lead">
+    Creamos la organización, el primer centro y el usuario administrador.
+    <span *ngIf="catalogo">Son {{ catalogo.configuracion.diasTrial }} días sin tarjeta.</span>
+    <a routerLink="/planes">Ver planes</a>
+  </p>
+
+  <div class="saas-alert error" *ngIf="error">{{ error }}</div>
+  <div class="saas-alert ok" *ngIf="ok">{{ ok }}</div>
+
+  <form class="saas-form saas-panel" (ngSubmit)="enviar()" *ngIf="catalogo">
+    <label>Plan
+      <select name="plan" [(ngModel)]="form.planCodigo" (ngModelChange)="ajustarCupo()">
+        <option *ngFor="let plan of catalogo.planes" [value]="plan.codigo">{{ plan.nombre }}</option>
+      </select>
+    </label>
+    <label>Facturación
+      <select name="ciclo" [(ngModel)]="form.ciclo" (ngModelChange)="cotizar()">
+        <option value="MENSUAL">Mensual</option>
+        <option value="ANUAL">Anual ({{ catalogo.configuracion.descuentoAnualPorcentaje }}% sobre el neto)</option>
+      </select>
+    </label>
+    <label *ngIf="porAsiento">Profesionales contratados ({{ planActual?.minProfesionales }} a {{ planActual?.maxProfesionales }})
+      <input type="number" name="cupo" [(ngModel)]="form.profesionalesContratados" (ngModelChange)="cotizar()" [min]="planActual?.minProfesionales || 1" [max]="planActual?.maxProfesionales || 10">
+    </label>
+
+    <div *ngIf="catalogo.addons.length">
+      <strong>Complementos</strong>
+      <label class="saas-check" *ngFor="let addon of catalogo.addons">
+        <input type="checkbox" [checked]="form.addons.includes(addon.codigo)" (change)="toggleAddon(addon.codigo, $any($event.target).checked)">
+        <span>{{ addon.nombre }} — {{ formatoArs(addon.precioMensualNeto) }} + IVA. {{ addon.placeholder ? 'Todavía no envía mensajes.' : '' }}</span>
+      </label>
+    </div>
+
+    <p *ngIf="precio">
+      A pagar cuando termine la prueba:
+      <strong>{{ formatoArs(precio.neto) }} + IVA</strong>
+      ({{ formatoArs(precio.total) }} con IVA).
+    </p>
+
+    <h2>Organización y centro</h2>
+    <label>Nombre de la organización<input name="org" [(ngModel)]="form.organizacionNombre" required></label>
+    <label>Nombre del centro<input name="centro" [(ngModel)]="form.centroNombre" required></label>
+    <label>Dirección<input name="direccion" [(ngModel)]="form.direccion" required></label>
+    <label>Localidad<input name="localidad" [(ngModel)]="form.localidad" required></label>
+    <label>Provincia<input name="provincia" [(ngModel)]="form.provincia" required></label>
+    <label>Teléfono del centro (solo números)<input name="telCentro" [(ngModel)]="form.telefonoCentro" required></label>
+    <label>Latitud<input type="number" step="0.0001" name="lat" [(ngModel)]="form.latitud" required></label>
+    <label>Longitud<input type="number" step="0.0001" name="lng" [(ngModel)]="form.longitud" required></label>
+
+    <h2>Administrador</h2>
+    <label>Nombre<input name="nombre" [(ngModel)]="form.adminNombre" required></label>
+    <label>Apellido<input name="apellido" [(ngModel)]="form.adminApellido" required></label>
+    <label>Email<input type="email" name="email" [(ngModel)]="form.adminEmail" required></label>
+    <label>Contraseña<input type="password" name="password" [(ngModel)]="form.adminPassword" minlength="6" required></label>
+    <label>DNI<input name="dni" [(ngModel)]="form.adminDni" required></label>
+    <label>Teléfono<input name="telAdmin" [(ngModel)]="form.adminTelefono" required></label>
+
+    <button class="btn btn-primary" type="submit" [disabled]="enviando">{{ enviando ? 'Creando...' : 'Crear cuenta y empezar' }}</button>
+  </form>
+</div>

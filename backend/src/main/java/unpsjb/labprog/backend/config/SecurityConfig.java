@@ -213,6 +213,13 @@ public class SecurityConfig {
                                 .requestMatchers("/activate-account").permitAll()
                                 // Consulta pública de turnos disponibles (sin información sensible)
                                 .requestMatchers(HttpMethod.GET, "/agenda/publica").permitAll()
+                                // Catálogo SaaS, alta de prueba y webhook de Mercado Pago
+                                .requestMatchers(HttpMethod.GET, "/api/saas/planes").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saas/cotizar").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saas/registro").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saas/webhooks/mercadopago").permitAll()
+                                .requestMatchers("/api/saas/admin/**").hasRole("SUPERADMIN")
+                                .requestMatchers("/api/saas/**").hasRole("ADMINISTRADOR")
 
                                 // ========== ENDPOINTS SOLO ADMINISTRADOR ==========
                                 // Rutas que requieren AdminGuard en el frontend
