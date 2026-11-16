@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StaffMedicoService } from './staffMedico.service';
@@ -16,8 +16,9 @@ import { ModalService } from '../modal/modal.service';
 @Component({
   selector: 'app-staff-medico-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './staffMedico-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './staffMedico-detail.component.css' 
 })
 export class StaffMedicoDetailComponent {

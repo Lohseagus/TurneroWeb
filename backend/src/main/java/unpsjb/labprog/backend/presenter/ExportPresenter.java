@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.ExportService;
+import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.dto.TurnoFilterDTO;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 /**
  * Controlador REST para exportaciones de turnos
@@ -26,6 +28,9 @@ public class ExportPresenter {
 
     @Autowired
     private ExportService exportService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     @PostMapping("/turnos/csv")
     public ResponseEntity<String> exportTurnosToCSV(@RequestBody TurnoFilterDTO filter) {
@@ -119,6 +124,11 @@ public class ExportPresenter {
                 fechaHastaParsed = java.time.LocalDate.parse(fechaHasta.trim());
             }
 
+            Integer centroReporte = centroAtencionId != null
+                    ? centroAtencionId
+                    : TenantContext.getCurrentCentroId();
+            suscripcionAccessService.assertReporteBasico(centroReporte);
+
             String csvContent = exportService.exportReporteAtencionToCSV(
                     staffMedicoId,
                     centroAtencionId,
@@ -164,6 +174,9 @@ public class ExportPresenter {
                 fechaHastaParsed = java.time.LocalDate.parse(fechaHasta.trim());
             }
 
+            suscripcionAccessService.assertReporteBasico(
+                    centroAtencionId != null ? centroAtencionId : TenantContext.getCurrentCentroId());
+
             String htmlContent = exportService.exportReporteAtencionToHTML(
                     staffMedicoId,
                     centroAtencionId,
@@ -207,6 +220,8 @@ public class ExportPresenter {
             }
 
             // Obtener HTML que será convertido a PDF en el frontend
+            suscripcionAccessService.assertReporteBasico(
+                    centroAtencionId != null ? centroAtencionId : TenantContext.getCurrentCentroId());
             String htmlContent = exportService.exportReporteAtencionToHTML(
                     staffMedicoId,
                     centroAtencionId,

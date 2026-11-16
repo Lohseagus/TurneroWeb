@@ -13,7 +13,7 @@
         class="btn btn-primary"
         (click)="router.navigate(['/turnos/audit-dashboard'])"
         title="Dashboard de Auditoría"
-      >
+        >
         <span class="material-symbols-outlined">analytics</span>
         Dashboard
       </button>
@@ -21,7 +21,7 @@
         class="btn btn-primary"
         (click)="router.navigate(['/turnos/advanced-search'])"
         title="Búsqueda Avanzada"
-      >
+        >
         <span class="material-symbols-outlined">search</span>
         Búsqueda Avanzada
       </button>
@@ -49,7 +49,7 @@
           placeholder="Buscar por nombre/apellido"
           [(ngModel)]="filters.paciente"
           (input)="onFilterChange()"
-        />
+          />
       </div>
 
       <!-- Filtro por Médico -->
@@ -65,7 +65,7 @@
           placeholder="Buscar por nombre/apellido"
           [(ngModel)]="filters.medico"
           (input)="onFilterChange()"
-        />
+          />
       </div>
 
       <!-- Filtro por Consultorio -->
@@ -81,7 +81,7 @@
           placeholder="Buscar consultorio"
           [(ngModel)]="filters.consultorio"
           (input)="onFilterChange()"
-        />
+          />
       </div>
 
       <!-- Filtro por Estado -->
@@ -95,7 +95,7 @@
           class="form-select"
           [(ngModel)]="filters.estado"
           (change)="onFilterChange()"
-        >
+          >
           <option value="">Todos los estados</option>
           <option value="PROGRAMADO">Programado</option>
           <option value="CONFIRMADO">Confirmado</option>
@@ -115,7 +115,7 @@
           class="form-control"
           [(ngModel)]="filters.fechaDesde"
           (change)="onFilterChange()"
-        />
+          />
       </div>
 
       <!-- Filtro Fecha Hasta -->
@@ -130,7 +130,7 @@
           class="form-control"
           [(ngModel)]="filters.fechaHasta"
           (change)="onFilterChange()"
-        />
+          />
       </div>
 
       <!-- Ordenamiento -->
@@ -144,7 +144,7 @@
           class="form-select"
           [(ngModel)]="filters.sortBy"
           (change)="onFilterChange()"
-        >
+          >
           <option value="fecha">Fecha</option>
           <option value="estado">Estado</option>
           <option value="horaInicio">Hora</option>
@@ -162,7 +162,7 @@
           class="form-select"
           [(ngModel)]="filters.sortDir"
           (change)="onFilterChange()"
-        >
+          >
           <option value="asc">Ascendente</option>
           <option value="desc">Descendente</option>
         </select>
@@ -175,7 +175,7 @@
         type="button"
         class="btn btn-secondary"
         (click)="clearFilters()"
-      >
+        >
         <span class="material-symbols-outlined">close</span>
         Limpiar filtros
       </button>
@@ -215,22 +215,24 @@
               class="header-button"
               (click)="toggleSort('fecha')"
               [class.active]="filters.sortBy === 'fecha'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">calendar_month</span>
                 Fecha & Hora
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="filters.sortBy === 'fecha'"
-                >
-                  {{ filters.sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="filters.sortBy !== 'fecha'"
-                >
-                  unfold_more
-                </span>
+                @if (filters.sortBy === 'fecha') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ filters.sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (filters.sortBy !== 'fecha') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
@@ -245,125 +247,130 @@
               class="header-button"
               (click)="toggleSort('estado')"
               [class.active]="filters.sortBy === 'estado'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">info</span>
                 Estado
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="filters.sortBy === 'estado'"
-                >
-                  {{ filters.sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="filters.sortBy !== 'estado'"
-                >
-                  unfold_more
-                </span>
+                @if (filters.sortBy === 'estado') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ filters.sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (filters.sortBy !== 'estado') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr
-          *ngFor="let turno of resultsPage.content || []; let i = index"
-          class="table-row"
-        >
-          <td>
-            <div class="entity-info">
-              <div class="entity-avatar">
-              <span class="material-symbols-outlined text-primary">person</span>
-              </div>
-              <div class="entity-details">
-                <span class="entity-name"
-                  >{{ turno.nombrePaciente }}
-                  {{ turno.apellidoPaciente }}</span
-                >
-              </div>
-            </div>
-          </td>
-          <td>
-            <div class="entity-info">
-              <div class="entity-avatar entity-avatar-medico">
-                <span class="material-symbols-outlined text-primary">local_hospital</span>
-              </div>
-              <div class="entity-details">
-                <span class="entity-name"
-                  >{{ turno.staffMedicoNombre }}
-                  {{ turno.staffMedicoApellido }}</span
-                >
-              </div>
-            </div>
-          </td>
-          <td>
-            <span class="badge badge-especialidad">
-              {{ turno.especialidadStaffMedico || "Sin especialidad" }}
-            </span>
-          </td>
-          <td>
-            <div class="fecha-info">
-              <div class="fecha-day">
-                <span class="material-symbols-outlined">calendar_today</span>
-                {{ turno.fecha | date : "dd/MM/yyyy" }}
-              </div>
-              <div class="fecha-time">
-                <span class="material-symbols-outlined">schedule</span>
-                {{ turno.horaInicio }} - {{ turno.horaFin }}
-              </div>
-            </div>
-          </td>
-          <td>
-            <div class="centro-info">
-              <div class="centro-name">
-                <span class="material-symbols-outlined">local_hospital</span>
-                {{ turno.nombreCentro }}
-              </div>
-              <div class="consultorio-name">
-                <span class="material-symbols-outlined">door_front</span>
-                {{ turno.consultorioNombre }}
-              </div>
-            </div>
-          </td>
-          <td>
-            <span
-              class="badge badge-status"
-              [class.badge-status-programado]="turno.estado === 'PROGRAMADO'"
-              [class.badge-status-confirmado]="turno.estado === 'CONFIRMADO'"
-              [class.badge-status-cancelado]="turno.estado === 'CANCELADO'"
-              [class.badge-status-completo]="turno.estado === 'COMPLETO'"
+        @for (turno of resultsPage.content || []; track turno; let i = $index) {
+          <tr
+            class="table-row"
             >
-              <span class="material-symbols-outlined">
-                {{ getEstadoIconMaterial(turno.estado) }}
-              </span>
-              {{ turno.estado }}
-            </span>
-          </td>
-        </tr>
-        
-        <!-- Estado vacío -->
-        <tr *ngIf="resultsPage.content?.length === 0">
-          <td colspan="8" class="empty-state">
-            <div class="empty-state-content">
-              <span class="material-symbols-outlined empty-icon">event_busy</span>
-              <h3>No hay turnos registrados</h3>
-              <p>No se encontraron turnos con los filtros aplicados</p>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+            <td>
+              <div class="entity-info">
+                <div class="entity-avatar">
+                  <span class="material-symbols-outlined text-primary">person</span>
+                </div>
+                <div class="entity-details">
+                  <span class="entity-name"
+                    >{{ turno.nombrePaciente }}
+                    {{ turno.apellidoPaciente }}</span
+                    >
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="entity-info">
+                  <div class="entity-avatar entity-avatar-medico">
+                    <span class="material-symbols-outlined text-primary">local_hospital</span>
+                  </div>
+                  <div class="entity-details">
+                    <span class="entity-name"
+                      >{{ turno.staffMedicoNombre }}
+                      {{ turno.staffMedicoApellido }}</span
+                      >
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-especialidad">
+                    {{ turno.especialidadStaffMedico || "Sin especialidad" }}
+                  </span>
+                </td>
+                <td>
+                  <div class="fecha-info">
+                    <div class="fecha-day">
+                      <span class="material-symbols-outlined">calendar_today</span>
+                      {{ turno.fecha | date : "dd/MM/yyyy" }}
+                    </div>
+                    <div class="fecha-time">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ turno.horaInicio }} - {{ turno.horaFin }}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="centro-info">
+                    <div class="centro-name">
+                      <span class="material-symbols-outlined">local_hospital</span>
+                      {{ turno.nombreCentro }}
+                    </div>
+                    <div class="consultorio-name">
+                      <span class="material-symbols-outlined">door_front</span>
+                      {{ turno.consultorioNombre }}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="badge badge-status"
+                    [class.badge-status-programado]="turno.estado === 'PROGRAMADO'"
+                    [class.badge-status-confirmado]="turno.estado === 'CONFIRMADO'"
+                    [class.badge-status-cancelado]="turno.estado === 'CANCELADO'"
+                    [class.badge-status-completo]="turno.estado === 'COMPLETO'"
+                    >
+                    <span class="material-symbols-outlined">
+                      {{ getEstadoIconMaterial(turno.estado) }}
+                    </span>
+                    {{ turno.estado }}
+                  </span>
+                </td>
+              </tr>
+            }
 
-  <!-- PAGINADOR -->
-  <div class="pagination-container mt-lg">
-    <app-pagination
-      [totalPages]="resultsPage.totalPages"
-      [currentPage]="currentPage"
-      (pageChangeRequested)="onPageChangeRequested($event)"
-      [number]="resultsPage.number"
-      [hidden]="resultsPage.numberOfElements < 1"
-    ></app-pagination>
-  </div>
-</div>
+            <!-- Estado vacío -->
+            @if (resultsPage.content?.length === 0) {
+              <tr>
+                <td colspan="8" class="empty-state">
+                  <div class="empty-state-content">
+                    <span class="material-symbols-outlined empty-icon">event_busy</span>
+                    <h3>No hay turnos registrados</h3>
+                    <p>No se encontraron turnos con los filtros aplicados</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINADOR -->
+      <div class="pagination-container mt-lg">
+        <app-pagination
+          [totalPages]="resultsPage.totalPages"
+          [currentPage]="currentPage"
+          (pageChangeRequested)="onPageChangeRequested($event)"
+          [number]="resultsPage.number"
+          [hidden]="resultsPage.numberOfElements < 1"
+        ></app-pagination>
+      </div>
+    </div>

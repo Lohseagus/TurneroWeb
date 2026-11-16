@@ -1,5 +1,5 @@
-import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
+
 import { FormsModule, NgForm } from "@angular/forms";
 import { Router } from "@angular/router";
 import {
@@ -28,9 +28,10 @@ interface User {
 @Component({
   selector: "app-inicio-sesion",
   standalone: true,
-  imports: [CommonModule, FormsModule, GoogleSigninButtonModule],
+  imports: [FormsModule, GoogleSigninButtonModule],
   templateUrl: "./inicio-sesion.component.html",
   styleUrl: "./inicio-sesion.component.css",
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [
     fadeInAnimation,
     slideUpAnimation,

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -26,6 +26,7 @@ interface DashboardStats {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './medico-dashboard.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medico-dashboard.component.css'
 })
 export class MedicoDashboardComponent implements OnInit {

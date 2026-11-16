@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -52,6 +52,7 @@ interface SlotDisponible {
   standalone: true,
   imports: [CommonModule, FormsModule, CentrosMapaModalComponent],
   templateUrl: "./operador-agenda.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./operador-agenda.component.css",
 })
 export class OperadorAgendaComponent implements OnInit, OnDestroy {

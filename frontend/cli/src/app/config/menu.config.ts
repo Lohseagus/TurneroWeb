@@ -46,7 +46,7 @@ export const MENU_CONFIG: MenuSection[] = [
     label: 'Panel de Paciente',
     icon: 'personal_injury',
     role: Role.PACIENTE,
-    order: 1,
+    order: 2,
     items: [
       {
         label: 'Mi Dashboard',
@@ -106,7 +106,7 @@ export const MENU_CONFIG: MenuSection[] = [
     label: 'Panel de Médico',
     icon: 'medical_services',
     role: Role.MEDICO,
-    order: 2,
+    order: 1,
     items: [
       {
         label: 'Mi Dashboard',
@@ -305,6 +305,13 @@ export const MENU_CONFIG: MenuSection[] = [
         icon: 'account_circle',
         description: 'Perfil de administrador',
         requiresPrimaryRole: true // Solo visible si el usuario es ADMINISTRADOR como rol primario
+      },
+      {
+        label: 'Mi plan',
+        route: '/mi-plan',
+        icon: 'payments',
+        description: 'Plan, prueba, uso y pagos',
+        requiresPrimaryRole: true
       }
 
     ]
@@ -349,6 +356,30 @@ export const MENU_CONFIG: MenuSection[] = [
         route: '/superadmin-metricas',
         icon: 'analytics',
         description: 'Estadísticas globales de todos los centros'
+      },
+      {
+        label: 'SaaS',
+        route: '/saas',
+        icon: 'payments',
+        description: 'Suscripciones, planes, prueba y cobros'
+      },
+      {
+        label: 'Suscripciones',
+        route: '/saas/suscripciones',
+        icon: 'list_alt',
+        description: 'Listado de organizaciones suscriptas'
+      },
+      {
+        label: 'Planes y precios',
+        route: '/saas/planes',
+        icon: 'sell',
+        description: 'Precios netos, IVA, prueba y complementos'
+      },
+      {
+        label: 'Pagos',
+        route: '/saas/pagos',
+        icon: 'receipt_long',
+        description: 'Historial de cobros'
       },
       {
         divider: true,

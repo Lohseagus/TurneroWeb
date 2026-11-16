@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { TurnoService } from '../turnos/turno.service';
 import { CentroAtencionService } from '../centrosAtencion/centroAtencion.service';
@@ -16,8 +16,9 @@ import { PaginationComponent } from '../pagination/pagination.component';
 @Component({
     selector: 'app-reporte-atencion',
     standalone: true,
-    imports: [CommonModule, FormsModule, ReactiveFormsModule, PaginationComponent],
+    imports: [FormsModule, ReactiveFormsModule, PaginationComponent],
     templateUrl: './reporte-atencion.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrls: ['./reporte-atencion.component.css']
 })
 export class ReporteAtencionComponent implements OnInit {

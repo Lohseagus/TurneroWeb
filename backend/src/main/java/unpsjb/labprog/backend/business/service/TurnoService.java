@@ -46,6 +46,8 @@ import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.business.repository.OperadorRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.exception.TenantAccessException;
 
 @Service
@@ -92,6 +94,9 @@ public class TurnoService {
 
     @Autowired
     private EncuestaInvitacionService encuestaInvitacionService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     // === VALIDACIONES DE TRANSICIÓN DE ESTADO ===
 
@@ -222,6 +227,20 @@ public class TurnoService {
             validarSolapamiento(turno, permitir);
 
             boolean isNewTurno = dto.getId() == null || dto.getId() == 0;
+            if (isNewTurno) {
+                Integer centroSuscripcionId = dto.getCentroId();
+                if (centroSuscripcionId == null && dto.getStaffMedicoId() != null) {
+                    centroSuscripcionId = staffMedicoRepository.findById(dto.getStaffMedicoId())
+                            .map(staff -> staff.getCentroAtencion().getId())
+                            .orElse(null);
+                }
+                if (centroSuscripcionId == null && dto.getConsultorioId() != null) {
+                    centroSuscripcionId = consultorioRepository.findById(dto.getConsultorioId())
+                            .map(consultorio -> consultorio.getCentroAtencion().getId())
+                            .orElse(null);
+                }
+                suscripcionAccessService.assertOperacion(centroSuscripcionId, RecursoSaas.TURNO);
+            }
             EstadoTurno previousStatus = null;
 
             if (!isNewTurno) {
@@ -2749,7 +2768,7 @@ public class TurnoService {
         }
 
         // Construir especificación base: SIEMPRE filtrar por paciente
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId));
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId);
 
         // 🔥 CORRECCIÓN: Aplicar filtro de estado SOLO si estadoEnum no es null
         if (estadoEnum != null) {
@@ -2891,7 +2910,7 @@ public class TurnoService {
         LocalDate fechaLimite = hoy.plusDays(diasAdelante != null ? diasAdelante : 30);
 
         // Crear especificación para turnos futuros del paciente
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId))
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId)
                 .and(TurnoRepository.hasFechaDesde(hoy))
                 .and(TurnoRepository.hasFechaHasta(fechaLimite))
                 .and(TurnoRepository.hasEstado(EstadoTurno.PROGRAMADO)
@@ -2941,7 +2960,7 @@ public class TurnoService {
     public boolean tieneTurnosPendientes(Integer pacienteId) {
         LocalDate hoy = LocalDate.now();
 
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId))
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId)
                 .and(TurnoRepository.hasFechaDesde(hoy))
                 .and(TurnoRepository.hasEstado(EstadoTurno.PROGRAMADO)
                         .or(TurnoRepository.hasEstado(EstadoTurno.CONFIRMADO))
@@ -2987,7 +3006,7 @@ public class TurnoService {
         }
 
         // Construir especificación con filtros
-        Specification<Turno> spec = Specification.where(TurnoRepository.hasPacienteId(pacienteId));
+        Specification<Turno> spec = TurnoRepository.hasPacienteId(pacienteId);
 
         if (estadoEnum != null) {
             spec = spec.and(TurnoRepository.hasEstado(estadoEnum));

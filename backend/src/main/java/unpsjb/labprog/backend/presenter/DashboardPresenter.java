@@ -13,6 +13,7 @@ import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.DashboardService;
 import unpsjb.labprog.backend.dto.FiltrosDashboardDTO;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @RestController
 @RequestMapping("/api/admin-dashboard")
@@ -20,6 +21,9 @@ public class DashboardPresenter {
 
     @Autowired
     private DashboardService dashboardService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     @GetMapping("/metricas-basicas")
     public ResponseEntity<Object> getMetricasBasicas(
@@ -41,6 +45,7 @@ public class DashboardPresenter {
             filtros.setConsultorioId(consultorioId);
             filtros.setStaffMedicoId(staffMedicoId);
             filtros.setEspecialidadId(especialidadId);
+            suscripcionAccessService.assertReporteBasico(filtros.getCentroId());
 
             var metrics = dashboardService.getMetricasBasicas(filtros);
             return Response.ok(metrics, "Métricas básicas calculadas correctamente");

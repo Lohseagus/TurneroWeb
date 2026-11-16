@@ -31,12 +31,17 @@ import unpsjb.labprog.backend.model.Especialidad;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.StaffMedico;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class StaffMedicoService {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     @Autowired
     private StaffMedicoRepository repository;
@@ -132,6 +137,12 @@ public class StaffMedicoService {
         // Validar unicidad de la asociación médico-centro-especialidad
         Especialidad especialidad = staffMedico.getEspecialidad();
         if (staffMedico.getId() == null || staffMedico.getId() == 0) { // Creación
+            if (staffMedico.getCentroAtencion() != null && staffMedico.getMedico() != null) {
+                suscripcionAccessService.assertOperacion(
+                        staffMedico.getCentroAtencion().getId(),
+                        RecursoSaas.MEDICO,
+                        staffMedico.getMedico().getId());
+            }
             if (repository.existsByMedicoAndCentroAtencionAndEspecialidad(
                     staffMedico.getMedico(), staffMedico.getCentroAtencion(), especialidad)) {
                 throw new IllegalStateException("El médico ya está asociado a este centro con esa especialidad");

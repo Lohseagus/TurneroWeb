@@ -21,7 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.config.TenantContext;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.ConsultorioService;

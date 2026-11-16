@@ -1,0 +1,51 @@
+<div class="saas-page">
+  <h1>Planes para tu centro</h1>
+  <p class="saas-lead">
+    CheTurno se contrata como servicio. Los precios están en pesos, son netos y se muestran
+    <strong>+ IVA</strong>
+    <span *ngIf="catalogo"> ({{ catalogo.configuracion.ivaPorcentaje }}%)</span>.
+    La prueba dura
+    <span *ngIf="catalogo">{{ catalogo.configuracion.diasTrial }}</span>
+    días y no pide tarjeta.
+  </p>
+
+  <div class="saas-alert error" *ngIf="error">{{ error }}</div>
+
+  <div class="saas-row" style="margin-bottom: 16px" *ngIf="catalogo">
+    <button type="button" class="btn" [class.btn-primary]="ciclo === 'MENSUAL'" [class.btn-outline-primary]="ciclo !== 'MENSUAL'" (click)="ciclo = 'MENSUAL'">Mensual</button>
+    <button type="button" class="btn" [class.btn-primary]="ciclo === 'ANUAL'" [class.btn-outline-primary]="ciclo !== 'ANUAL'" (click)="ciclo = 'ANUAL'">
+      Anual ({{ catalogo.configuracion.descuentoAnualPorcentaje }}% de descuento)
+    </button>
+  </div>
+
+  <div class="saas-grid" *ngIf="catalogo">
+    <article class="saas-card" *ngFor="let plan of catalogo.planes">
+      <h2>{{ plan.nombre }}</h2>
+      <p>{{ plan.descripcion }}</p>
+      <div class="saas-precio">
+        {{ precio(plan) }}
+        <small>{{ plan.etiquetaPrecio }} {{ ciclo === 'ANUAL' ? 'por año' : 'por mes' }}</small>
+      </div>
+      <p class="saas-nota">{{ total(plan) }} con IVA</p>
+      <p class="saas-nota" *ngIf="plan.precioPorSedeExtra">
+        Incluye {{ plan.sedesIncluidas }} sedes. Cada sede extra: {{ formatoArs(plan.precioPorSedeExtra) }} + IVA.
+      </p>
+      <ul>
+        <li *ngFor="let item of plan.incluye">{{ item }}</li>
+      </ul>
+      <a class="btn btn-primary" [routerLink]="['/registro-saas']" [queryParams]="{ plan: plan.codigo, ciclo: ciclo }">
+        Empezar prueba
+      </a>
+    </article>
+  </div>
+
+  <section class="saas-panel" style="margin-top: 20px" *ngIf="catalogo">
+    <h2>Complementos de mensajería</h2>
+    <p class="saas-nota">Son opcionales y todavía no envían mensajes: el precio queda reservado para cuando se conecte el proveedor.</p>
+    <ul>
+      <li *ngFor="let addon of catalogo.addons">
+        <strong>{{ addon.nombre }}</strong> — {{ addonPrecio(addon) }} ({{ formatoArs(addon.precioMensualConIva) }} con IVA). {{ addon.descripcion }}
+      </li>
+    </ul>
+  </section>
+</div>

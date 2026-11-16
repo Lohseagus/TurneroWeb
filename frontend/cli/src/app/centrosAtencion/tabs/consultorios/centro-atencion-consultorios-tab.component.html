@@ -10,247 +10,279 @@
           <small class="opacity-75">Administrar consultorios del centro de atención</small>
         </div>
       </div>
-      <div *ngIf="!modoCrearConsultorio" class="d-flex gap-2">
-        <button class="btn-modern btn-success-modern" (click)="onModoCrearConsultorio()">
-          <i class="fa fa-plus me-2"></i> Nuevo Consultorio
-        </button>
-        <button class="btn-modern btn-primary-modern" (click)="onCrearNuevoConsultorio()">
-          <i class="fa fa-external-link me-2"></i> Formulario Completo
-        </button>
-      </div>
+      @if (!modoCrearConsultorio) {
+        <div class="d-flex gap-2">
+          <button class="btn-modern btn-success-modern" (click)="onModoCrearConsultorio()">
+            <i class="fa fa-plus me-2"></i> Nuevo Consultorio
+          </button>
+          <button class="btn-modern btn-primary-modern" (click)="onCrearNuevoConsultorio()">
+            <i class="fa fa-external-link me-2"></i> Formulario Completo
+          </button>
+        </div>
+      }
     </div>
   </div>
-  
+
   <div class="modern-card-body">
     <!-- Alert Messages -->
-    <div *ngIf="mensajeConsultorio" class="modern-alert" 
-         [class.alert-success]="tipoMensajeConsultorio === 'success'"
-         [class.alert-danger]="tipoMensajeConsultorio === 'danger'"
-         [class.alert-info]="tipoMensajeConsultorio === 'info'">
-      <i class="fa" [class.fa-check-circle]="tipoMensajeConsultorio === 'success'"
-         [class.fa-exclamation-triangle]="tipoMensajeConsultorio === 'danger'"
-         [class.fa-info-circle]="tipoMensajeConsultorio === 'info'" me-2></i>
-      {{ mensajeConsultorio }}
-    </div>
-    
+    @if (mensajeConsultorio) {
+      <div class="modern-alert"
+        [class.alert-success]="tipoMensajeConsultorio === 'success'"
+        [class.alert-danger]="tipoMensajeConsultorio === 'danger'"
+        [class.alert-info]="tipoMensajeConsultorio === 'info'">
+        <i class="fa" [class.fa-check-circle]="tipoMensajeConsultorio === 'success'"
+          [class.fa-exclamation-triangle]="tipoMensajeConsultorio === 'danger'"
+        [class.fa-info-circle]="tipoMensajeConsultorio === 'info'" me-2></i>
+        {{ mensajeConsultorio }}
+      </div>
+    }
+
     <!-- Create New Consultorio Form -->
-    <div *ngIf="modoCrearConsultorio" class="mb-4 p-4" style="background: rgba(54, 185, 204, 0.05); border-radius: 15px; border: 2px solid rgba(54, 185, 204, 0.2);">
-      <h5 class="mb-3 text-primary">
-        <i class="fa fa-plus-circle me-2"></i>Crear Nuevo Consultorio
-      </h5>
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Número:</label>
-          <input type="number" [(ngModel)]="nuevoConsultorio.numero" name="numeroConsultorio"
-                 class="form-control-modern" placeholder="Número del consultorio">
+    @if (modoCrearConsultorio) {
+      <div class="mb-4 p-4" style="background: rgba(54, 185, 204, 0.05); border-radius: 15px; border: 2px solid rgba(54, 185, 204, 0.2);">
+        <h5 class="mb-3 text-primary">
+          <i class="fa fa-plus-circle me-2"></i>Crear Nuevo Consultorio
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Número:</label>
+            <input type="number" [(ngModel)]="nuevoConsultorio.numero" name="numeroConsultorio"
+              class="form-control-modern" placeholder="Número del consultorio">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Nombre:</label>
+            <input type="text" [(ngModel)]="nuevoConsultorio.nombre" name="nombreConsultorio"
+              class="form-control-modern" placeholder="Nombre descriptivo del consultorio">
+          </div>
         </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Nombre:</label>
-          <input type="text" [(ngModel)]="nuevoConsultorio.nombre" name="nombreConsultorio"
-                 class="form-control-modern" placeholder="Nombre descriptivo del consultorio">
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn-modern btn-success-modern" (click)="onCrearConsultorio()"
+            [disabled]="!nuevoConsultorio.numero || !nuevoConsultorio.nombre">
+            <i class="fa fa-save me-2"></i> Crear
+          </button>
+          <button class="btn-modern btn-secondary-modern" (click)="onCancelarCrearConsultorio()">
+            <i class="fa fa-times me-2"></i> Cancelar
+          </button>
         </div>
       </div>
-      <div class="d-flex gap-2 mt-3">
-        <button class="btn-modern btn-success-modern" (click)="onCrearConsultorio()"
-                [disabled]="!nuevoConsultorio.numero || !nuevoConsultorio.nombre">
-          <i class="fa fa-save me-2"></i> Crear
-        </button>
-        <button class="btn-modern btn-secondary-modern" (click)="onCancelarCrearConsultorio()">
-          <i class="fa fa-times me-2"></i> Cancelar
-        </button>
-      </div>
-    </div>
-    
+    }
+
     <!-- Consultorios Cards -->
-    <div *ngIf="consultorios.length > 0; else noConsultorios">
-      <div class="consultorios-cards-container">
-        <div *ngFor="let consultorio of consultorios; let i = index" class="consultorio-card">
-          
-          <!-- Header del Consultorio -->
-          <div class="consultorio-header">
-            <div class="consultorio-info">
-              <div class="consultorio-numero-circle">
-                {{ consultorio.numero }}
-              </div>
-              <div class="consultorio-details">
-                <h5 class="consultorio-nombre" *ngIf="editConsultorioIndex !== i">
-                  {{ consultorio.nombre || 'Consultorio #' + consultorio.numero }}
-                </h5>
-                <input *ngIf="editConsultorioIndex === i" 
-                       [(ngModel)]="consultorio.nombre" 
-                       class="form-control consultorio-nombre-edit"
-                       placeholder="Nombre del consultorio">
-                
-                <!-- Badge de horarios -->
-                <div class="consultorio-horario-badge" *ngIf="tieneHorariosConfigurados(consultorio)">
-                  <span class="badge-horario" 
-                        [class.badge-semanal]="consultorio.horariosSemanales && consultorio.horariosSemanales.length > 0">
-                    <i class="fa fa-clock me-1"></i>
-                    <span *ngIf="consultorio.horariosSemanales && consultorio.horariosSemanales.length > 0">Horarios por día</span>
-                    <span *ngIf="(!consultorio.horariosSemanales || consultorio.horariosSemanales.length === 0) && consultorio.horaAperturaDefault && consultorio.horaCierreDefault">
-                      {{ consultorio.horaAperturaDefault.substring(0,5) }} - {{ consultorio.horaCierreDefault.substring(0,5) }}
-                    </span>
-                  </span>
+    @if (consultorios.length > 0) {
+      <div>
+        <div class="consultorios-cards-container">
+          @for (consultorio of consultorios; track consultorio; let i = $index) {
+            <div class="consultorio-card">
+              <!-- Header del Consultorio -->
+              <div class="consultorio-header">
+                <div class="consultorio-info">
+                  <div class="consultorio-numero-circle">
+                    {{ consultorio.numero }}
+                  </div>
+                  <div class="consultorio-details">
+                    @if (editConsultorioIndex !== i) {
+                      <h5 class="consultorio-nombre">
+                        {{ consultorio.nombre || 'Consultorio #' + consultorio.numero }}
+                      </h5>
+                    }
+                    @if (editConsultorioIndex === i) {
+                      <input
+                        [(ngModel)]="consultorio.nombre"
+                        class="form-control consultorio-nombre-edit"
+                        placeholder="Nombre del consultorio">
+                    }
+                    <!-- Badge de horarios -->
+                    @if (tieneHorariosConfigurados(consultorio)) {
+                      <div class="consultorio-horario-badge">
+                        <span class="badge-horario"
+                          [class.badge-semanal]="consultorio.horariosSemanales && consultorio.horariosSemanales.length > 0">
+                          <i class="fa fa-clock me-1"></i>
+                          @if (consultorio.horariosSemanales && consultorio.horariosSemanales.length > 0) {
+                            <span>Horarios por día</span>
+                          }
+                          @if ((!consultorio.horariosSemanales || consultorio.horariosSemanales.length === 0) && consultorio.horaAperturaDefault && consultorio.horaCierreDefault) {
+                            <span>
+                              {{ consultorio.horaAperturaDefault.substring(0,5) }} - {{ consultorio.horaCierreDefault.substring(0,5) }}
+                            </span>
+                          }
+                        </span>
+                      </div>
+                    }
+                  </div>
                 </div>
-              </div>
-            </div>
-            
-            <div class="consultorio-actions">
-              <button *ngIf="editConsultorioIndex !== i" 
-                      class="btn btn-outline-primary btn-gestionar-esquemas" 
+                <div class="consultorio-actions">
+                  @if (editConsultorioIndex !== i) {
+                    <button
+                      class="btn btn-outline-primary btn-gestionar-esquemas"
                       (click)="abrirModalEsquema(consultorio)"
                       title="Gestionar esquemas de turno">
-                <i class="fa fa-calendar-check me-1"></i> Gestionar Esquemas
-              </button>
-              <button *ngIf="editConsultorioIndex !== i" 
-                      class="btn btn-outline-danger btn-eliminar" 
+                      <i class="fa fa-calendar-check me-1"></i> Gestionar Esquemas
+                    </button>
+                  }
+                  @if (editConsultorioIndex !== i) {
+                    <button
+                      class="btn btn-outline-danger btn-eliminar"
                       (click)="onEliminarConsultorio(consultorio)"
                       title="Eliminar consultorio">
-                <i class="fa fa-trash me-1"></i> Eliminar
-              </button>
-              
-              <!-- Botones de edición -->
-              <button *ngIf="editConsultorioIndex === i" 
-                      class="btn btn-outline-success" 
+                      <i class="fa fa-trash me-1"></i> Eliminar
+                    </button>
+                  }
+                  <!-- Botones de edición -->
+                  @if (editConsultorioIndex === i) {
+                    <button
+                      class="btn btn-outline-success"
                       (click)="onGuardarEdicionConsultorio(i)"
                       title="Guardar cambios">
-                <i class="fa fa-save me-1"></i> Guardar
-              </button>
-              <button *ngIf="editConsultorioIndex === i" 
-                      class="btn btn-outline-secondary" 
+                      <i class="fa fa-save me-1"></i> Guardar
+                    </button>
+                  }
+                  @if (editConsultorioIndex === i) {
+                    <button
+                      class="btn btn-outline-secondary"
                       (click)="onCancelarEdicionConsultorio()"
                       title="Cancelar edición">
-                <i class="fa fa-times me-1"></i> Cancelar
-              </button>
-            </div>
-          </div>
-          
-          <!-- Horarios de Atención del Consultorio -->
-          <div class="horarios-atencion-section">
-            <div class="horarios-section-header">
-              <h6 class="horarios-title">
-                <i class="fa fa-clock me-2"></i>Horarios de Atención del consultorio
-              </h6>
-              <div class="horarios-actions">
-                <button *ngIf="editConsultorioIndex !== i" 
-                        class="btn btn-outline-secondary btn-sm" 
+                      <i class="fa fa-times me-1"></i> Cancelar
+                    </button>
+                  }
+                </div>
+              </div>
+              <!-- Horarios de Atención del Consultorio -->
+              <div class="horarios-atencion-section">
+                <div class="horarios-section-header">
+                  <h6 class="horarios-title">
+                    <i class="fa fa-clock me-2"></i>Horarios de Atención del consultorio
+                  </h6>
+                  <div class="horarios-actions">
+                    @if (editConsultorioIndex !== i) {
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
                         (click)="onEditarHorariosConsultorio(consultorio)"
                         title="Editar horarios de atención">
-                  <i class="fa fa-edit me-1"></i>
-                  <span class="d-none d-md-inline">Editar</span>
-                </button>
-              </div>
-            </div>
-            
-            <!-- Calendario Semanal Minimalista de Horarios -->
-            <div class="calendario-horarios-minimal">
-              <div class="dias-horarios-header">
-                <div *ngFor="let dia of ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']" 
-                     class="dia-horario-header">
-                  {{ dia }}
-                </div>
-              </div>
-              
-              <div class="dias-horarios-content">
-                <div *ngFor="let dia of ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']; let j = index" 
-                     class="dia-horario-column">
-                  
-                  <!-- Horario del día -->
-                  <div class="horario-dia-item" *ngIf="tieneHorarioEnDia(consultorio, dia)">
-                    <div class="horario-texto">
-                      {{ getHorarioConsultorioDia(consultorio, dia) }}
-                    </div>
-                  </div>
-                  
-                  <!-- Día cerrado -->
-                  <div class="dia-cerrado" *ngIf="!tieneHorarioEnDia(consultorio, dia)">
-                    <span class="cerrado-texto">Cerrado</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Calendario Semanal de Esquemas - Siempre Visible -->
-          <div class="esquemas-semanales-section">
-            <div class="esquemas-section-header">
-              <h6 class="esquemas-title">
-                <i class="fa fa-calendar me-2"></i>Esquemas Semanales de medicos
-              </h6>
-            </div>
-            
-            <!-- Calendario Semanal -->
-            <div class="calendario-semanal-simple">
-              <div class="dias-header">
-                <div *ngFor="let dia of ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']" 
-                     class="dia-header">
-                  {{ dia }}
-                </div>
-              </div>
-              
-              <div class="dias-content">
-                <div *ngFor="let dia of ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']; let i = index" 
-                     class="dia-column"
-                     [attr.data-dia]="['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'][i]">
-                  
-                  <!-- Esquemas del día -->
-                  <div *ngFor="let esquema of getEsquemasDelConsultorioPorDia(consultorio.id!, dia)"
-                       class="esquema-dia-card">
-                    <div class="esquema-horario">
-                      {{ getHorarioStringPorDia(esquema, dia) }}
-                    </div>
-                    <div class="esquema-medico">
-                      Dr. {{ esquema.nombreStaffMedico || 'Sin asignar' }}
-                    </div>
-                    <div class="esquema-actions">
-                      <button class="btn btn-sm btn-outline-primary me-1"
-                              (click)="onEditarEsquema(esquema)"
-                              title="Editar esquema">
-                        <i class="fa fa-edit"></i>
+                        <i class="fa fa-edit me-1"></i>
+                        <span class="d-none d-md-inline">Editar</span>
                       </button>
-                      <button class="btn btn-sm btn-outline-danger"
-                              (click)="onEliminarEsquema(esquema)"
-                              title="Eliminar esquema">
-                        <i class="fa fa-trash"></i>
-                      </button>
+                    }
+                  </div>
+                </div>
+                <!-- Calendario Semanal Minimalista de Horarios -->
+                <div class="calendario-horarios-minimal">
+                  <div class="dias-horarios-header">
+                    @for (dia of ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']; track dia) {
+                      <div
+                        class="dia-horario-header">
+                        {{ dia }}
+                      </div>
+                    }
+                  </div>
+                  <div class="dias-horarios-content">
+                    @for (dia of ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']; track dia; let j = $index) {
+                      <div
+                        class="dia-horario-column">
+                        <!-- Horario del día -->
+                        @if (tieneHorarioEnDia(consultorio, dia)) {
+                          <div class="horario-dia-item">
+                            <div class="horario-texto">
+                              {{ getHorarioConsultorioDia(consultorio, dia) }}
+                            </div>
+                          </div>
+                        }
+                        <!-- Día cerrado -->
+                        @if (!tieneHorarioEnDia(consultorio, dia)) {
+                          <div class="dia-cerrado">
+                            <span class="cerrado-texto">Cerrado</span>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+              <!-- Calendario Semanal de Esquemas - Siempre Visible -->
+              <div class="esquemas-semanales-section">
+                <div class="esquemas-section-header">
+                  <h6 class="esquemas-title">
+                    <i class="fa fa-calendar me-2"></i>Esquemas Semanales de medicos
+                  </h6>
+                </div>
+                <!-- Calendario Semanal -->
+                <div class="calendario-semanal-simple">
+                  <div class="dias-header">
+                    @for (dia of ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']; track dia) {
+                      <div
+                        class="dia-header">
+                        {{ dia }}
+                      </div>
+                    }
+                  </div>
+                  <div class="dias-content">
+                    @for (dia of ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']; track dia; let i = $index) {
+                      <div
+                        class="dia-column"
+                        [attr.data-dia]="['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'][i]">
+                        <!-- Esquemas del día -->
+                        @for (esquema of getEsquemasDelConsultorioPorDia(consultorio.id!, dia); track esquema) {
+                          <div
+                            class="esquema-dia-card">
+                            <div class="esquema-horario">
+                              {{ getHorarioStringPorDia(esquema, dia) }}
+                            </div>
+                            <div class="esquema-medico">
+                              Dr. {{ esquema.nombreStaffMedico || 'Sin asignar' }}
+                            </div>
+                            <div class="esquema-actions">
+                              <button class="btn btn-sm btn-outline-primary me-1"
+                                (click)="onEditarEsquema(esquema)"
+                                title="Editar esquema">
+                                <i class="fa fa-edit"></i>
+                              </button>
+                              <button class="btn btn-sm btn-outline-danger"
+                                (click)="onEliminarEsquema(esquema)"
+                                title="Eliminar esquema">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        }
+                        <!-- Día sin esquemas -->
+                        @if (getEsquemasDelConsultorioPorDia(consultorio.id!, dia).length === 0) {
+                          <div
+                            class="dia-vacio">
+                            —
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+                <!-- Estado de esquemas -->
+                <div class="esquemas-estado">
+                  @if (getEsquemasDelConsultorio(consultorio.id!).length > 0) {
+                    <div class="esquemas-contador">
+                      <i class="fa fa-check-circle text-success me-1"></i>
+                      {{ getEsquemasDelConsultorio(consultorio.id!).length }} esquema(s) configurado(s)
                     </div>
-                  </div>
-                  
-                  <!-- Día sin esquemas -->
-                  <div *ngIf="getEsquemasDelConsultorioPorDia(consultorio.id!, dia).length === 0" 
-                       class="dia-vacio">
-                    —
-                  </div>
+                  }
+                  @if (getEsquemasDelConsultorio(consultorio.id!).length === 0) {
+                    <div class="esquemas-sin-configurar">
+                      <div class="alert alert-warning d-flex align-items-center">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        Sin esquemas configurados. Haga clic en "Gestionar Esquemas" para agregar horarios.
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
             </div>
-            
-            <!-- Estado de esquemas -->
-            <div class="esquemas-estado">
-              <div class="esquemas-contador" *ngIf="getEsquemasDelConsultorio(consultorio.id!).length > 0">
-                <i class="fa fa-check-circle text-success me-1"></i>
-                {{ getEsquemasDelConsultorio(consultorio.id!).length }} esquema(s) configurado(s)
-              </div>
-              
-              <div class="esquemas-sin-configurar" *ngIf="getEsquemasDelConsultorio(consultorio.id!).length === 0">
-                <div class="alert alert-warning d-flex align-items-center">
-                  <i class="fa fa-exclamation-triangle me-2"></i>
-                  Sin esquemas configurados. Haga clic en "Gestionar Esquemas" para agregar horarios.
-                </div>
-              </div>
-            </div>
-          </div>
-          
+          }
         </div>
       </div>
-    </div>
-    
-    <ng-template #noConsultorios>
+    } @else {
       <div class="text-center py-5" style="opacity: 0.7;">
         <i class="fa fa-stethoscope" style="font-size: 3rem; color: #36b9cc; margin-bottom: 1rem;"></i>
         <h5>No hay consultorios registrados</h5>
         <p class="text-muted">Agregue el primer consultorio para este centro de atención</p>
       </div>
-    </ng-template>
+    }
+
   </div>
 </div>

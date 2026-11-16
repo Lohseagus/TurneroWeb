@@ -1,5 +1,5 @@
-import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { DisponibilidadMedico } from '../../../disponibilidadMedicos/disponibilidadMedico';
@@ -11,8 +11,9 @@ import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-disponibilidad-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './disponibilidad-modal.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './disponibilidad-modal.component.css' 
 })
 export class DisponibilidadModalComponent {

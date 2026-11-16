@@ -76,9 +76,15 @@ import { ListaEsperaEstadisticasComponent } from "./lista-espera/lista-espera-es
 import { MedicoHceComponent } from "./historia-clinica/medico-hce.component";
 import { MedicoConsultaComponent } from "./historia-clinica/medico-consulta.component";
 import { PacienteHceComponent } from "./historia-clinica/paciente-hce.component";
+import { PlanesPublicosComponent } from "./saas/planes-publicos.component";
+import { RegistroSaasComponent } from "./saas/registro-saas.component";
+import { MiPlanComponent } from "./saas/mi-plan.component";
+import { SaasAdminComponent } from "./saas/saas-admin.component";
 
 export const routes: Routes = [
   { path: "", component: HomeComponent },
+  { path: "planes", component: PlanesPublicosComponent },
+  { path: "registro-saas", component: RegistroSaasComponent },
 
   // Ruta puente para deep linking (enlimport { ListaEsperaFormComponent } from "./lista-espera/lista-espera-form.component";
   //aces desde email)
@@ -462,5 +468,40 @@ export const routes: Routes = [
     path: "config",  // O "admin-config" si prefieres algo más descriptivo
     component: AdminConfigComponent,
     canActivate: [AdminOperadorGuard],  // Protege para admins y operadores
+  },
+  {
+    path: "mi-plan",
+    component: MiPlanComponent,
+    canActivate: [AdminGuard],
+  },
+  {
+    path: "saas",
+    component: SaasAdminComponent,
+    canActivate: [SuperAdminGuard],
+    data: { vista: "dashboard" },
+  },
+  {
+    path: "saas/suscripciones",
+    component: SaasAdminComponent,
+    canActivate: [SuperAdminGuard],
+    data: { vista: "suscripciones" },
+  },
+  {
+    path: "saas/suscripciones/:id",
+    component: SaasAdminComponent,
+    canActivate: [SuperAdminGuard],
+    data: { vista: "detalle" },
+  },
+  {
+    path: "saas/planes",
+    component: SaasAdminComponent,
+    canActivate: [SuperAdminGuard],
+    data: { vista: "planes" },
+  },
+  {
+    path: "saas/pagos",
+    component: SaasAdminComponent,
+    canActivate: [SuperAdminGuard],
+    data: { vista: "pagos" },
   },
 ];

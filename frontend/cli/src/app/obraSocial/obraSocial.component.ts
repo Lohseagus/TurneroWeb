@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ObraSocialService } from './obraSocial.service';
@@ -11,8 +11,9 @@ import { PaginationComponent } from '../pagination/pagination.component';
 @Component({
   selector: 'app-obra-social',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [RouterModule, FormsModule, PaginationComponent],
   templateUrl: './obraSocial.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './obraSocial.component.css'
 })
 export class ObraSocialComponent {

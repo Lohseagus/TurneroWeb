@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EncuestaAdminService } from '../../services/encuesta-admin.service';
@@ -16,6 +16,7 @@ interface TipoPregunta {
   selector: 'app-gestion-encuestas',
   imports: [CommonModule, FormsModule],
   templateUrl: './gestion-encuestas.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./gestion-encuestas.component.css']
 })
 export class GestionEncuestasComponent implements OnInit {

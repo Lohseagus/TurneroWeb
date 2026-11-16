@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule, NgForm } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -12,6 +12,7 @@ import { ModalService } from "../modal/modal.service";
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: "./operador-detail.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './operador-detail.component.css',
 })
 export class OperadorDetailComponent implements OnInit {

@@ -1,30 +1,32 @@
 <div class="dashboard-wrapper">
   <!-- Header del Dashboard -->
-  <div class="dashboard-header card" *ngIf="isAuthenticated()">
-    <div class="header-content">
-      <div class="welcome-info">
-        <span class="material-symbols-outlined header-icon">admin_panel_settings</span>
-        <div>
-          <h1>Panel de Administración</h1>
-          <p class="header-subtitle">Control total del sistema y usuarios</p>
+  @if (isAuthenticated()) {
+    <div class="dashboard-header card">
+      <div class="header-content">
+        <div class="welcome-info">
+          <span class="material-symbols-outlined header-icon">admin_panel_settings</span>
+          <div>
+            <h1>Panel de Administración</h1>
+            <p class="header-subtitle">Control total del sistema y usuarios</p>
+          </div>
         </div>
-      </div>
-      <div class="user-info">
-        <div class="info-item">
-          <span class="material-symbols-outlined">person</span>
-          <span>{{ getUserName() }}</span>
-        </div>
-        <div class="info-item">
-          <span class="material-symbols-outlined">email</span>
-          <span>{{ getUserEmail() }}</span>
-        </div>
-        <div class="info-item">
-          <span class="material-symbols-outlined">shield</span>
-          <span>Administrador del Sistema</span>
+        <div class="user-info">
+          <div class="info-item">
+            <span class="material-symbols-outlined">person</span>
+            <span>{{ getUserName() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="material-symbols-outlined">email</span>
+            <span>{{ getUserEmail() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="material-symbols-outlined">shield</span>
+            <span>Administrador del Sistema</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  }
 
   <!-- Sección Acciones Rápidas -->
   <section class="quick-actions-section card">
@@ -134,13 +136,13 @@
       <div class="card kpi-card">
         <h3>Satisfacción</h3>
         <p class="kpi-value">{{ calidad?.satisfaccionPromedio ? (calidad.satisfaccionPromedio | number:'1.1-2') : 'N/A'
-          }}</p>
+        }}</p>
       </div>
 
       <div class="card kpi-card">
         <h3>Días hasta el Turno</h3>
         <p class="kpi-value">{{ calidad?.tiempoPromedioSolicitudAsignacionMinutos ?
-          (calidad.tiempoPromedioSolicitudAsignacionMinutos | number:'1.0-0') : 'N/A' }}</p>
+        (calidad.tiempoPromedioSolicitudAsignacionMinutos | number:'1.0-0') : 'N/A' }}</p>
       </div>
 
       <div class="card kpi-card clickable" role="button" (click)="openComentariosModal()">

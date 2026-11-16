@@ -20,14 +20,16 @@
       </div>
 
       <!-- Mensaje de error -->
-      <div *ngIf="errorMessage" class="alert-message alert-error" role="alert">
-        <span class="material-symbols-outlined">error</span>
-        <span>{{ errorMessage }}</span>
-      </div>
+      @if (errorMessage) {
+        <div class="alert-message alert-error" role="alert">
+          <span class="material-symbols-outlined">error</span>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
 
       <!-- Formulario -->
       <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" novalidate>
-        
+
         <!-- DNI -->
         <div class="form-group">
           <label for="dni" class="form-label">
@@ -44,7 +46,7 @@
             autocomplete="off"
             aria-label="Documento Nacional de Identidad"
             [class.is-invalid]="profileForm.get('dni')?.invalid && profileForm.get('dni')?.touched"
-          />
+            />
           <small class="form-text">
             Ingrese su DNI sin puntos ni espacios
           </small>
@@ -66,7 +68,7 @@
             autocomplete="tel"
             aria-label="Número de teléfono"
             [class.is-invalid]="profileForm.get('telefono')?.invalid && profileForm.get('telefono')?.touched"
-          />
+            />
           <small class="form-text">
             Ingrese un número de teléfono válido con código de área
           </small>
@@ -88,7 +90,7 @@
             autocomplete="bday"
             aria-label="Fecha de nacimiento"
             [class.is-invalid]="profileForm.get('fechaNacimiento')?.invalid && profileForm.get('fechaNacimiento')?.touched"
-          />
+            />
           <small class="form-text">
             Seleccione su fecha de nacimiento
           </small>
@@ -106,7 +108,7 @@
             class="form-control"
             formControlName="obraSocialId"
             aria-label="Seleccionar obra social"
-          >
+            >
             <option [value]="null">Sin obra social</option>
             <!-- TODO: Cargar obras sociales desde el backend -->
             <!-- <option *ngFor="let os of obrasSociales" [value]="os.id">{{ os.nombre }}</option> -->
@@ -129,15 +131,19 @@
             class="btn btn-primary btn-lg w-100"
             [disabled]="isSubmitting || profileForm.invalid"
             aria-label="Completar perfil y guardar información"
-          >
-            <span *ngIf="!isSubmitting">
-              <span class="material-symbols-outlined">check_circle</span>
-              Completar Perfil
-            </span>
-            <span *ngIf="isSubmitting">
-              <span class="material-symbols-outlined spinning">progress_activity</span>
-              Guardando...
-            </span>
+            >
+            @if (!isSubmitting) {
+              <span>
+                <span class="material-symbols-outlined">check_circle</span>
+                Completar Perfil
+              </span>
+            }
+            @if (isSubmitting) {
+              <span>
+                <span class="material-symbols-outlined spinning">progress_activity</span>
+                Guardando...
+              </span>
+            }
           </button>
         </div>
       </form>

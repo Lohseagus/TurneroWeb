@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
           cache: maven
           cache-dependency-path: backend/pom.xml
 
@@ -61,7 +61,7 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/turnerodb
           DB_USERNAME: ci
           DB_PASSWORD: ci
-          JWT_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+          JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
           SECURITY_DEV_MODE: "true"
           APP_URL: http://localhost:4200
           APP_ALLOWED_ORIGINS: http://localhost:4200
@@ -86,6 +86,12 @@ jobs:
 
       - name: Correr Cucumber
         working-directory: testing
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: ci
+          PGPASSWORD: ci
+          PGDATABASE: turnerodb
+          API_BASE_URL: http://127.0.0.1:8080/api
         run: |
           npm install
           npm test

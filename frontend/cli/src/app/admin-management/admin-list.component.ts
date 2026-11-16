@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, RouterModule } from '@angular/router';
 import { AdminManagementService } from '../services/admin-management.service';
 import { DataPackage } from '../data.package';
@@ -7,8 +7,9 @@ import { DataPackage } from '../data.package';
 @Component({
   selector: 'app-admin-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   templateUrl: './admin-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./admin-list.component.css']
 })
 export class AdminListComponent {

@@ -1,5 +1,5 @@
-import { Component, AfterViewInit, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, AfterViewInit, OnInit, ChangeDetectorRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { CentroAtencion } from './centroAtencion';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -37,7 +37,6 @@ import { CentroAtencionOrganigramaTabComponent } from './tabs/organigrama/centro
   standalone: true,
   imports: [
     FormsModule,
-    CommonModule,
     NgbTypeaheadModule,
     RouterModule,
     CentroAtencionDetalleTabComponent,
@@ -45,8 +44,9 @@ import { CentroAtencionOrganigramaTabComponent } from './tabs/organigrama/centro
     CentroAtencionEspecialidadesTabComponent,
     CentroAtencionStaffMedicoTabComponent,
     CentroAtencionOrganigramaTabComponent
-  ],
+],
   templateUrl: './centroAtencion-detail-refactored.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./centroAtencion-detail.component.css'],
 })
 export class CentroAtencionDetailRefactoredComponent implements AfterViewInit, OnInit {

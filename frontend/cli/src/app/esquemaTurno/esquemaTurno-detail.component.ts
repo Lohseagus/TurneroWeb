@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { EsquemaTurnoService } from './esquemaTurno.service';
@@ -15,8 +15,9 @@ import { ModalService } from '../modal/modal.service';
 @Component({
   selector: 'app-esquema-turno-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './esquemaTurno-detail.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './esquemaTurno-detail.component.css'
 })
 export class EsquemaTurnoDetailComponent {

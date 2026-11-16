@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DisponibilidadMedicoService } from './disponibilidadMedico.service';
@@ -12,8 +12,9 @@ import { ModalService } from '../modal/modal.service';
 @Component({
   selector: 'app-disponibilidad-medico-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './disponiblidadMedico-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './disponibilidadMedico-detail.component.css'
 })
 export class DisponibilidadMedicoDetailComponent {

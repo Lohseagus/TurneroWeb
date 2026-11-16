@@ -1,5 +1,5 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Consultorio } from '../../../consultorios/consultorio';
@@ -12,8 +12,9 @@ import { HorariosConsultorioModalComponent } from './horarios-consultorio-modal.
 @Component({
   selector: 'app-centro-atencion-consultorios-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './centro-atencion-consultorios-tab.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./centro-atencion-consultorios-tab.component.css']
 })
 export class CentroAtencionConsultoriosTabComponent implements OnInit {

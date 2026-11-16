@@ -41,16 +41,16 @@ public interface StaffMedicoRepository extends JpaRepository<StaffMedico, Intege
         JOIN sm.centroAtencion ca
         LEFT JOIN sm.consultorio c
         WHERE (:medico IS NULL OR
-               LOWER(m.nombre) LIKE LOWER(CONCAT('%', :medico, '%')) OR
-               LOWER(m.apellido) LIKE LOWER(CONCAT('%', :medico, '%')) OR
-               CAST(m.dni AS string) LIKE LOWER(CONCAT('%', :medico, '%')))
+               LOWER(m.nombre) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')) OR
+               LOWER(m.apellido) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')) OR
+               CAST(m.dni AS string) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')))
            AND (:especialidad IS NULL OR
-                LOWER(e.nombre) LIKE LOWER(CONCAT('%', :especialidad, '%')))
+                LOWER(e.nombre) LIKE LOWER(CONCAT('%', CAST(:especialidad AS string), '%')))
            AND (:centro IS NULL OR
-                LOWER(ca.nombre) LIKE LOWER(CONCAT('%', :centro, '%')))
+                LOWER(ca.nombre) LIKE LOWER(CONCAT('%', CAST(:centro AS string), '%')))
            AND (:consultorio IS NULL OR
-                LOWER(c.nombre) LIKE LOWER(CONCAT('%', :consultorio, '%')) OR
-                CAST(c.id AS string) LIKE CONCAT('%', :consultorio, '%'))
+                LOWER(c.nombre) LIKE LOWER(CONCAT('%', CAST(:consultorio AS string), '%')) OR
+                CAST(c.id AS string) LIKE CONCAT('%', CAST(:consultorio AS string), '%'))
         """)
     Page<StaffMedico> findByFiltros(@Param("medico") String medico,
                                     @Param("especialidad") String especialidad,
@@ -75,5 +75,14 @@ public interface StaffMedicoRepository extends JpaRepository<StaffMedico, Intege
      */
     @Query("SELECT COUNT(sm) > 0 FROM StaffMedico sm WHERE sm.medico.id = :medicoId AND sm.centroAtencion.id = :centroId")
     boolean existsByMedicoIdAndCentroId(@Param("medicoId") Integer medicoId, @Param("centroId") Integer centroId);
+
+    @Query("select count(distinct s.medico.id) from StaffMedico s where s.centroAtencion.organizacion.id = :orgId")
+    long countDistinctMedicosByOrganizacion(@Param("orgId") Integer orgId);
+
+    @Query("""
+            select count(distinct s.medico.id) from StaffMedico s
+            where s.centroAtencion.organizacion.id = :orgId and s.medico.id = :medicoId
+            """)
+    long countMedicoEnOrganizacion(@Param("orgId") Integer orgId, @Param("medicoId") Integer medicoId);
 
 }

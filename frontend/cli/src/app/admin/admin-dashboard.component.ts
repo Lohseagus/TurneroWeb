@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { AuthService } from "../inicio-sesion/auth.service";
@@ -11,6 +11,7 @@ import { ComentariosModalComponent } from "../modal/comentarios-modal.component"
   standalone: true,
   imports: [CommonModule],
   templateUrl: "./admin-dashboard.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ["./admin-dashboard.component.css"],
 })
 export class AdminDashboardComponent implements OnInit {

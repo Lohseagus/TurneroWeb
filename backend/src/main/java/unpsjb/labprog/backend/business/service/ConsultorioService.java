@@ -21,6 +21,8 @@ import unpsjb.labprog.backend.dto.ConsultorioDTO;
 import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.Consultorio;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.saas.RecursoSaas;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 @Service
 public class ConsultorioService {
@@ -33,6 +35,9 @@ public class ConsultorioService {
 
     @Autowired
     private AuditLogService auditLogService;
+
+    @Autowired
+    private SuscripcionAccessService suscripcionAccessService;
 
     /**
      * Obtiene todos los consultorios con filtrado automático multi-tenencia.
@@ -232,6 +237,7 @@ public class ConsultorioService {
         // Si userCentroId == null, es SUPERADMIN o PACIENTE (acceso global permitido)
 
         if (consultorio.getId() == null || consultorio.getId() == 0) { // CREACIÓN
+            suscripcionAccessService.assertOperacion(centro.getId(), RecursoSaas.CONSULTORIO);
             if (repository.existsByNumeroAndCentroAtencion(consultorio.getNumero(), centro)) {
                 throw new IllegalStateException("El número de consultorio ya está en uso");
             }

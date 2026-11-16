@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -14,6 +14,7 @@ import { ModalService } from "../modal/modal.service";
   selector: "app-paciente-dashboard",
   imports: [CommonModule, FormsModule],
   templateUrl: "./paciente-dashboard.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./paciente-dashboard.component.css",
 })
 export class PacienteDashboardComponent implements OnInit, OnDestroy {

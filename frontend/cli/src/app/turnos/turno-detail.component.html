@@ -5,521 +5,577 @@
         <!-- HEADER -->
         <div class="d-flex align-items-center gap-md mb-lg">
           <span class="material-symbols-outlined header-icon" aria-hidden="true">
-            <ng-container *ngIf="turno.id && turno.id !== 0">event_available</ng-container>
-            <ng-container *ngIf="!turno.id && esSobreturno">emergency</ng-container>
-            <ng-container *ngIf="!turno.id && !esSobreturno">add_circle</ng-container>
+            @if (turno.id && turno.id !== 0) {
+              event_available
+            }
+            @if (!turno.id && esSobreturno) {
+              emergency
+            }
+            @if (!turno.id && !esSobreturno) {
+              add_circle
+            }
           </span>
           <div>
             <h2 class="mb-0">
-              <ng-container *ngIf="turno.id && turno.id !== 0">
+              @if (turno.id && turno.id !== 0) {
                 Turno #{{ turno.id }}
-              </ng-container>
-              <ng-container *ngIf="!turno.id && esSobreturno">
+              }
+              @if (!turno.id && esSobreturno) {
                 Crear Sobreturno
-              </ng-container>
-              <ng-container *ngIf="!turno.id && !esSobreturno">
+              }
+              @if (!turno.id && !esSobreturno) {
                 Nuevo Turno
-              </ng-container>
+              }
             </h2>
             <p class="text-muted text-sm mb-0">
-              <ng-container *ngIf="!modoEdicion">Información del Turno</ng-container>
-              <ng-container *ngIf="modoEdicion && turno.id">Editando Turno</ng-container>
-              <ng-container *ngIf="modoEdicion && !turno.id && esSobreturno">Registro Manual - Fuera de Agenda</ng-container>
-              <ng-container *ngIf="modoEdicion && !turno.id && !esSobreturno">Creando Nuevo Turno</ng-container>
+              @if (!modoEdicion) {
+                Información del Turno
+              }
+              @if (modoEdicion && turno.id) {
+                Editando Turno
+              }
+              @if (modoEdicion && !turno.id && esSobreturno) {
+                Registro Manual - Fuera de Agenda
+              }
+              @if (modoEdicion && !turno.id && !esSobreturno) {
+                Creando Nuevo Turno
+              }
             </p>
           </div>
         </div>
 
         <!-- BANNER DE ADVERTENCIA - SOBRETURNO -->
-        <div *ngIf="esSobreturno" class="alert alert-warning mb-lg" role="alert">
-          <div class="d-flex align-items-start gap-md">
-            <span class="material-symbols-outlined warning-icon" aria-hidden="true">warning</span>
-            <div>
-              <h5 class="mb-sm">
-                <strong>Modo: Creación de Sobreturno</strong>
-              </h5>
-              <p class="mb-sm">
-                Está creando un <strong>sobreturno manual</strong> que <strong>no está vinculado a la agenda</strong>
-                ni a los esquemas de turno predefinidos.
-              </p>
-              <ul class="mb-sm">
-                <li>Este turno se registrará <strong>fuera de los slots generados automáticamente</strong></li>
-                <li>Puede generar <strong>conflictos de horarios</strong> si ya existe otro turno programado</li>
-                <li>Se recomienda verificar disponibilidad del médico y consultorio</li>
-              </ul>
-              <div class="alert alert-info mb-0">
-                <div class="d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined" aria-hidden="true">info</span>
-                  <div>
-                    <strong>Tip:</strong> Use esta opción para casos excepcionales, urgencias o turnos fuera de horario habitual.
+        @if (esSobreturno) {
+          <div class="alert alert-warning mb-lg" role="alert">
+            <div class="d-flex align-items-start gap-md">
+              <span class="material-symbols-outlined warning-icon" aria-hidden="true">warning</span>
+              <div>
+                <h5 class="mb-sm">
+                  <strong>Modo: Creación de Sobreturno</strong>
+                </h5>
+                <p class="mb-sm">
+                  Está creando un <strong>sobreturno manual</strong> que <strong>no está vinculado a la agenda</strong>
+                  ni a los esquemas de turno predefinidos.
+                </p>
+                <ul class="mb-sm">
+                  <li>Este turno se registrará <strong>fuera de los slots generados automáticamente</strong></li>
+                  <li>Puede generar <strong>conflictos de horarios</strong> si ya existe otro turno programado</li>
+                  <li>Se recomienda verificar disponibilidad del médico y consultorio</li>
+                </ul>
+                <div class="alert alert-info mb-0">
+                  <div class="d-flex align-items-center gap-sm">
+                    <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                    <div>
+                      <strong>Tip:</strong> Use esta opción para casos excepcionales, urgencias o turnos fuera de horario habitual.
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        }
 
         <!-- MODO VISTA -->
-        <div *ngIf="!modoEdicion" class="row">
-          <!-- Columna Izquierda -->
-          <div class="col-md-6">
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">tag</span>
-                ID del Turno
-              </label>
-              <div class="form-control" readonly>{{ turno.id }}</div>
-            </div>
-
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">person</span>
-                Paciente
-              </label>
-              <div class="form-control" readonly>{{ turno.nombrePaciente }} {{ turno.apellidoPaciente }}</div>
-            </div>
-
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">medical_services</span>
-                Médico
-              </label>
-              <div class="form-control" readonly>{{ turno.staffMedicoNombre }} {{ turno.staffMedicoApellido }}</div>
-            </div>
-
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">stethoscope</span>
-                Especialidad
-              </label>
-              <div class="form-control" readonly>{{ turno.especialidadStaffMedico }}</div>
-            </div>
-          </div>
-
-          <!-- Columna Derecha -->
-          <div class="col-md-6">
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">calendar_month</span>
-                Fecha
-              </label>
-              <div class="form-control" readonly>{{ turno.fecha }}</div>
-            </div>
-
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">schedule</span>
-                Horario
-              </label>
-              <div class="form-control" readonly>{{ turno.horaInicio }} - {{ turno.horaFin }}</div>
-            </div>
-
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">local_hospital</span>
-                Centro
-              </label>
-              <div class="form-control" readonly>{{ turno.nombreCentro }}</div>
-            </div>
-
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">door_front</span>
-                Consultorio
-              </label>
-              <div class="form-control" readonly>{{ turno.consultorioNombre }}</div>
-            </div>
-          </div>
-
-          <!-- Fila Completa -->
-          <div class="col-12">
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">monitoring</span>
-                Estado
-              </label>
-              <div>
-                <span [ngClass]="getEstadoBadgeClass(turno.estado)">{{ turno.estado }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12" *ngIf="turno.observaciones">
-            <div class="form-group mb-lg">
-              <label class="form-label d-flex align-items-center gap-sm">
-                <span class="material-symbols-outlined label-icon" aria-hidden="true">comment</span>
-                Observaciones
-              </label>
-              <div class="form-control min-height-textarea" readonly>{{ turno.observaciones }}</div>
-            </div>
-          </div>
-
-          <!-- INFORMACIÓN DE AUDITORÍA -->
-          <div class="col-12" *ngIf="turno.id && (turno.totalModificaciones || turno.fechaUltimaModificacion)">
-            <hr class="my-lg">
-            <h3 class="d-flex align-items-center gap-sm mb-lg">
-              <span class="material-symbols-outlined label-icon" aria-hidden="true">history</span>
-              Información de Auditoría
-            </h3>
-            <div class="row">
-              <div class="col-md-6" *ngIf="turno.totalModificaciones">
-                <div class="form-group mb-lg">
-                  <label class="form-label d-flex align-items-center gap-sm">
-                    <span class="material-symbols-outlined label-icon" aria-hidden="true">numbers</span>
-                    Total Modificaciones
-                  </label>
-                  <div>
-                    <span class="badge bg-primary">{{ turno.totalModificaciones }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-6" *ngIf="turno.fechaUltimaModificacion">
-                <div class="form-group mb-lg">
-                  <label class="form-label d-flex align-items-center gap-sm">
-                    <span class="material-symbols-outlined label-icon" aria-hidden="true">update</span>
-                    Última Modificación
-                  </label>
-                  <div class="form-control" readonly>
-                    <small>{{ formatDateTime(turno.fechaUltimaModificacion) }}</small>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12" *ngIf="turno.ultimoUsuarioModificacion">
-                <div class="form-group mb-lg">
-                  <label class="form-label d-flex align-items-center gap-sm">
-                    <span class="material-symbols-outlined label-icon" aria-hidden="true">account_circle</span>
-                    Modificado por
-                  </label>
-                  <div class="form-control" readonly>{{ turno.ultimoUsuarioModificacion }}</div>
-                </div>
-              </div>
-              <div class="col-12" *ngIf="turno.motivoUltimaModificacion">
-                <div class="form-group mb-lg">
-                  <label class="form-label d-flex align-items-center gap-sm">
-                    <span class="material-symbols-outlined label-icon" aria-hidden="true">description</span>
-                    Motivo
-                  </label>
-                  <div class="form-control" readonly>{{ turno.motivoUltimaModificacion }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- MODO EDICIÓN -->
-        <form *ngIf="modoEdicion" (ngSubmit)="save()" #turnoForm="ngForm">
+        @if (!modoEdicion) {
           <div class="row">
             <!-- Columna Izquierda -->
             <div class="col-md-6">
               <div class="form-group mb-lg">
-                <label for="pacienteId" class="form-label d-flex align-items-center gap-sm">
+                <label class="form-label d-flex align-items-center gap-sm">
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">tag</span>
+                  ID del Turno
+                </label>
+                <div class="form-control" readonly>{{ turno.id }}</div>
+              </div>
+              <div class="form-group mb-lg">
+                <label class="form-label d-flex align-items-center gap-sm">
                   <span class="material-symbols-outlined label-icon" aria-hidden="true">person</span>
                   Paciente
                 </label>
-                <select 
-                  id="pacienteId"
-                  [(ngModel)]="turno.pacienteId" 
-                  name="pacienteId" 
-                  class="form-select"
-                  required
-                  aria-label="Seleccione el paciente para el turno">
-                  <option value="">Seleccione un paciente...</option>
-                  <option *ngFor="let paciente of pacientes" [value]="paciente.id">
-                    {{ paciente.nombre }} {{ paciente.apellido }}
-                  </option>
-                </select>
-                <small class="form-text">Seleccione el paciente para el turno.</small>
+                <div class="form-control" readonly>{{ turno.nombrePaciente }} {{ turno.apellidoPaciente }}</div>
               </div>
-
               <div class="form-group mb-lg">
-                <label for="staffMedicoId" class="form-label d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined label-icon" aria-hidden="true">medical_services</span>
-                  Staff Médico
-                </label>
-                <select 
-                  id="staffMedicoId"
-                  [(ngModel)]="turno.staffMedicoId" 
-                  name="staffMedicoId"
-                  class="form-select" 
-                  required
-                  aria-label="Seleccione el médico que atenderá el turno">
-                  <option value="">Seleccione un staff médico...</option>
-                  <option *ngFor="let staff of staffMedicos" [value]="staff.id">
-                    {{ staff.medico?.nombre }} {{ staff.medico?.apellido }} - {{ staff.especialidad?.nombre }} ({{ staff.centro?.nombre || 'Sin centro' }})
-                  </option>
-                </select>
-                <small class="form-text">Seleccione el médico que atenderá el turno.</small>
-              </div>
-
-              <div class="form-group mb-lg">
-                <label for="consultorioId" class="form-label d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined label-icon" aria-hidden="true">door_front</span>
-                  Consultorio
-                </label>
-                <select 
-                  id="consultorioId"
-                  [(ngModel)]="turno.consultorioId" 
-                  name="consultorioId"
-                  class="form-select" 
-                  required
-                  aria-label="Seleccione el consultorio donde se realizará el turno">
-                  <option value="">Seleccione un consultorio...</option>
-                  <option *ngFor="let consultorio of consultorios" [value]="consultorio.id">
-                    {{ consultorio.nombre }} - {{ consultorio.centroAtencion?.nombre }}
-                  </option>
-                </select>
-                <small class="form-text">Seleccione el consultorio donde se realizará el turno.</small>
-              </div>
-
-              <!-- Estado: Fijo en CONFIRMADO para sobreturnos -->
-              <div class="form-group mb-lg" *ngIf="esSobreturno">
                 <label class="form-label d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined label-icon success-icon" aria-hidden="true">check_circle</span>
-                  Estado
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">medical_services</span>
+                  Médico
                 </label>
-                <div class="alert alert-success d-flex align-items-center gap-sm mb-0">
-                  <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
-                  <div>
-                    <strong>CONFIRMADO</strong>
-                    <br>
-                    <small>Los sobreturnos se crean automáticamente como confirmados</small>
-                  </div>
-                </div>
+                <div class="form-control" readonly>{{ turno.staffMedicoNombre }} {{ turno.staffMedicoApellido }}</div>
               </div>
-
-              <!-- Estado: Select normal para turnos regulares -->
-              <div class="form-group mb-lg" *ngIf="!esSobreturno">
-                <label for="estado" class="form-label d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined label-icon" aria-hidden="true">monitoring</span>
-                  Estado
+              <div class="form-group mb-lg">
+                <label class="form-label d-flex align-items-center gap-sm">
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">stethoscope</span>
+                  Especialidad
                 </label>
-                <select 
-                  id="estado"
-                  [(ngModel)]="turno.estado" 
-                  name="estado" 
-                  class="form-select" 
-                  required
-                  aria-label="Seleccione el estado actual del turno">
-                  <option value="PROGRAMADO">PROGRAMADO</option>
-                  <option value="CONFIRMADO">CONFIRMADO</option>
-                  <option value="CANCELADO">CANCELADO</option>
-                  <option value="COMPLETADO">COMPLETADO</option>
-                </select>
-                <small class="form-text">Estado actual del turno.</small>
+                <div class="form-control" readonly>{{ turno.especialidadStaffMedico }}</div>
               </div>
             </div>
-
             <!-- Columna Derecha -->
             <div class="col-md-6">
               <div class="form-group mb-lg">
-                <label for="fecha" class="form-label d-flex align-items-center gap-sm">
+                <label class="form-label d-flex align-items-center gap-sm">
                   <span class="material-symbols-outlined label-icon" aria-hidden="true">calendar_month</span>
                   Fecha
                 </label>
-                <input 
-                  id="fecha"
-                  [(ngModel)]="turno.fecha" 
-                  name="fecha" 
-                  type="date" 
-                  class="form-control"
-                  required
-                  aria-label="Seleccione la fecha del turno" />
-                <small class="form-text">Fecha del turno médico.</small>
+                <div class="form-control" readonly>{{ turno.fecha }}</div>
               </div>
-
               <div class="form-group mb-lg">
-                <label for="horaInicio" class="form-label d-flex align-items-center gap-sm">
+                <label class="form-label d-flex align-items-center gap-sm">
                   <span class="material-symbols-outlined label-icon" aria-hidden="true">schedule</span>
-                  Hora de Inicio
+                  Horario
                 </label>
-                <input 
-                  id="horaInicio"
-                  [(ngModel)]="turno.horaInicio" 
-                  name="horaInicio" 
-                  type="time"
-                  class="form-control" 
-                  required
-                  aria-label="Seleccione la hora de inicio del turno" />
-                <small class="form-text">Hora de inicio del turno.</small>
+                <div class="form-control" readonly>{{ turno.horaInicio }} - {{ turno.horaFin }}</div>
               </div>
-
               <div class="form-group mb-lg">
-                <label for="horaFin" class="form-label d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined label-icon" aria-hidden="true">schedule</span>
-                  Hora de Fin
+                <label class="form-label d-flex align-items-center gap-sm">
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">local_hospital</span>
+                  Centro
                 </label>
-                <input 
-                  id="horaFin"
-                  [(ngModel)]="turno.horaFin" 
-                  name="horaFin" 
-                  type="time" 
-                  class="form-control"
-                  required
-                  aria-label="Seleccione la hora de finalización del turno" />
-                <small class="form-text">Hora de finalización del turno.</small>
+                <div class="form-control" readonly>{{ turno.nombreCentro }}</div>
               </div>
-
-              <div class="form-group mb-lg" *ngIf="esSobreturno">
-                <label for="observaciones" class="form-label d-flex align-items-center gap-sm">
-                  <span class="material-symbols-outlined label-icon" aria-hidden="true">comment</span>
-                  Observaciones
+              <div class="form-group mb-lg">
+                <label class="form-label d-flex align-items-center gap-sm">
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">door_front</span>
+                  Consultorio
                 </label>
-                <textarea 
-                  id="observaciones"
-                  [(ngModel)]="turno.observaciones" 
-                  name="observaciones" 
-                  rows="3"
-                  class="form-control"
-                  placeholder="Ingrese observaciones o detalles del sobreturno..."
-                  aria-label="Ingrese observaciones adicionales para el sobreturno"></textarea>
-                <small class="form-text">Añada información adicional relevante para este sobreturno.</small>
+                <div class="form-control" readonly>{{ turno.consultorioNombre }}</div>
               </div>
             </div>
-          </div>
-
-          <!-- Botones de Acción del Formulario -->
-          <div class="d-flex gap-md flex-wrap">
-            <button 
-              type="submit" 
-              class="btn btn-primary" 
-              [class.btn-warning]="esSobreturno"
-              [disabled]="allFieldsEmpty()"
-              aria-label="Guardar turno">
-              <span class="material-symbols-outlined" aria-hidden="true">
-                <ng-container *ngIf="esSobreturno">warning</ng-container>
-                <ng-container *ngIf="!esSobreturno">save</ng-container>
-              </span>
-              <ng-container *ngIf="esSobreturno">Crear Sobreturno</ng-container>
-              <ng-container *ngIf="!esSobreturno">Guardar</ng-container>
-            </button>
-            <button 
-              type="button" 
-              class="btn btn-outline-secondary" 
-              (click)="cancelar()"
-              aria-label="Cancelar edición">
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-              Cancelar
-            </button>
-          </div>
-        </form>
-
-        <!-- BOTONES DE ACCIÓN (MODO VISTA) -->
-        <div *ngIf="!modoEdicion" class="d-flex gap-md flex-wrap mt-lg">
-          <button 
-            type="button" 
-            class="btn btn-outline-secondary" 
-            (click)="goBack()"
-            aria-label="Volver atrás">
-            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            Volver
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
-            (click)="activarEdicion()"
-            aria-label="Editar turno">
-            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-            Editar
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-info" 
-            (click)="toggleAuditPanel()"
-            *ngIf="turno.id && turno.totalModificaciones && turno.totalModificaciones > 0"
-            aria-label="Ver historial de auditoría">
-            <span class="material-symbols-outlined" aria-hidden="true">analytics</span>
-            Auditoría ({{ turno.totalModificaciones }})
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-success" 
-            (click)="verifyAuditIntegrity()"
-            *ngIf="turno.id && turno.totalModificaciones && turno.totalModificaciones > 0"
-            aria-label="Verificar integridad de auditoría">
-            <span class="material-symbols-outlined" aria-hidden="true">verified</span>
-            Verificar
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-danger ms-auto" 
-            (click)="remove(turno)" 
-            *ngIf="turno.id"
-            aria-label="Eliminar turno">
-            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-            Eliminar
-          </button>
-        </div>
-      </div>
-
-      <!-- PANEL DE AUDITORÍA -->
-      <div class="card p-xl mt-lg" *ngIf="showAuditPanel && turno.id">
-        <div class="d-flex align-items-center justify-content-between mb-lg">
-          <div class="d-flex align-items-center gap-md">
-            <span class="material-symbols-outlined info-icon" aria-hidden="true">analytics</span>
-            <div>
-              <h3 class="mb-0">Historial de Auditoría</h3>
-              <p class="text-muted text-sm mb-0">Turno #{{ turno.id }}</p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            class="btn btn-outline-secondary" 
-            (click)="toggleAuditPanel()"
-            aria-label="Cerrar panel de auditoría">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <!-- Loading State -->
-        <div *ngIf="loadingAudit" class="text-center py-xl">
-          <span class="material-symbols-outlined loading-icon spin" aria-hidden="true">sync</span>
-          <p class="mt-md text-muted">Cargando historial de auditoría...</p>
-        </div>
-
-        <!-- Empty State -->
-        <div *ngIf="!loadingAudit && auditHistory.length === 0" class="text-center py-xl">
-          <span class="material-symbols-outlined empty-icon" aria-hidden="true">history</span>
-          <p class="mt-md text-muted">No se encontraron registros de auditoría para este turno</p>
-        </div>
-
-        <!-- Audit Timeline -->
-        <div *ngIf="!loadingAudit && auditHistory.length > 0">
-          <div *ngFor="let log of auditHistory; let i = index" class="mb-lg pb-lg" [class.border-bottom]="i < auditHistory.length - 1">
-            <div class="d-flex align-items-start gap-md mb-sm">
-              <span class="material-symbols-outlined label-icon" aria-hidden="true">
-                {{ getActionIconMaterial(log.action) }}
-              </span>
-              <div class="flex-grow-1">
-                <div class="d-flex justify-content-between align-items-center mb-sm">
-                  <span [class]="getActionClass(log.action)" class="badge">
-                    {{ log.action }}
-                  </span>
-                  <small class="text-muted">{{ formatDateTime(log.performedAt) }}</small>
+            <!-- Fila Completa -->
+            <div class="col-12">
+              <div class="form-group mb-lg">
+                <label class="form-label d-flex align-items-center gap-sm">
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">monitoring</span>
+                  Estado
+                </label>
+                <div>
+                  <span [ngClass]="getEstadoBadgeClass(turno.estado)">{{ turno.estado }}</span>
                 </div>
-
+              </div>
+            </div>
+            @if (turno.observaciones) {
+              <div class="col-12">
+                <div class="form-group mb-lg">
+                  <label class="form-label d-flex align-items-center gap-sm">
+                    <span class="material-symbols-outlined label-icon" aria-hidden="true">comment</span>
+                    Observaciones
+                  </label>
+                  <div class="form-control min-height-textarea" readonly>{{ turno.observaciones }}</div>
+                </div>
+              </div>
+            }
+            <!-- INFORMACIÓN DE AUDITORÍA -->
+            @if (turno.id && (turno.totalModificaciones || turno.fechaUltimaModificacion)) {
+              <div class="col-12">
+                <hr class="my-lg">
+                <h3 class="d-flex align-items-center gap-sm mb-lg">
+                  <span class="material-symbols-outlined label-icon" aria-hidden="true">history</span>
+                  Información de Auditoría
+                </h3>
                 <div class="row">
-                  <div class="col-md-6" *ngIf="log.performedBy">
-                    <small><strong>Usuario:</strong> {{ log.performedBy }}</small>
-                  </div>
-                  <div class="col-md-6" *ngIf="log.estadoAnterior || log.estadoNuevo">
-                    <small>
-                      <strong>Estado:</strong>
-                      <span class="badge bg-secondary" *ngIf="log.estadoAnterior">{{ log.estadoAnterior }}</span>
-                      <span class="material-symbols-outlined inline-icon" *ngIf="log.estadoAnterior && log.estadoNuevo" aria-hidden="true">arrow_forward</span>
-                      <span class="badge bg-primary" *ngIf="log.estadoNuevo">{{ log.estadoNuevo }}</span>
-                    </small>
-                  </div>
-                </div>
-                <div class="row mt-sm" *ngIf="log.reason">
-                  <div class="col-12">
-                    <small><strong>Motivo:</strong> {{ log.reason }}</small>
-                  </div>
+                  @if (turno.totalModificaciones) {
+                    <div class="col-md-6">
+                      <div class="form-group mb-lg">
+                        <label class="form-label d-flex align-items-center gap-sm">
+                          <span class="material-symbols-outlined label-icon" aria-hidden="true">numbers</span>
+                          Total Modificaciones
+                        </label>
+                        <div>
+                          <span class="badge bg-primary">{{ turno.totalModificaciones }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  @if (turno.fechaUltimaModificacion) {
+                    <div class="col-md-6">
+                      <div class="form-group mb-lg">
+                        <label class="form-label d-flex align-items-center gap-sm">
+                          <span class="material-symbols-outlined label-icon" aria-hidden="true">update</span>
+                          Última Modificación
+                        </label>
+                        <div class="form-control" readonly>
+                          <small>{{ formatDateTime(turno.fechaUltimaModificacion) }}</small>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  @if (turno.ultimoUsuarioModificacion) {
+                    <div class="col-12">
+                      <div class="form-group mb-lg">
+                        <label class="form-label d-flex align-items-center gap-sm">
+                          <span class="material-symbols-outlined label-icon" aria-hidden="true">account_circle</span>
+                          Modificado por
+                        </label>
+                        <div class="form-control" readonly>{{ turno.ultimoUsuarioModificacion }}</div>
+                      </div>
+                    </div>
+                  }
+                  @if (turno.motivoUltimaModificacion) {
+                    <div class="col-12">
+                      <div class="form-group mb-lg">
+                        <label class="form-label d-flex align-items-center gap-sm">
+                          <span class="material-symbols-outlined label-icon" aria-hidden="true">description</span>
+                          Motivo
+                        </label>
+                        <div class="form-control" readonly>{{ turno.motivoUltimaModificacion }}</div>
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
-            </div>
+            }
           </div>
+        }
+
+        <!-- MODO EDICIÓN -->
+        @if (modoEdicion) {
+          <form (ngSubmit)="save()" #turnoForm="ngForm">
+            <div class="row">
+              <!-- Columna Izquierda -->
+              <div class="col-md-6">
+                <div class="form-group mb-lg">
+                  <label for="pacienteId" class="form-label d-flex align-items-center gap-sm">
+                    <span class="material-symbols-outlined label-icon" aria-hidden="true">person</span>
+                    Paciente
+                  </label>
+                  <select
+                    id="pacienteId"
+                    [(ngModel)]="turno.pacienteId"
+                    name="pacienteId"
+                    class="form-select"
+                    required
+                    aria-label="Seleccione el paciente para el turno">
+                    <option value="">Seleccione un paciente...</option>
+                    @for (paciente of pacientes; track paciente) {
+                      <option [value]="paciente.id">
+                        {{ paciente.nombre }} {{ paciente.apellido }}
+                      </option>
+                    }
+                  </select>
+                  <small class="form-text">Seleccione el paciente para el turno.</small>
+                </div>
+                <div class="form-group mb-lg">
+                  <label for="staffMedicoId" class="form-label d-flex align-items-center gap-sm">
+                    <span class="material-symbols-outlined label-icon" aria-hidden="true">medical_services</span>
+                    Staff Médico
+                  </label>
+                  <select
+                    id="staffMedicoId"
+                    [(ngModel)]="turno.staffMedicoId"
+                    name="staffMedicoId"
+                    class="form-select"
+                    required
+                    aria-label="Seleccione el médico que atenderá el turno">
+                    <option value="">Seleccione un staff médico...</option>
+                    @for (staff of staffMedicos; track staff) {
+                      <option [value]="staff.id">
+                        {{ staff.medico?.nombre }} {{ staff.medico?.apellido }} - {{ staff.especialidad?.nombre }} ({{ staff.centro?.nombre || 'Sin centro' }})
+                      </option>
+                    }
+                  </select>
+                  <small class="form-text">Seleccione el médico que atenderá el turno.</small>
+                </div>
+                <div class="form-group mb-lg">
+                  <label for="consultorioId" class="form-label d-flex align-items-center gap-sm">
+                    <span class="material-symbols-outlined label-icon" aria-hidden="true">door_front</span>
+                    Consultorio
+                  </label>
+                  <select
+                    id="consultorioId"
+                    [(ngModel)]="turno.consultorioId"
+                    name="consultorioId"
+                    class="form-select"
+                    required
+                    aria-label="Seleccione el consultorio donde se realizará el turno">
+                    <option value="">Seleccione un consultorio...</option>
+                    @for (consultorio of consultorios; track consultorio) {
+                      <option [value]="consultorio.id">
+                        {{ consultorio.nombre }} - {{ consultorio.centroAtencion?.nombre }}
+                      </option>
+                    }
+                  </select>
+                  <small class="form-text">Seleccione el consultorio donde se realizará el turno.</small>
+                </div>
+                <!-- Estado: Fijo en CONFIRMADO para sobreturnos -->
+                @if (esSobreturno) {
+                  <div class="form-group mb-lg">
+                    <label class="form-label d-flex align-items-center gap-sm">
+                      <span class="material-symbols-outlined label-icon success-icon" aria-hidden="true">check_circle</span>
+                      Estado
+                    </label>
+                    <div class="alert alert-success d-flex align-items-center gap-sm mb-0">
+                      <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+                      <div>
+                        <strong>CONFIRMADO</strong>
+                        <br>
+                          <small>Los sobreturnos se crean automáticamente como confirmados</small>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  <!-- Estado: Select normal para turnos regulares -->
+                  @if (!esSobreturno) {
+                    <div class="form-group mb-lg">
+                      <label for="estado" class="form-label d-flex align-items-center gap-sm">
+                        <span class="material-symbols-outlined label-icon" aria-hidden="true">monitoring</span>
+                        Estado
+                      </label>
+                      <select
+                        id="estado"
+                        [(ngModel)]="turno.estado"
+                        name="estado"
+                        class="form-select"
+                        required
+                        aria-label="Seleccione el estado actual del turno">
+                        <option value="PROGRAMADO">PROGRAMADO</option>
+                        <option value="CONFIRMADO">CONFIRMADO</option>
+                        <option value="CANCELADO">CANCELADO</option>
+                        <option value="COMPLETADO">COMPLETADO</option>
+                      </select>
+                      <small class="form-text">Estado actual del turno.</small>
+                    </div>
+                  }
+                </div>
+                <!-- Columna Derecha -->
+                <div class="col-md-6">
+                  <div class="form-group mb-lg">
+                    <label for="fecha" class="form-label d-flex align-items-center gap-sm">
+                      <span class="material-symbols-outlined label-icon" aria-hidden="true">calendar_month</span>
+                      Fecha
+                    </label>
+                    <input
+                      id="fecha"
+                      [(ngModel)]="turno.fecha"
+                      name="fecha"
+                      type="date"
+                      class="form-control"
+                      required
+                      aria-label="Seleccione la fecha del turno" />
+                    <small class="form-text">Fecha del turno médico.</small>
+                  </div>
+                  <div class="form-group mb-lg">
+                    <label for="horaInicio" class="form-label d-flex align-items-center gap-sm">
+                      <span class="material-symbols-outlined label-icon" aria-hidden="true">schedule</span>
+                      Hora de Inicio
+                    </label>
+                    <input
+                      id="horaInicio"
+                      [(ngModel)]="turno.horaInicio"
+                      name="horaInicio"
+                      type="time"
+                      class="form-control"
+                      required
+                      aria-label="Seleccione la hora de inicio del turno" />
+                    <small class="form-text">Hora de inicio del turno.</small>
+                  </div>
+                  <div class="form-group mb-lg">
+                    <label for="horaFin" class="form-label d-flex align-items-center gap-sm">
+                      <span class="material-symbols-outlined label-icon" aria-hidden="true">schedule</span>
+                      Hora de Fin
+                    </label>
+                    <input
+                      id="horaFin"
+                      [(ngModel)]="turno.horaFin"
+                      name="horaFin"
+                      type="time"
+                      class="form-control"
+                      required
+                      aria-label="Seleccione la hora de finalización del turno" />
+                    <small class="form-text">Hora de finalización del turno.</small>
+                  </div>
+                  @if (esSobreturno) {
+                    <div class="form-group mb-lg">
+                      <label for="observaciones" class="form-label d-flex align-items-center gap-sm">
+                        <span class="material-symbols-outlined label-icon" aria-hidden="true">comment</span>
+                        Observaciones
+                      </label>
+                      <textarea
+                        id="observaciones"
+                        [(ngModel)]="turno.observaciones"
+                        name="observaciones"
+                        rows="3"
+                        class="form-control"
+                        placeholder="Ingrese observaciones o detalles del sobreturno..."
+                      aria-label="Ingrese observaciones adicionales para el sobreturno"></textarea>
+                      <small class="form-text">Añada información adicional relevante para este sobreturno.</small>
+                    </div>
+                  }
+                </div>
+              </div>
+              <!-- Botones de Acción del Formulario -->
+              <div class="d-flex gap-md flex-wrap">
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  [class.btn-warning]="esSobreturno"
+                  [disabled]="allFieldsEmpty()"
+                  aria-label="Guardar turno">
+                  <span class="material-symbols-outlined" aria-hidden="true">
+                    @if (esSobreturno) {
+                      warning
+                    }
+                    @if (!esSobreturno) {
+                      save
+                    }
+                  </span>
+                  @if (esSobreturno) {
+                    Crear Sobreturno
+                  }
+                  @if (!esSobreturno) {
+                    Guardar
+                  }
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  (click)="cancelar()"
+                  aria-label="Cancelar edición">
+                  <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          }
+
+          <!-- BOTONES DE ACCIÓN (MODO VISTA) -->
+          @if (!modoEdicion) {
+            <div class="d-flex gap-md flex-wrap mt-lg">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="goBack()"
+                aria-label="Volver atrás">
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                Volver
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                (click)="activarEdicion()"
+                aria-label="Editar turno">
+                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                Editar
+              </button>
+              @if (turno.id && turno.totalModificaciones && turno.totalModificaciones > 0) {
+                <button
+                  type="button"
+                  class="btn btn-info"
+                  (click)="toggleAuditPanel()"
+                  aria-label="Ver historial de auditoría">
+                  <span class="material-symbols-outlined" aria-hidden="true">analytics</span>
+                  Auditoría ({{ turno.totalModificaciones }})
+                </button>
+              }
+              @if (turno.id && turno.totalModificaciones && turno.totalModificaciones > 0) {
+                <button
+                  type="button"
+                  class="btn btn-success"
+                  (click)="verifyAuditIntegrity()"
+                  aria-label="Verificar integridad de auditoría">
+                  <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+                  Verificar
+                </button>
+              }
+              @if (turno.id) {
+                <button
+                  type="button"
+                  class="btn btn-danger ms-auto"
+                  (click)="remove(turno)"
+                  aria-label="Eliminar turno">
+                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                  Eliminar
+                </button>
+              }
+            </div>
+          }
         </div>
+
+        <!-- PANEL DE AUDITORÍA -->
+        @if (showAuditPanel && turno.id) {
+          <div class="card p-xl mt-lg">
+            <div class="d-flex align-items-center justify-content-between mb-lg">
+              <div class="d-flex align-items-center gap-md">
+                <span class="material-symbols-outlined info-icon" aria-hidden="true">analytics</span>
+                <div>
+                  <h3 class="mb-0">Historial de Auditoría</h3>
+                  <p class="text-muted text-sm mb-0">Turno #{{ turno.id }}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="toggleAuditPanel()"
+                aria-label="Cerrar panel de auditoría">
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+              </button>
+            </div>
+            <!-- Loading State -->
+            @if (loadingAudit) {
+              <div class="text-center py-xl">
+                <span class="material-symbols-outlined loading-icon spin" aria-hidden="true">sync</span>
+                <p class="mt-md text-muted">Cargando historial de auditoría...</p>
+              </div>
+            }
+            <!-- Empty State -->
+            @if (!loadingAudit && auditHistory.length === 0) {
+              <div class="text-center py-xl">
+                <span class="material-symbols-outlined empty-icon" aria-hidden="true">history</span>
+                <p class="mt-md text-muted">No se encontraron registros de auditoría para este turno</p>
+              </div>
+            }
+            <!-- Audit Timeline -->
+            @if (!loadingAudit && auditHistory.length > 0) {
+              <div>
+                @for (log of auditHistory; track log; let i = $index) {
+                  <div class="mb-lg pb-lg" [class.border-bottom]="i < auditHistory.length - 1">
+                    <div class="d-flex align-items-start gap-md mb-sm">
+                      <span class="material-symbols-outlined label-icon" aria-hidden="true">
+                        {{ getActionIconMaterial(log.action) }}
+                      </span>
+                      <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-sm">
+                          <span [class]="getActionClass(log.action)" class="badge">
+                            {{ log.action }}
+                          </span>
+                          <small class="text-muted">{{ formatDateTime(log.performedAt) }}</small>
+                        </div>
+                        <div class="row">
+                          @if (log.performedBy) {
+                            <div class="col-md-6">
+                              <small><strong>Usuario:</strong> {{ log.performedBy }}</small>
+                            </div>
+                          }
+                          @if (log.estadoAnterior || log.estadoNuevo) {
+                            <div class="col-md-6">
+                              <small>
+                                <strong>Estado:</strong>
+                                @if (log.estadoAnterior) {
+                                  <span class="badge bg-secondary">{{ log.estadoAnterior }}</span>
+                                }
+                                @if (log.estadoAnterior && log.estadoNuevo) {
+                                  <span class="material-symbols-outlined inline-icon" aria-hidden="true">arrow_forward</span>
+                                }
+                                @if (log.estadoNuevo) {
+                                  <span class="badge bg-primary">{{ log.estadoNuevo }}</span>
+                                }
+                              </small>
+                            </div>
+                          }
+                        </div>
+                        @if (log.reason) {
+                          <div class="row mt-sm">
+                            <div class="col-12">
+                              <small><strong>Motivo:</strong> {{ log.reason }}</small>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       </div>
     </div>
   </div>
-</div>

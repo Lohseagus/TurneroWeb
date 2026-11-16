@@ -33,7 +33,7 @@
           [(ngModel)]="filters.nombreApellido"
           (input)="onFilterChange()"
           autocomplete="off"
-        />
+          />
       </div>
 
       <!-- Búsqueda por documento -->
@@ -50,7 +50,7 @@
           [(ngModel)]="filters.documento"
           (input)="onFilterChange()"
           autocomplete="off"
-        />
+          />
       </div>
 
       <!-- Búsqueda por email -->
@@ -67,7 +67,7 @@
           [(ngModel)]="filters.email"
           (input)="onFilterChange()"
           autocomplete="off"
-        />
+          />
       </div>
     </div>
 
@@ -82,7 +82,7 @@
           class="form-select"
           [(ngModel)]="pageSize"
           (change)="onPageSizeChange()"
-        >
+          >
           <option [value]="10">10 registros</option>
           <option [value]="25">25 registros</option>
           <option [value]="50">50 registros</option>
@@ -96,7 +96,7 @@
             class="btn btn-secondary flex-fill"
             (click)="clearFilters()"
             [disabled]="!hasActiveFilters()"
-          >
+            >
             <span class="material-symbols-outlined">close</span>
             Limpiar filtros
           </button>
@@ -104,7 +104,7 @@
             class="btn btn-primary flex-fill"
             (click)="refreshData()"
             [disabled]="isLoading"
-          >
+            >
             <span class="material-symbols-outlined" [class.spinning]="isLoading">sync</span>
             Actualizar
           </button>
@@ -113,17 +113,21 @@
     </div>
 
     <!-- Información de resultados -->
-    <div class="row mt-md" *ngIf="resultsPage.totalElements > 0">
-      <div class="col-12">
-        <div class="info-badge">
-          <span class="material-symbols-outlined">info</span>
-          Mostrando {{ resultsPage.numberOfElements }} de {{ resultsPage.totalElements }} pacientes
-          <span *ngIf="hasActiveFilters()" class="ms-sm">
-            (filtrados de {{ totalUnfiltered }} totales)
-          </span>
+    @if (resultsPage.totalElements > 0) {
+      <div class="row mt-md">
+        <div class="col-12">
+          <div class="info-badge">
+            <span class="material-symbols-outlined">info</span>
+            Mostrando {{ resultsPage.numberOfElements }} de {{ resultsPage.totalElements }} pacientes
+            @if (hasActiveFilters()) {
+              <span class="ms-sm">
+                (filtrados de {{ totalUnfiltered }} totales)
+              </span>
+            }
+          </div>
         </div>
       </div>
-    </div>
+    }
   </div>
 
   <!-- TABLA LVE NORMALIZADA -->
@@ -136,22 +140,24 @@
               class="header-button"
               (click)="sortBy('nombre')"
               [class.active]="sortConfig.field === 'nombre'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">person</span>
                 Nombre
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="sortConfig.field === 'nombre'"
-                >
-                  {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="sortConfig.field !== 'nombre'"
-                >
-                  unfold_more
-                </span>
+                @if (sortConfig.field === 'nombre') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (sortConfig.field !== 'nombre') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
@@ -160,22 +166,24 @@
               class="header-button"
               (click)="sortBy('apellido')"
               [class.active]="sortConfig.field === 'apellido'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">person_outline</span>
                 Apellido
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="sortConfig.field === 'apellido'"
-                >
-                  {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="sortConfig.field !== 'apellido'"
-                >
-                  unfold_more
-                </span>
+                @if (sortConfig.field === 'apellido') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (sortConfig.field !== 'apellido') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
@@ -184,22 +192,24 @@
               class="header-button"
               (click)="sortBy('email')"
               [class.active]="sortConfig.field === 'email'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">email</span>
                 Email
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="sortConfig.field === 'email'"
-                >
-                  {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="sortConfig.field !== 'email'"
-                >
-                  unfold_more
-                </span>
+                @if (sortConfig.field === 'email') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (sortConfig.field !== 'email') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
@@ -214,22 +224,24 @@
               class="header-button"
               (click)="sortBy('dni')"
               [class.active]="sortConfig.field === 'dni'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">badge</span>
                 DNI
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="sortConfig.field === 'dni'"
-                >
-                  {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="sortConfig.field !== 'dni'"
-                >
-                  unfold_more
-                </span>
+                @if (sortConfig.field === 'dni') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (sortConfig.field !== 'dni') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
@@ -238,22 +250,24 @@
               class="header-button"
               (click)="sortBy('fechaNacimiento')"
               [class.active]="sortConfig.field === 'fechaNacimiento'"
-            >
+              >
               <div class="header-cell">
                 <span class="material-symbols-outlined">calendar_today</span>
                 Fecha Nac.
-                <span
-                  class="material-symbols-outlined sort-icon"
-                  *ngIf="sortConfig.field === 'fechaNacimiento'"
-                >
-                  {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
-                <span
-                  class="material-symbols-outlined sort-icon inactive"
-                  *ngIf="sortConfig.field !== 'fechaNacimiento'"
-                >
-                  unfold_more
-                </span>
+                @if (sortConfig.field === 'fechaNacimiento') {
+                  <span
+                    class="material-symbols-outlined sort-icon"
+                    >
+                    {{ sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                }
+                @if (sortConfig.field !== 'fechaNacimiento') {
+                  <span
+                    class="material-symbols-outlined sort-icon inactive"
+                    >
+                    unfold_more
+                  </span>
+                }
               </div>
             </button>
           </th>
@@ -273,116 +287,127 @@
       </thead>
       <tbody>
         <!-- Loading state -->
-        <tr *ngIf="isLoading">
-          <td colspan="9" class="loading-state">
-            <div class="loading-content">
-              <span class="material-symbols-outlined spinning">sync</span>
-              <h6>Cargando pacientes...</h6>
-            </div>
-          </td>
-        </tr>
+        @if (isLoading) {
+          <tr>
+            <td colspan="9" class="loading-state">
+              <div class="loading-content">
+                <span class="material-symbols-outlined spinning">sync</span>
+                <h6>Cargando pacientes...</h6>
+              </div>
+            </td>
+          </tr>
+        }
 
         <!-- Data rows -->
-        <tr
-          *ngFor="let paciente of resultsPage.content || []; let i = index"
-          (click)="goToDetail(paciente.id)"
-          class="table-row cursor-pointer"
-        >
-          <td>
-            <span class="entity-name">{{ paciente.nombre }}</span>
-          </td>
-          <td>
-            <span class="entity-name">{{ paciente.apellido }}</span>
-          </td>
-          <td>
-            <div class="entity-info">
-              <span class="material-symbols-outlined">email</span>
-              <span>{{ paciente.email }}</span>
-            </div>
-          </td>
-          <td>
-            <div class="entity-info">
-              <span class="material-symbols-outlined">phone</span>
-              <span>{{ paciente.telefono }}</span>
-            </div>
-          </td>
-          <td>
-            <span class="badge badge-secondary">{{ paciente.dni }}</span>
-          </td>
-          <td>
-            <div class="entity-info">
-              <span class="material-symbols-outlined">calendar_today</span>
-              <span>{{ paciente.fechaNacimiento | date : "dd/MM/yyyy" }}</span>
-            </div>
-          </td>
-          <td>
-            <span class="badge badge-info" *ngIf="paciente.obraSocial?.nombre">
-              <span class="material-symbols-outlined">local_hospital</span>
-              {{ paciente.obraSocial.nombre }}
-            </span>
-            <span class="badge badge-muted" *ngIf="!paciente.obraSocial?.nombre">
-              <span class="material-symbols-outlined">block</span>
-              Sin obra social
-            </span>
-          </td>
-          <td>
-            <div class="action-buttons">
-              <button
-                (click)="goToEdit(paciente.id); $event.stopPropagation()"
-                class="btn-action btn-action-edit"
-                title="Editar paciente"
-              >
-                <span class="material-symbols-outlined">edit</span>
-              </button>
-              <button
-                (click)="confirmDelete(paciente.id); $event.stopPropagation()"
-                class="btn-action btn-action-delete"
-                title="Eliminar paciente"
-              >
-                <span class="material-symbols-outlined">delete</span>
-              </button>
-            </div>
-          </td>
-        </tr>
+        @for (paciente of resultsPage.content || []; track paciente; let i = $index) {
+          <tr
+            (click)="goToDetail(paciente.id)"
+            class="table-row cursor-pointer"
+            >
+            <td>
+              <span class="entity-name">{{ paciente.nombre }}</span>
+            </td>
+            <td>
+              <span class="entity-name">{{ paciente.apellido }}</span>
+            </td>
+            <td>
+              <div class="entity-info">
+                <span class="material-symbols-outlined">email</span>
+                <span>{{ paciente.email }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="entity-info">
+                <span class="material-symbols-outlined">phone</span>
+                <span>{{ paciente.telefono }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge badge-secondary">{{ paciente.dni }}</span>
+            </td>
+            <td>
+              <div class="entity-info">
+                <span class="material-symbols-outlined">calendar_today</span>
+                <span>{{ paciente.fechaNacimiento | date : "dd/MM/yyyy" }}</span>
+              </div>
+            </td>
+            <td>
+              @if (paciente.obraSocial?.nombre) {
+                <span class="badge badge-info">
+                  <span class="material-symbols-outlined">local_hospital</span>
+                  {{ paciente.obraSocial.nombre }}
+                </span>
+              }
+              @if (!paciente.obraSocial?.nombre) {
+                <span class="badge badge-muted">
+                  <span class="material-symbols-outlined">block</span>
+                  Sin obra social
+                </span>
+              }
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button
+                  (click)="goToEdit(paciente.id); $event.stopPropagation()"
+                  class="btn-action btn-action-edit"
+                  title="Editar paciente"
+                  >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+                <button
+                  (click)="confirmDelete(paciente.id); $event.stopPropagation()"
+                  class="btn-action btn-action-delete"
+                  title="Eliminar paciente"
+                  >
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
 
         <!-- Empty state -->
-        <tr
-          *ngIf="!isLoading && (!resultsPage.content || resultsPage.content.length === 0)"
-        >
-          <td colspan="9" class="empty-state">
-            <div class="empty-state-content">
-              <span class="material-symbols-outlined empty-icon">group_off</span>
-              <h3>No hay pacientes registrados</h3>
-              <p>
-                {{
+        @if (!isLoading && (!resultsPage.content || resultsPage.content.length === 0)) {
+          <tr
+            >
+            <td colspan="9" class="empty-state">
+              <div class="empty-state-content">
+                <span class="material-symbols-outlined empty-icon">group_off</span>
+                <h3>No hay pacientes registrados</h3>
+                <p>
+                  {{
                   hasActiveFilters()
-                    ? "No se encontraron pacientes con los filtros aplicados"
-                    : "Los pacientes aparecerán aquí cuando tengan turnos asignados en este centro. Para crear un nuevo paciente, vaya a la Agenda y asigne un turno."
-                }}
-              </p>
-              <button
-                *ngIf="hasActiveFilters()"
-                class="btn btn-primary"
-                (click)="clearFilters()"
-              >
-                <span class="material-symbols-outlined">close</span>
-                Limpiar filtros
-              </button>
-            </div>
-          </td>
-        </tr>
+                  ? "No se encontraron pacientes con los filtros aplicados"
+                  : "Los pacientes aparecerán aquí cuando tengan turnos asignados en este centro. Para crear un nuevo paciente, vaya a la Agenda y asigne un turno."
+                  }}
+                </p>
+                @if (hasActiveFilters()) {
+                  <button
+                    class="btn btn-primary"
+                    (click)="clearFilters()"
+                    >
+                    <span class="material-symbols-outlined">close</span>
+                    Limpiar filtros
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
       </tbody>
     </table>
   </div>
 
   <!-- PAGINADOR -->
-  <div class="pagination-container mt-lg" *ngIf="!isLoading && resultsPage.totalPages > 1">
-    <app-pagination
-      [totalPages]="resultsPage.totalPages"
-      [currentPage]="currentPage"
-      (pageChangeRequested)="onPageChangeRequested($event)"
-      [number]="resultsPage.number"
-      [hidden]="resultsPage.numberOfElements < 1"
-    ></app-pagination>
-  </div>
+  @if (!isLoading && resultsPage.totalPages > 1) {
+    <div class="pagination-container mt-lg">
+      <app-pagination
+        [totalPages]="resultsPage.totalPages"
+        [currentPage]="currentPage"
+        (pageChangeRequested)="onPageChangeRequested($event)"
+        [number]="resultsPage.number"
+        [hidden]="resultsPage.numberOfElements < 1"
+      ></app-pagination>
+    </div>
+  }
 </div>

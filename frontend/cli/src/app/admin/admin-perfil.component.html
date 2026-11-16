@@ -6,12 +6,16 @@
       <div>
         <h2 class="mb-0">Configuración de Administrador</h2>
         <p class="text-muted mb-0 mt-sm">
-          <ng-container *ngIf="!editMode">Panel de configuración y gestión del sistema</ng-container>
-          <ng-container *ngIf="editMode">Editando información personal</ng-container>
+          @if (!editMode) {
+            Panel de configuración y gestión del sistema
+          }
+          @if (editMode) {
+            Editando información personal
+          }
         </p>
       </div>
     </div>
-    
+
     <div class="d-flex gap-md">
       <button type="button" class="btn btn-secondary" (click)="goBack()" aria-label="Volver al inicio">
         <span class="material-symbols-outlined me-2">arrow_back</span>
@@ -28,216 +32,216 @@
     </h3>
 
     <!-- MODO VISTA -->
-    <div *ngIf="!editMode" class="admin-info-view">
-      <div class="row g-4">
-        <div class="col-md-6">
-          <div class="info-item">
-            <span class="material-symbols-outlined info-icon">person</span>
-            <div class="info-content">
-              <label class="info-label">Nombre Completo</label>
-              <div class="info-value">{{ userData.nombre || 'No especificado' }} {{ userData.apellido || '' }}</div>
+    @if (!editMode) {
+      <div class="admin-info-view">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="info-item">
+              <span class="material-symbols-outlined info-icon">person</span>
+              <div class="info-content">
+                <label class="info-label">Nombre Completo</label>
+                <div class="info-value">{{ userData.nombre || 'No especificado' }} {{ userData.apellido || '' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-item">
+              <span class="material-symbols-outlined info-icon">email</span>
+              <div class="info-content">
+                <label class="info-label">Correo Electrónico</label>
+                <div class="info-value">{{ userData.email }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-item">
+              <span class="material-symbols-outlined info-icon">phone</span>
+              <div class="info-content">
+                <label class="info-label">Teléfono</label>
+                <div class="info-value">{{ userData.telefono || 'No especificado' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-item">
+              <span class="material-symbols-outlined info-icon">badge</span>
+              <div class="info-content">
+                <label class="info-label">Documento</label>
+                <div class="info-value">{{ userData.dni || 'No especificado' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="info-item">
+              <span class="material-symbols-outlined info-icon">workspace_premium</span>
+              <div class="info-content">
+                <label class="info-label">Rol del Sistema</label>
+                <div class="info-value">
+                  <span class="badge bg-primary">{{ getUserRole() }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        <div class="d-flex gap-md mt-lg pt-lg border-top">
+          <button type="button" class="btn btn-primary" (click)="editMode = true" aria-label="Editar información personal">
+            <span class="material-symbols-outlined me-2">edit</span>
+            Editar Datos
+          </button>
+        </div>
+      </div>
+    }
 
-        <div class="col-md-6">
-          <div class="info-item">
-            <span class="material-symbols-outlined info-icon">email</span>
-            <div class="info-content">
-              <label class="info-label">Correo Electrónico</label>
-              <div class="info-value">{{ userData.email }}</div>
+    <!-- MODO EDICIÓN -->
+    @if (editMode) {
+      <form #personalDataForm="ngForm" (ngSubmit)="savePersonalData()" novalidate>
+        <div class="row g-4">
+          <!-- Nombre -->
+          <div class="col-md-6">
+            <div class="form-group mb-lg">
+              <label class="form-label" for="nombre">
+                <span class="material-symbols-outlined me-2">person</span>
+                Nombre*
+              </label>
+              <input
+                type="text"
+                id="nombre"
+                name="nombre"
+                class="form-control"
+                [(ngModel)]="editUserData.nombre"
+                required
+                autocomplete="given-name"
+                aria-label="Nombre del administrador"
+                #nombre="ngModel"
+                />
+              @if (nombre.invalid && (nombre.dirty || nombre.touched)) {
+                <small class="form-text text-danger d-flex align-items-center gap-xs mt-xs">
+                  <span class="material-symbols-outlined error-icon">error</span>
+                  El nombre es requerido
+                </small>
+              }
             </div>
           </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="info-item">
-            <span class="material-symbols-outlined info-icon">phone</span>
-            <div class="info-content">
-              <label class="info-label">Teléfono</label>
-              <div class="info-value">{{ userData.telefono || 'No especificado' }}</div>
+          <!-- Apellido -->
+          <div class="col-md-6">
+            <div class="form-group mb-lg">
+              <label class="form-label" for="apellido">
+                <span class="material-symbols-outlined me-2">person</span>
+                Apellido
+              </label>
+              <input
+                type="text"
+                id="apellido"
+                name="apellido"
+                class="form-control"
+                [(ngModel)]="editUserData.apellido"
+                autocomplete="family-name"
+                aria-label="Apellido del administrador"
+                />
             </div>
           </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="info-item">
-            <span class="material-symbols-outlined info-icon">badge</span>
-            <div class="info-content">
-              <label class="info-label">Documento</label>
-              <div class="info-value">{{ userData.dni || 'No especificado' }}</div>
+          <!-- Email -->
+          <div class="col-md-6">
+            <div class="form-group mb-lg">
+              <label class="form-label" for="email">
+                <span class="material-symbols-outlined me-2">email</span>
+                Correo Electrónico*
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                class="form-control"
+                [(ngModel)]="editUserData.email"
+                required
+                autocomplete="email"
+                aria-label="Correo electrónico del administrador"
+                #email="ngModel"
+                />
+              @if (email.invalid && (email.dirty || email.touched)) {
+                <small class="form-text text-danger d-flex align-items-center gap-xs mt-xs">
+                  <span class="material-symbols-outlined error-icon">error</span>
+                  @if (email.errors?.['required']) {
+                    <span>El email es requerido</span>
+                  }
+                  @if (email.errors?.['email']) {
+                    <span>Debe ser un email válido</span>
+                  }
+                </small>
+              }
             </div>
           </div>
-        </div>
-
-        <div class="col-12">
-          <div class="info-item">
-            <span class="material-symbols-outlined info-icon">workspace_premium</span>
-            <div class="info-content">
-              <label class="info-label">Rol del Sistema</label>
-              <div class="info-value">
+          <!-- Teléfono -->
+          <div class="col-md-6">
+            <div class="form-group mb-lg">
+              <label class="form-label" for="telefono">
+                <span class="material-symbols-outlined me-2">phone</span>
+                Teléfono
+              </label>
+              <input
+                type="tel"
+                id="telefono"
+                name="telefono"
+                class="form-control"
+                [(ngModel)]="editUserData.telefono"
+                autocomplete="tel"
+                aria-label="Teléfono del administrador"
+                />
+            </div>
+          </div>
+          <!-- DNI -->
+          <div class="col-md-6">
+            <div class="form-group mb-lg">
+              <label class="form-label" for="dni">
+                <span class="material-symbols-outlined me-2">badge</span>
+                Documento (DNI)
+              </label>
+              <input
+                type="text"
+                id="dni"
+                name="dni"
+                class="form-control"
+                [(ngModel)]="editUserData.dni"
+                autocomplete="off"
+                aria-label="Documento de identidad del administrador"
+                />
+            </div>
+          </div>
+          <!-- Rol (Solo lectura) -->
+          <div class="col-md-6">
+            <div class="form-group mb-lg">
+              <label class="form-label">
+                <span class="material-symbols-outlined me-2">workspace_premium</span>
+                Rol del Sistema
+              </label>
+              <div class="mt-2">
                 <span class="badge bg-primary">{{ getUserRole() }}</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="d-flex gap-md mt-lg pt-lg border-top">
-        <button type="button" class="btn btn-primary" (click)="editMode = true" aria-label="Editar información personal">
-          <span class="material-symbols-outlined me-2">edit</span>
-          Editar Datos
-        </button>
-      </div>
-    </div>
-
-    <!-- MODO EDICIÓN -->
-    <form *ngIf="editMode" #personalDataForm="ngForm" (ngSubmit)="savePersonalData()" novalidate>
-      <div class="row g-4">
-        <!-- Nombre -->
-        <div class="col-md-6">
-          <div class="form-group mb-lg">
-            <label class="form-label" for="nombre">
-              <span class="material-symbols-outlined me-2">person</span>
-              Nombre*
-            </label>
-            <input
-              type="text"
-              id="nombre"
-              name="nombre"
-              class="form-control"
-              [(ngModel)]="editUserData.nombre"
-              required
-              autocomplete="given-name"
-              aria-label="Nombre del administrador"
-              #nombre="ngModel"
-            />
-            <small class="form-text text-danger d-flex align-items-center gap-xs mt-xs" *ngIf="nombre.invalid && (nombre.dirty || nombre.touched)">
-              <span class="material-symbols-outlined error-icon">error</span>
-              El nombre es requerido
-            </small>
-          </div>
+        <div class="d-flex flex-wrap gap-md mt-lg pt-lg border-top">
+          <button
+            type="submit"
+            class="btn btn-success"
+            [disabled]="personalDataForm.invalid"
+            aria-label="Guardar cambios de información personal"
+            >
+            <span class="material-symbols-outlined me-2">save</span>
+            Guardar Cambios
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="cancelEdit()"
+            aria-label="Cancelar edición"
+            >
+            <span class="material-symbols-outlined me-2">close</span>
+            Cancelar
+          </button>
         </div>
-
-        <!-- Apellido -->
-        <div class="col-md-6">
-          <div class="form-group mb-lg">
-            <label class="form-label" for="apellido">
-              <span class="material-symbols-outlined me-2">person</span>
-              Apellido
-            </label>
-            <input
-              type="text"
-              id="apellido"
-              name="apellido"
-              class="form-control"
-              [(ngModel)]="editUserData.apellido"
-              autocomplete="family-name"
-              aria-label="Apellido del administrador"
-            />
-          </div>
-        </div>
-
-        <!-- Email -->
-        <div class="col-md-6">
-          <div class="form-group mb-lg">
-            <label class="form-label" for="email">
-              <span class="material-symbols-outlined me-2">email</span>
-              Correo Electrónico*
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              class="form-control"
-              [(ngModel)]="editUserData.email"
-              required
-              autocomplete="email"
-              aria-label="Correo electrónico del administrador"
-              #email="ngModel"
-            />
-            <small class="form-text text-danger d-flex align-items-center gap-xs mt-xs" *ngIf="email.invalid && (email.dirty || email.touched)">
-              <span class="material-symbols-outlined error-icon">error</span>
-              <span *ngIf="email.errors?.['required']">El email es requerido</span>
-              <span *ngIf="email.errors?.['email']">Debe ser un email válido</span>
-            </small>
-          </div>
-        </div>
-
-        <!-- Teléfono -->
-        <div class="col-md-6">
-          <div class="form-group mb-lg">
-            <label class="form-label" for="telefono">
-              <span class="material-symbols-outlined me-2">phone</span>
-              Teléfono
-            </label>
-            <input
-              type="tel"
-              id="telefono"
-              name="telefono"
-              class="form-control"
-              [(ngModel)]="editUserData.telefono"
-              autocomplete="tel"
-              aria-label="Teléfono del administrador"
-            />
-          </div>
-        </div>
-
-        <!-- DNI -->
-        <div class="col-md-6">
-          <div class="form-group mb-lg">
-            <label class="form-label" for="dni">
-              <span class="material-symbols-outlined me-2">badge</span>
-              Documento (DNI)
-            </label>
-            <input
-              type="text"
-              id="dni"
-              name="dni"
-              class="form-control"
-              [(ngModel)]="editUserData.dni"
-              autocomplete="off"
-              aria-label="Documento de identidad del administrador"
-            />
-          </div>
-        </div>
-
-        <!-- Rol (Solo lectura) -->
-        <div class="col-md-6">
-          <div class="form-group mb-lg">
-            <label class="form-label">
-              <span class="material-symbols-outlined me-2">workspace_premium</span>
-              Rol del Sistema
-            </label>
-            <div class="mt-2">
-              <span class="badge bg-primary">{{ getUserRole() }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="d-flex flex-wrap gap-md mt-lg pt-lg border-top">
-        <button
-          type="submit"
-          class="btn btn-success"
-          [disabled]="personalDataForm.invalid"
-          aria-label="Guardar cambios de información personal"
-        >
-          <span class="material-symbols-outlined me-2">save</span>
-          Guardar Cambios
-        </button>
-
-        <button
-          type="button"
-          class="btn btn-secondary"
-          (click)="cancelEdit()"
-          aria-label="Cancelar edición"
-        >
-          <span class="material-symbols-outlined me-2">close</span>
-          Cancelar
-        </button>
-      </div>
-    </form>
+      </form>
+    }
   </div>
 
   <!-- Seguridad - Cambiar Contraseña -->
@@ -259,7 +263,7 @@
             autocomplete="current-password"
             aria-label="Contraseña actual"
             placeholder="Ingrese su contraseña actual"
-          />
+            />
         </div>
       </div>
       <div class="col-md-4">
@@ -274,7 +278,7 @@
             autocomplete="new-password"
             aria-label="Nueva contraseña"
             placeholder="Ingrese la nueva contraseña"
-          />
+            />
         </div>
       </div>
       <div class="col-md-4">
@@ -289,7 +293,7 @@
             autocomplete="new-password"
             aria-label="Confirmar nueva contraseña"
             placeholder="Confirme la nueva contraseña"
-          />
+            />
         </div>
       </div>
     </div>
@@ -317,7 +321,7 @@
             name="notifications"
             [(ngModel)]="systemConfig.notifications"
             aria-label="Recibir notificaciones de sistema"
-          />
+            />
           <label class="form-check-label" for="notifications">
             <span class="material-symbols-outlined me-2 checkbox-icon">notifications</span>
             Recibir notificaciones de sistema
@@ -334,7 +338,7 @@
             name="auditLogs"
             [(ngModel)]="systemConfig.auditLogs"
             aria-label="Habilitar logs de auditoría detallados"
-          />
+            />
           <label class="form-check-label" for="auditLogs">
             <span class="material-symbols-outlined me-2 checkbox-icon">description</span>
             Habilitar logs de auditoría detallados
@@ -351,7 +355,7 @@
             name="autoBackup"
             [(ngModel)]="systemConfig.autoBackup"
             aria-label="Respaldo automático diario"
-          />
+            />
           <label class="form-check-label" for="autoBackup">
             <span class="material-symbols-outlined me-2 checkbox-icon">backup</span>
             Respaldo automático diario

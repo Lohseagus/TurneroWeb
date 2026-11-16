@@ -6,23 +6,26 @@
     aria-label="Cerrar"
     aria-describedby="modal-title"
     (click)="modal.dismiss()"
-  >
+    >
     <span class="material-symbols-outlined">close</span>
   </button>
 </div>
 <div class="modal-body">
   <p class="modal-message">{{ message }}</p>
-  <p class="modal-description" *ngIf="description">{{ description }}</p>
+  @if (description) {
+    <p class="modal-description">{{ description }}</p>
+  }
 </div>
 <div class="modal-footer">
-  <button
-    *ngIf="!isAlert"
-    type="button"
-    class="btn btn-secondary"
-    (click)="modal.dismiss()"
-  >
-    Cancelar
-  </button>
+  @if (!isAlert) {
+    <button
+      type="button"
+      class="btn btn-secondary"
+      (click)="modal.dismiss()"
+      >
+      Cancelar
+    </button>
+  }
   <button type="button" class="btn btn-primary" (click)="modal.close()">
     Aceptar
   </button>

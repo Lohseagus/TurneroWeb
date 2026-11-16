@@ -72,16 +72,16 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
             LEFT JOIN sm.medico m
             JOIN t.consultorio c
             WHERE (:paciente IS NULL OR
-                   LOWER(p.nombre) LIKE LOWER(CONCAT('%', :paciente, '%')) OR
-                   LOWER(p.apellido) LIKE LOWER(CONCAT('%', :paciente, '%')))
+                   LOWER(p.nombre) LIKE LOWER(CONCAT('%', CAST(:paciente AS string), '%')) OR
+                   LOWER(p.apellido) LIKE LOWER(CONCAT('%', CAST(:paciente AS string), '%')))
                AND (:medico IS NULL OR
-                    LOWER(m.nombre) LIKE LOWER(CONCAT('%', :medico, '%')) OR
-                    LOWER(m.apellido) LIKE LOWER(CONCAT('%', :medico, '%')))
+                    LOWER(m.nombre) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')) OR
+                    LOWER(m.apellido) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')))
                AND (:consultorio IS NULL OR
-                    LOWER(c.nombre) LIKE LOWER(CONCAT('%', :consultorio, '%')))
+                    LOWER(c.nombre) LIKE LOWER(CONCAT('%', CAST(:consultorio AS string), '%')))
                AND (:estado IS NULL OR t.estado = :estado)
-               AND (CAST(:fechaDesde AS date) IS NULL OR t.fecha >= CAST(:fechaDesde AS date))
-               AND (CAST(:fechaHasta AS date) IS NULL OR t.fecha <= CAST(:fechaHasta AS date))
+               AND (:fechaDesde IS NULL OR t.fecha >= :fechaDesde)
+               AND (:fechaHasta IS NULL OR t.fecha <= :fechaHasta)
             """)
     Page<Turno> findByFiltros(@Param("paciente") String paciente,
             @Param("medico") String medico,
@@ -114,16 +114,16 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
             JOIN t.centroAtencion ca
             WHERE (:centroId IS NULL OR ca.id = :centroId)
                AND (:paciente IS NULL OR
-                   LOWER(p.nombre) LIKE LOWER(CONCAT('%', :paciente, '%')) OR
-                   LOWER(p.apellido) LIKE LOWER(CONCAT('%', :paciente, '%')))
+                   LOWER(p.nombre) LIKE LOWER(CONCAT('%', CAST(:paciente AS string), '%')) OR
+                   LOWER(p.apellido) LIKE LOWER(CONCAT('%', CAST(:paciente AS string), '%')))
                AND (:medico IS NULL OR
-                    LOWER(m.nombre) LIKE LOWER(CONCAT('%', :medico, '%')) OR
-                    LOWER(m.apellido) LIKE LOWER(CONCAT('%', :medico, '%')))
+                    LOWER(m.nombre) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')) OR
+                    LOWER(m.apellido) LIKE LOWER(CONCAT('%', CAST(:medico AS string), '%')))
                AND (:consultorio IS NULL OR
-                    LOWER(c.nombre) LIKE LOWER(CONCAT('%', :consultorio, '%')))
+                    LOWER(c.nombre) LIKE LOWER(CONCAT('%', CAST(:consultorio AS string), '%')))
                AND (:estado IS NULL OR t.estado = :estado)
-               AND (CAST(:fechaDesde AS date) IS NULL OR t.fecha >= CAST(:fechaDesde AS date))
-               AND (CAST(:fechaHasta AS date) IS NULL OR t.fecha <= CAST(:fechaHasta AS date))
+               AND (:fechaDesde IS NULL OR t.fecha >= :fechaDesde)
+               AND (:fechaHasta IS NULL OR t.fecha <= :fechaHasta)
             """)
     Page<Turno> findByFiltrosWithCentro(@Param("centroId") Integer centroId,
             @Param("paciente") String paciente,
@@ -258,12 +258,12 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
             "LEFT JOIN t.consultorio c " +
             "LEFT JOIN c.centroAtencion ca " +
             "WHERE " +
-            "(:nombrePaciente IS NULL OR LOWER(CONCAT(p.nombre, ' ', p.apellido)) LIKE LOWER(CONCAT('%', :nombrePaciente, '%'))) AND "
+            "(:nombrePaciente IS NULL OR LOWER(CONCAT(p.nombre, ' ', p.apellido)) LIKE LOWER(CONCAT('%', CAST(:nombrePaciente AS string), '%'))) AND "
             +
-            "(:nombreMedico IS NULL OR LOWER(CONCAT(m.nombre, ' ', m.apellido)) LIKE LOWER(CONCAT('%', :nombreMedico, '%'))) AND "
+            "(:nombreMedico IS NULL OR LOWER(CONCAT(m.nombre, ' ', m.apellido)) LIKE LOWER(CONCAT('%', CAST(:nombreMedico AS string), '%'))) AND "
             +
-            "(:nombreEspecialidad IS NULL OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombreEspecialidad, '%'))) AND " +
-            "(:nombreCentro IS NULL OR LOWER(ca.nombre) LIKE LOWER(CONCAT('%', :nombreCentro, '%')))")
+            "(:nombreEspecialidad IS NULL OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', CAST(:nombreEspecialidad AS string), '%'))) AND " +
+            "(:nombreCentro IS NULL OR LOWER(ca.nombre) LIKE LOWER(CONCAT('%', CAST(:nombreCentro AS string), '%')))")
     Page<Turno> findByTextFilters(@Param("nombrePaciente") String nombrePaciente,
             @Param("nombreMedico") String nombreMedico,
             @Param("nombreEspecialidad") String nombreEspecialidad,
@@ -489,7 +489,7 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
             String nombreEspecialidad,
             String nombreCentro) {
 
-        Specification<Turno> spec = Specification.where(null);
+        Specification<Turno> spec = Specification.unrestricted();
 
         // Si hay fecha exacta, usar solo esa (ignora desde/hasta)
         if (fechaExacta != null) {

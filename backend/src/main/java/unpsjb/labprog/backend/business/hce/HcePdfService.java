@@ -53,7 +53,7 @@ public class HcePdfService {
         guard.auditar(paciente, AccionAuditoriaHce.EXPORTAR_PDF, "RESUMEN", String.valueOf(pacienteId), null,
                 "PDF de resumen de historia clínica");
         return documento("Historia clínica", doc -> {
-            doc.add(new Paragraph("Historia clínica electrónica — CheTurno").setBold().setFontSize(16));
+            doc.add(new Paragraph("Historia clínica electrónica — CheTurno").simulateBold().setFontSize(16));
             doc.add(new Paragraph(perfil.getApellido() + ", " + perfil.getNombre()));
             doc.add(new Paragraph("DNI: " + valor(perfil.getDni())));
             if (perfil.getIdentificadorFederado() != null) {
@@ -65,7 +65,7 @@ public class HcePdfService {
             doc.add(new Paragraph("Antecedentes quirúrgicos: " + valor(perfil.getAntecedentesQuirurgicos())));
             doc.add(new Paragraph("Hábitos: " + valor(perfil.getHabitos())));
             doc.add(new Paragraph("Comparte historia entre centros: " + (perfil.isComparteEntreCentros() ? "sí" : "no")));
-            doc.add(new Paragraph("Alergias").setBold());
+            doc.add(new Paragraph("Alergias").simulateBold());
             if (perfil.getAlergias().isEmpty()) {
                 doc.add(new Paragraph("Sin alergias registradas"));
             }
@@ -74,7 +74,7 @@ public class HcePdfService {
                         + (alergia.isActiva() ? "" : " (inactiva)")
                         + (alergia.getReaccion() != null ? " — " + alergia.getReaccion() : "")));
             }
-            doc.add(new Paragraph("Medicación habitual").setBold());
+            doc.add(new Paragraph("Medicación habitual").simulateBold());
             for (MedicacionDTO medicacion : perfil.getMedicaciones()) {
                 if (!medicacion.isActiva()) {
                     continue;
@@ -83,12 +83,12 @@ public class HcePdfService {
                         + (medicacion.getDosis() != null ? " " + medicacion.getDosis() : "")
                         + (medicacion.getFrecuencia() != null ? " " + medicacion.getFrecuencia() : "")));
             }
-            doc.add(new Paragraph("Vacunas").setBold());
+            doc.add(new Paragraph("Vacunas").simulateBold());
             for (VacunaDTO vacuna : perfil.getVacunas()) {
                 doc.add(new Paragraph("- " + vacuna.getNombre()
                         + (vacuna.getFechaAplicacion() != null ? " (" + vacuna.getFechaAplicacion() + ")" : "")));
             }
-            doc.add(new Paragraph("Evoluciones").setBold());
+            doc.add(new Paragraph("Evoluciones").simulateBold());
             for (ConsultaDTO consulta : historia.consultasVisibles(pacienteId)) {
                 escribirConsulta(doc, consulta);
             }
@@ -97,7 +97,7 @@ public class HcePdfService {
 
     private void escribirConsulta(Document doc, ConsultaDTO consulta) {
         doc.add(new Paragraph(" ").setFontSize(8));
-        doc.add(new Paragraph("Consulta #" + consulta.getId() + " — " + consulta.getEstado()).setBold());
+        doc.add(new Paragraph("Consulta #" + consulta.getId() + " — " + consulta.getEstado()).simulateBold());
         doc.add(new Paragraph("Paciente: " + consulta.getPacienteApellido() + ", " + consulta.getPacienteNombre()
                 + " — DNI " + valor(consulta.getDni())));
         doc.add(new Paragraph("Profesional: " + valor(consulta.getMedicoNombre())
@@ -118,7 +118,7 @@ public class HcePdfService {
                 + ", Temp " + valor(consulta.getTemperatura())
                 + ", Peso " + valor(consulta.getPesoKg()) + " kg, Talla " + valor(consulta.getTallaCm())
                 + " cm, IMC " + valor(consulta.getImc())));
-        doc.add(new Paragraph("Diagnósticos").setBold());
+        doc.add(new Paragraph("Diagnósticos").simulateBold());
         if (consulta.getDiagnosticos().isEmpty()) {
             doc.add(new Paragraph("Sin diagnósticos codificados"));
         }
@@ -131,7 +131,7 @@ public class HcePdfService {
         doc.add(new Paragraph("Próximo control: " + valor(consulta.getProximoControl())));
         for (EnmiendaDTO enmienda : consulta.getEnmiendas()) {
             doc.add(new Paragraph("Enmienda " + enmienda.getCreadaEn().format(FECHA)
-                    + " — " + enmienda.getMedicoNombre() + " — motivo: " + enmienda.getMotivo()).setItalic());
+                    + " — " + enmienda.getMedicoNombre() + " — motivo: " + enmienda.getMotivo()).simulateItalic());
             doc.add(new Paragraph(enmienda.getTexto()));
         }
     }

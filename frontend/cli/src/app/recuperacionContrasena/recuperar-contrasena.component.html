@@ -1,5 +1,5 @@
 <div class="recovery-page-wrapper">
-  
+
   <!-- Header con marca -->
   <div class="recovery-page-header">
     <div class="brand-logo">
@@ -11,160 +11,200 @@
   <!-- Card de Recuperación centrado -->
   <div class="recovery-page-content">
     <div class="card recovery-card">
-      
+
       <!-- Vista: Solicitar enlace de recuperación (cuando no hay token) -->
-      <div *ngIf="!token">
-        <h3>
-          <span class="material-symbols-outlined">mail</span>
-          Recuperar Contraseña
-        </h3>
-        <p class="recovery-description">Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña</p>
-
-        <form [formGroup]="correoForm" (ngSubmit)="enviarSolicitud()">
-          <div class="form-group">
-            <label for="email" class="form-label">
-              <span class="material-symbols-outlined">email</span>
-              Correo Electrónico
-            </label>
-            <input 
-              id="email" 
-              type="email"
-              formControlName="email"
-              class="form-control"
-              [class.is-invalid]="emailControl?.invalid && emailControl?.touched"
-              placeholder="tu@email.com"
-              autocomplete="email"
-            />
-            <small class="invalid-feedback" *ngIf="emailControl?.invalid && emailControl?.touched">
-              <span *ngIf="emailControl?.errors?.['required']">El correo es obligatorio</span>
-              <span *ngIf="emailControl?.errors?.['email']">Ingrese un correo válido</span>
-            </small>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-full-width" [disabled]="enviando || correoForm.invalid">
-            <span class="material-symbols-outlined" *ngIf="!enviando">send</span>
-            <span class="material-symbols-outlined spinner" *ngIf="enviando">sync</span>
-            {{ enviando ? 'Enviando...' : 'Enviar Instrucciones' }}
-          </button>
-
-          <a href="/ingresar" class="btn btn-link btn-full-width">
-            <span class="material-symbols-outlined">arrow_back</span>
-            Volver al Login
-          </a>
-        </form>
-
-        <!-- Mensaje de resultado -->
-        <div *ngIf="enviadoOk !== null" class="alert-message" [class.alert-success]="enviadoOk" [class.alert-info]="!enviadoOk">
-          <span class="material-symbols-outlined" *ngIf="enviadoOk">check_circle</span>
-          <span class="material-symbols-outlined" *ngIf="!enviadoOk">info</span>
-          <div class="alert-content">
-            <strong *ngIf="enviadoOk">¡Correo Enviado!</strong>
-            <strong *ngIf="!enviadoOk">Información</strong>
-            <p>{{ mensaje }}</p>
-          </div>
+      @if (!token) {
+        <div>
+          <h3>
+            <span class="material-symbols-outlined">mail</span>
+            Recuperar Contraseña
+          </h3>
+          <p class="recovery-description">Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña</p>
+          <form [formGroup]="correoForm" (ngSubmit)="enviarSolicitud()">
+            <div class="form-group">
+              <label for="email" class="form-label">
+                <span class="material-symbols-outlined">email</span>
+                Correo Electrónico
+              </label>
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                class="form-control"
+                [class.is-invalid]="emailControl?.invalid && emailControl?.touched"
+                placeholder="tu@email.com"
+                autocomplete="email"
+                />
+              @if (emailControl?.invalid && emailControl?.touched) {
+                <small class="invalid-feedback">
+                  @if (emailControl?.errors?.['required']) {
+                    <span>El correo es obligatorio</span>
+                  }
+                  @if (emailControl?.errors?.['email']) {
+                    <span>Ingrese un correo válido</span>
+                  }
+                </small>
+              }
+            </div>
+            <button type="submit" class="btn btn-primary btn-full-width" [disabled]="enviando || correoForm.invalid">
+              @if (!enviando) {
+                <span class="material-symbols-outlined">send</span>
+              }
+              @if (enviando) {
+                <span class="material-symbols-outlined spinner">sync</span>
+              }
+              {{ enviando ? 'Enviando...' : 'Enviar Instrucciones' }}
+            </button>
+            <a href="/ingresar" class="btn btn-link btn-full-width">
+              <span class="material-symbols-outlined">arrow_back</span>
+              Volver al Login
+            </a>
+          </form>
+          <!-- Mensaje de resultado -->
+          @if (enviadoOk !== null) {
+            <div class="alert-message" [class.alert-success]="enviadoOk" [class.alert-info]="!enviadoOk">
+              @if (enviadoOk) {
+                <span class="material-symbols-outlined">check_circle</span>
+              }
+              @if (!enviadoOk) {
+                <span class="material-symbols-outlined">info</span>
+              }
+              <div class="alert-content">
+                @if (enviadoOk) {
+                  <strong>¡Correo Enviado!</strong>
+                }
+                @if (!enviadoOk) {
+                  <strong>Información</strong>
+                }
+                <p>{{ mensaje }}</p>
+              </div>
+            </div>
+          }
         </div>
-      </div>
+      }
 
       <!-- Vista: Validando token -->
-      <div *ngIf="token && !tokenChecked" class="loading-section">
-        <span class="material-symbols-outlined spinner-large">sync</span>
-        <h3>Validando enlace...</h3>
-        <p>Verificando tu enlace de recuperación</p>
-      </div>
+      @if (token && !tokenChecked) {
+        <div class="loading-section">
+          <span class="material-symbols-outlined spinner-large">sync</span>
+          <h3>Validando enlace...</h3>
+          <p>Verificando tu enlace de recuperación</p>
+        </div>
+      }
 
       <!-- Vista: Cambiar contraseña (cuando el token es válido) -->
-      <div *ngIf="token && tokenChecked && tokenValid && !resetSuccess">
-        <h3>
-          <span class="material-symbols-outlined">lock</span>
-          Cambiar Contraseña
-        </h3>
-        <p class="recovery-description">Ingresa tu nueva contraseña</p>
-
-        <form [formGroup]="passwordForm" (ngSubmit)="enviarNuevaContrasena()">
-          <div class="form-group">
-            <label for="password" class="form-label">
-              <span class="material-symbols-outlined">lock</span>
-              Nueva Contraseña
-            </label>
-            <input 
-              id="password" 
-              type="password"
-              formControlName="password"
-              class="form-control"
-              [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
-              placeholder="Mínimo 8 caracteres"
-              autocomplete="new-password"
-            />
-            <small class="invalid-feedback" *ngIf="passwordControl?.invalid && passwordControl?.touched">
-              <span *ngIf="passwordControl?.errors?.['required']">La contraseña es obligatoria</span>
-              <span *ngIf="passwordControl?.errors?.['minlength']">Mínimo 8 caracteres</span>
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label for="confirmPassword" class="form-label">
-              <span class="material-symbols-outlined">lock</span>
-              Confirmar Contraseña
-            </label>
-            <input 
-              id="confirmPassword" 
-              type="password"
-              formControlName="confirmPassword"
-              class="form-control"
-              [class.is-invalid]="(confirmPasswordControl?.invalid && confirmPasswordControl?.touched) || (passwordForm.errors?.['passwordsMismatch'] && passwordForm.touched)"
-              placeholder="Repite la contraseña"
-              autocomplete="new-password"
-            />
-            <small class="invalid-feedback" *ngIf="confirmPasswordControl?.invalid && confirmPasswordControl?.touched">
-              <span *ngIf="confirmPasswordControl?.errors?.['required']">Confirma tu contraseña</span>
-            </small>
-            <small class="invalid-feedback" *ngIf="passwordForm.errors?.['passwordsMismatch'] && passwordForm.touched">
-              Las contraseñas no coinciden
-            </small>
-          </div>
-
-          <button type="submit" class="btn btn-success btn-full-width" [disabled]="enviando || passwordForm.invalid">
-            <span class="material-symbols-outlined" *ngIf="!enviando">save</span>
-            <span class="material-symbols-outlined spinner" *ngIf="enviando">sync</span>
-            {{ enviando ? 'Guardando...' : 'Cambiar Contraseña' }}
-          </button>
-        </form>
-
-        <!-- Mensaje de error al cambiar contraseña -->
-        <div *ngIf="resetError" class="alert-message alert-error">
-          <span class="material-symbols-outlined">error</span>
-          <div class="alert-content">
-            <strong>Error</strong>
-            <p>{{ resetError }}</p>
-          </div>
+      @if (token && tokenChecked && tokenValid && !resetSuccess) {
+        <div>
+          <h3>
+            <span class="material-symbols-outlined">lock</span>
+            Cambiar Contraseña
+          </h3>
+          <p class="recovery-description">Ingresa tu nueva contraseña</p>
+          <form [formGroup]="passwordForm" (ngSubmit)="enviarNuevaContrasena()">
+            <div class="form-group">
+              <label for="password" class="form-label">
+                <span class="material-symbols-outlined">lock</span>
+                Nueva Contraseña
+              </label>
+              <input
+                id="password"
+                type="password"
+                formControlName="password"
+                class="form-control"
+                [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
+                placeholder="Mínimo 8 caracteres"
+                autocomplete="new-password"
+                />
+              @if (passwordControl?.invalid && passwordControl?.touched) {
+                <small class="invalid-feedback">
+                  @if (passwordControl?.errors?.['required']) {
+                    <span>La contraseña es obligatoria</span>
+                  }
+                  @if (passwordControl?.errors?.['minlength']) {
+                    <span>Mínimo 8 caracteres</span>
+                  }
+                </small>
+              }
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword" class="form-label">
+                <span class="material-symbols-outlined">lock</span>
+                Confirmar Contraseña
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                formControlName="confirmPassword"
+                class="form-control"
+                [class.is-invalid]="(confirmPasswordControl?.invalid && confirmPasswordControl?.touched) || (passwordForm.errors?.['passwordsMismatch'] && passwordForm.touched)"
+                placeholder="Repite la contraseña"
+                autocomplete="new-password"
+                />
+              @if (confirmPasswordControl?.invalid && confirmPasswordControl?.touched) {
+                <small class="invalid-feedback">
+                  @if (confirmPasswordControl?.errors?.['required']) {
+                    <span>Confirma tu contraseña</span>
+                  }
+                </small>
+              }
+              @if (passwordForm.errors?.['passwordsMismatch'] && passwordForm.touched) {
+                <small class="invalid-feedback">
+                  Las contraseñas no coinciden
+                </small>
+              }
+            </div>
+            <button type="submit" class="btn btn-success btn-full-width" [disabled]="enviando || passwordForm.invalid">
+              @if (!enviando) {
+                <span class="material-symbols-outlined">save</span>
+              }
+              @if (enviando) {
+                <span class="material-symbols-outlined spinner">sync</span>
+              }
+              {{ enviando ? 'Guardando...' : 'Cambiar Contraseña' }}
+            </button>
+          </form>
+          <!-- Mensaje de error al cambiar contraseña -->
+          @if (resetError) {
+            <div class="alert-message alert-error">
+              <span class="material-symbols-outlined">error</span>
+              <div class="alert-content">
+                <strong>Error</strong>
+                <p>{{ resetError }}</p>
+              </div>
+            </div>
+          }
         </div>
-      </div>
+      }
 
       <!-- Vista: Token inválido o expirado -->
-      <div *ngIf="token && tokenChecked && !tokenValid" class="alert-message alert-error">
-        <span class="material-symbols-outlined">warning</span>
-        <div class="alert-content">
-          <strong>Enlace Inválido</strong>
-          <p>{{ resetError }}</p>
-          <a href="/recuperar-contrasena" class="btn btn-secondary" style="margin-top: var(--space-md);">
-            <span class="material-symbols-outlined">refresh</span>
-            Solicitar Nuevo Enlace
-          </a>
+      @if (token && tokenChecked && !tokenValid) {
+        <div class="alert-message alert-error">
+          <span class="material-symbols-outlined">warning</span>
+          <div class="alert-content">
+            <strong>Enlace Inválido</strong>
+            <p>{{ resetError }}</p>
+            <a href="/recuperar-contrasena" class="btn btn-secondary" style="margin-top: var(--space-md);">
+              <span class="material-symbols-outlined">refresh</span>
+              Solicitar Nuevo Enlace
+            </a>
+          </div>
         </div>
-      </div>
+      }
 
       <!-- Vista: Contraseña cambiada exitosamente -->
-      <div *ngIf="resetSuccess" class="alert-message alert-success">
-        <span class="material-symbols-outlined">check_circle</span>
-        <div class="alert-content">
-          <strong>¡Contraseña Cambiada!</strong>
-          <p>Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña.</p>
-          <a href="/ingresar" class="btn btn-primary" style="margin-top: var(--space-md);">
-            <span class="material-symbols-outlined">login</span>
-            Iniciar Sesión
-          </a>
+      @if (resetSuccess) {
+        <div class="alert-message alert-success">
+          <span class="material-symbols-outlined">check_circle</span>
+          <div class="alert-content">
+            <strong>¡Contraseña Cambiada!</strong>
+            <p>Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña.</p>
+            <a href="/ingresar" class="btn btn-primary" style="margin-top: var(--space-md);">
+              <span class="material-symbols-outlined">login</span>
+              Iniciar Sesión
+            </a>
+          </div>
         </div>
-      </div>
+      }
 
       <!-- Footer informativo -->
       <div class="recovery-footer">

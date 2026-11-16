@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DashboardService } from '../services/dashboard.service';
@@ -18,6 +18,7 @@ import { ComentariosModalComponent } from '../modal/comentarios-modal.component'
   standalone: true,
   imports: [CommonModule, FormsModule, FiltrosDashboardComponent, KpiCardComponent, GraficoTortaComponent],
   templateUrl: './dashboard-gestion.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./dashboard-gestion.component.css']
 })
 export class DashboardGestionComponent implements OnInit {

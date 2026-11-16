@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, LOCALE_ID } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, LOCALE_ID, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule, registerLocaleData } from "@angular/common";
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from "@angular/forms";
 import { Router, ActivatedRoute, RouterModule } from "@angular/router";
@@ -52,6 +52,7 @@ registerLocaleData(localeEsAr);
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, CentrosMapaModalComponent],
   templateUrl: "./paciente-agenda.component.html",
   styleUrl: "./paciente-agenda.component.css", 
+  changeDetection: ChangeDetectionStrategy.Eager,
   providers: [
     { provide: LOCALE_ID, useValue: "es-AR" } // 👈 Fuerza locale en este componente
   ]
