@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SaasService } from './saas.service';
 import { ToastService } from '../services/toast.service';
-import { CatalogoSaas, PlanSaas, PrecioSaas, esPlanRecomendado, formatoArs, iconoPlan } from './saas.models';
+import { CatalogoSaas, PlanSaas, PrecioSaas, esFalloDeAcceso, esPlanRecomendado, formatoArs, iconoPlan } from './saas.models';
 
 @Component({
   selector: 'app-registro-saas',
@@ -92,13 +92,12 @@ export class RegistroSaasComponent implements OnInit, OnDestroy {
           this.ajustarCupo();
         } else {
           this.error = resp.status_text || 'No se pudieron cargar los planes.';
-          this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.cargando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudieron cargar los planes.';
-        this.toast.error(this.error);
       }
     });
   }
@@ -277,11 +276,11 @@ export class RegistroSaasComponent implements OnInit, OnDestroy {
           this.redir = setTimeout(() => this.router.navigate(['/ingresar']), 2200);
         } else {
           this.error = resp.status_text || 'No se pudo crear la cuenta.';
-          this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.enviando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo crear la cuenta.';
         this.toast.error(this.error);
       }

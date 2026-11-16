@@ -716,6 +716,9 @@ export class AuthService {
       case "ADMINISTRADOR":
         this.router.navigate(["/admin-dashboard"]);
         break;
+      case "SUPERADMIN":
+        this.router.navigate(["/saas"]);
+        break;
       default:
         this.router.navigate(["/"]);
         break;
@@ -1013,18 +1016,19 @@ export class AuthService {
    * @param customMessage Mensaje personalizado para el usuario
    */
   public handleAuthError(error: any, customMessage?: string): void {
-    if (error.status === 401 || error.status === 403) {
-      // Solo avisar "Sesión Expirada" si realmente había una sesión (tokens en storage).
-      // Para visitantes sin sesión activa, limpiar en silencio y no mostrar el modal.
-      const teniaSesion = !!this.getToken() || !!this.getRefreshToken();
-      if (!teniaSesion) {
-        this.clearAllStorageData();
-        this.authStateSubject.next(false);
-        return;
-      }
-      const message = customMessage || 'Su sesión ha expirado o no tiene permisos. Por favor, inicie sesión nuevamente.';
-      this.handleTokenExpired(message);
+    if (error?.status !== 401) {
+      return;
     }
+    // Solo avisar "Sesión Expirada" si realmente había una sesión (tokens en storage).
+    // Para visitantes sin sesión activa, limpiar en silencio y no mostrar el modal.
+    const teniaSesion = !!this.getToken() || !!this.getRefreshToken();
+    if (!teniaSesion) {
+      this.clearAllStorageData();
+      this.authStateSubject.next(false);
+      return;
+    }
+    const message = customMessage || 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.';
+    this.handleTokenExpired(message);
   }
 
 

@@ -4,9 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
+import { PaginationComponent } from '../pagination/pagination.component';
 import { Observable, Subscription, combineLatest } from 'rxjs';
 import { DataPackage } from '../data.package';
+import { ModalService } from '../modal/modal.service';
 import { ToastService } from '../services/toast.service';
+import { AuthService } from '../inicio-sesion/auth.service';
+import { UserContextService } from '../services/user-context.service';
 import { SaasService } from './saas.service';
 import {
   AddonSaas,
@@ -16,6 +20,7 @@ import {
   ResumenSaas,
   SuscripcionSaas,
   claseEstado,
+  esFalloDeAcceso,
   etiquetaCiclo,
   etiquetaEstado,
   etiquetaPago,
@@ -33,7 +38,7 @@ type DialogoAdmin = '' | 'suspender' | 'cancelar' | 'cambiar';
 @Component({
   selector: 'app-saas-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BaseChartDirective],
+  imports: [CommonModule, FormsModule, RouterModule, BaseChartDirective, PaginationComponent],
   templateUrl: './saas-admin.component.html',
   styleUrl: './saas.css',
   changeDetection: ChangeDetectionStrategy.Eager
@@ -102,7 +107,14 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
   private retornoFoco: HTMLElement | null = null;
   private readonly colores = ['#198754', '#0d6efd', '#dc3545', '#ffc107', '#6c757d', '#842029', '#6f42c1', '#fd7e14'];
 
-  constructor(private saas: SaasService, private route: ActivatedRoute, private toast: ToastService) {}
+  constructor(
+    private saas: SaasService,
+    private route: ActivatedRoute,
+    private toast: ToastService,
+    private auth: AuthService,
+    private users: UserContextService,
+    private modal: ModalService
+  ) {}
 
   ngOnInit(): void {
     this.sub = combineLatest([this.route.data, this.route.paramMap]).subscribe(([data, params]) => {
@@ -176,6 +188,10 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
   }
 
   cargar(): void {
+    if (!this.puedeOperar()) {
+      this.cargando = false;
+      return;
+    }
     const actual = ++this.ticket;
     this.cargando = true;
     const sigue = () => actual === this.ticket;
@@ -200,7 +216,6 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
           if (!sigue()) return;
           this.cargando = false;
           this.error = 'No se pudo cargar el tablero.';
-          this.toast.error(this.error);
         }
       });
     }
@@ -266,6 +281,11 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
   }
 
   buscar(alTerminar?: () => void): void {
+    if (!this.puedeOperar()) {
+      this.cargando = false;
+      alTerminar?.();
+      return;
+    }
     const token = ++this.listaToken;
     this.saas.suscripciones(this.filtroEstado, this.filtroPlan, this.filtroTexto).subscribe({
       next: (resp) => {
@@ -280,12 +300,13 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
         alTerminar?.();
         this.cargando = false;
       },
-      error: () => {
+      error: (err) => {
         if (token !== this.listaToken || this.vista !== 'suscripciones') return;
+        this.cargando = false;
+        alTerminar?.();
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo filtrar el listado.';
         this.toast.error(this.error);
-        alTerminar?.();
-        this.cargando = false;
       }
     });
   }
@@ -416,6 +437,39 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
     return (valor / total) * 100;
   }
 
+  pedirSuspender(): void {
+    if (!this.detalle) return;
+    const motivo = this.motivo?.trim();
+    this.modal.confirm(
+      '¿Suspendés esta suscripción?',
+      `${this.detalle.organizacion.nombre} pasa a solo lectura hasta que la reactives.`,
+      motivo ? `Motivo: ${motivo}` : 'Podés escribir un motivo en el campo de arriba.'
+    ).then(() => this.suspender()).catch(() => undefined);
+  }
+
+  pedirCancelar(): void {
+    if (!this.detalle) return;
+    const motivo = this.motivo?.trim();
+    this.modal.confirm(
+      '¿Cancelás esta suscripción?',
+      `La cuenta de ${this.detalle.organizacion.nombre} queda en solo lectura. Los datos no se borran.`,
+      motivo ? `Motivo: ${motivo}` : 'Podés escribir un motivo en el campo de arriba.'
+    ).then(() => this.cancelar()).catch(() => undefined);
+  }
+
+  pedirCambio(): void {
+    if (!this.detalle) return;
+    this.modal.confirm(
+      '¿Confirmás el cambio de plan?',
+      `${this.detalle.organizacion.nombre} pasa de ${this.detalle.plan.nombre} a ${this.planDestino}.`,
+      'El precio se recalcula con el plan nuevo.'
+    ).then(() => this.cambiarPlan()).catch(() => undefined);
+  }
+
+  private puedeOperar(): boolean {
+    return this.auth.isAuthenticated() && this.users.isSuperAdmin;
+  }
+
   private actuar(llamada: Observable<DataPackage<SuscripcionSaas>>, cerrar: boolean): void {
     this.operando = true;
     this.error = '';
@@ -425,8 +479,9 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
         this.despues(resp.status_code, resp.status_text, resp.data);
         if (cerrar && resp.status_code === 200) this.cerrarDialogo();
       },
-      error: () => {
+      error: (err) => {
         this.operando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo completar la operación.';
         this.toast.error(this.error);
       }

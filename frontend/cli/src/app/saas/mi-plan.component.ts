@@ -1,14 +1,17 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SaasService } from './saas.service';
 import { ToastService } from '../services/toast.service';
+import { ModalService } from '../modal/modal.service';
+import { UserContextService } from '../services/user-context.service';
 import {
   CatalogoSaas,
   PrecioSaas,
   SuscripcionSaas,
   claseEstado,
+  esFalloDeAcceso,
   etiquetaCiclo,
   etiquetaEstado,
   etiquetaPago,
@@ -20,8 +23,6 @@ import {
   tope
 } from './saas.models';
 
-type DialogoMiPlan = '' | 'cambio' | 'pago';
-
 @Component({
   selector: 'app-mi-plan',
   standalone: true,
@@ -31,7 +32,6 @@ type DialogoMiPlan = '' | 'cambio' | 'pago';
   changeDetection: ChangeDetectionStrategy.Eager
 })
 export class MiPlanComponent implements OnInit {
-  @ViewChild('dialogoRef') dialogoRef?: ElementRef<HTMLElement>;
 
   suscripcion: SuscripcionSaas | null = null;
   catalogo: CatalogoSaas | null = null;
@@ -44,7 +44,6 @@ export class MiPlanComponent implements OnInit {
   cupo = 1;
   addons: string[] = [];
   precioCambio: PrecioSaas | null = null;
-  dialogo: DialogoMiPlan = '';
   sede = { nombre: '', direccion: '', localidad: '', provincia: '', telefono: '', latitud: -34.6 as number | null, longitud: -58.38 as number | null };
   erroresSede: Record<string, string> = {};
   formatoArs = formatoArs;
@@ -57,11 +56,25 @@ export class MiPlanComponent implements OnInit {
   tope = tope;
   porcentajeUso = porcentajeUso;
   nivelUso = nivelUso;
-  private retornoFoco: HTMLElement | null = null;
 
-  constructor(private saas: SaasService, private toast: ToastService) {}
+  constructor(
+    private saas: SaasService,
+    private toast: ToastService,
+    private users: UserContextService,
+    private modal: ModalService
+  ) {}
+
+  sinPermiso = '';
 
   ngOnInit(): void {
+    const rol = this.users.getCurrentContext()?.primaryRole;
+    if (rol !== 'ADMINISTRADOR') {
+      this.cargando = false;
+      this.sinPermiso = rol === 'SUPERADMIN'
+        ? 'Mi plan es del administrador de cada centro. El tablero comercial está en SaaS.'
+        : 'No tenés un plan de centro para ver.';
+      return;
+    }
     this.cargar();
     this.saas.planes().subscribe({
       next: (resp) => {
@@ -83,8 +96,9 @@ export class MiPlanComponent implements OnInit {
           this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.cargando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo leer la suscripción.';
         this.toast.error(this.error);
       }
@@ -132,7 +146,7 @@ export class MiPlanComponent implements OnInit {
     if (!activo) this.addons = this.addons.filter((item) => item !== codigo);
   }
 
-  abrirCambio(event: Event): void {
+  abrirCambio(): void {
     if (this.suscripcion?.estado === 'CANCELADA') {
       this.error = 'La suscripción está cancelada.';
       this.toast.error(this.error);
@@ -150,50 +164,36 @@ export class MiPlanComponent implements OnInit {
         this.operando = false;
         if (resp.status_code === 200) {
           this.precioCambio = resp.data;
-          this.abrir('cambio', event);
+          const cupo = this.porAsiento ? ` Cupo: ${this.cupo} profesionales.` : '';
+          this.modal.confirm(
+            '¿Confirmás el cambio?',
+            `Vas a pasar de ${this.suscripcion?.plan?.nombre} (${etiquetaCiclo(this.suscripcion?.ciclo)}) a ${this.planElegido?.nombre || this.planCodigo} (${etiquetaCiclo(this.ciclo)}).${cupo}`,
+            `Nuevo importe: ${formatoArs(resp.data.neto)} + IVA (${formatoArs(resp.data.total)} con IVA).`
+          ).then(() => this.confirmarCambio()).catch(() => undefined);
         } else {
           this.error = resp.status_text || 'No se pudo calcular el cambio.';
           this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.operando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo calcular el cambio.';
         this.toast.error(this.error);
       }
     });
   }
 
-  abrir(tipo: DialogoMiPlan, event?: Event): void {
-    this.retornoFoco = (event?.currentTarget as HTMLElement) ?? null;
-    this.dialogo = tipo;
-    setTimeout(() => this.dialogoRef?.nativeElement.querySelector<HTMLElement>('[data-autofocus]')?.focus());
-  }
-
-  cerrarDialogo(): void {
-    this.dialogo = '';
-    setTimeout(() => this.retornoFoco?.focus());
-  }
-
-  onDialogKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.cerrarDialogo();
-      return;
-    }
-    if (event.key !== 'Tab' || !this.dialogoRef) return;
-    const items = Array.from(this.dialogoRef.nativeElement.querySelectorAll<HTMLElement>('button, [href], input, select, textarea'))
-      .filter((el) => !el.hasAttribute('disabled'));
-    if (!items.length) return;
-    const first = items[0];
-    const last = items[items.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+  pedirPago(): void {
+    const aviso = this.formularioSucio
+      ? ' Hay cambios sin guardar: este pago usa el plan que ya está vigente.'
+      : '';
+    const total = this.precioPago ? ` Total con IVA: ${formatoArs(this.precioPago.total)}.` : '';
+    this.modal.confirm(
+      '¿Confirmás el pago simulado?',
+      `Se registra un pago del plan vigente ${this.suscripcion?.plan?.nombre}, ciclo ${etiquetaCiclo(this.ciclo)}.${aviso}`,
+      total
+    ).then(() => this.confirmarPago()).catch(() => undefined);
   }
 
   confirmarCambio(): void {
@@ -212,14 +212,14 @@ export class MiPlanComponent implements OnInit {
           this.ok = 'Los cambios del plan quedaron guardados.';
           this.toast.success(this.ok);
           this.aplicar(resp.data);
-          this.cerrarDialogo();
         } else {
           this.error = resp.status_text || 'No se pudo cambiar el plan.';
           this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.operando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo cambiar el plan.';
         this.toast.error(this.error);
       }
@@ -236,15 +236,15 @@ export class MiPlanComponent implements OnInit {
         if (resp.status_code === 200) {
           this.ok = `Pago simulado registrado: ${formatoArs(resp.data.total)} con IVA.`;
           this.toast.success(this.ok);
-          this.cerrarDialogo();
           this.cargar();
         } else {
           this.error = resp.status_text || 'No se pudo registrar el pago.';
           this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.operando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo registrar el pago.';
         this.toast.error(this.error);
       }
@@ -286,8 +286,9 @@ export class MiPlanComponent implements OnInit {
           this.toast.error(this.error);
         }
       },
-      error: () => {
+      error: (err) => {
         this.operando = false;
+        if (esFalloDeAcceso(err)) return;
         this.error = 'No se pudo crear la sede.';
         this.toast.error(this.error);
       }

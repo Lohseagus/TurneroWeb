@@ -36,7 +36,7 @@ export class SuperAdminGuard implements CanActivate {
     // Verificar si tiene rol de SUPERADMIN usando getter inteligente
     if (!this.userContextService.isSuperAdmin) {
       console.warn('🚫 SuperAdminGuard: Acceso denegado - requiere rol SUPERADMIN');
-      this.router.navigate(['/home']); // Redirigir a home si no es SUPERADMIN
+      this.router.navigate(['/']);
       return false;
     }
 

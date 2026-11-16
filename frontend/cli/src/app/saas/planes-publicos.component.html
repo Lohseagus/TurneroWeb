@@ -1,289 +1,234 @@
-<div class="saas-page">
-  <header class="saas-hero">
-    <p class="saas-kicker">
-      <span class="material-symbols-outlined" aria-hidden="true">verified</span>
-      CheTurno para centros de salud
-    </p>
-    <h1>Planes claros para tu centro</h1>
-    <p class="saas-lead">
-      Precios en pesos, netos, siempre con el IVA a la vista.
-      @if (catalogo) {
-        La prueba dura {{ catalogo.configuracion.diasTrial }} días y no pide tarjeta.
-        El anual tiene {{ catalogo.configuracion.descuentoAnualPorcentaje }}% de descuento sobre el neto.
-      }
-    </p>
-    <div class="saas-hero-actions">
-      <a class="btn btn-primary" routerLink="/registro-saas" [queryParams]="{ ciclo: ciclo }">Empezar la prueba gratis</a>
-      <button type="button" class="btn btn-outline-primary" (click)="irA('comparacion')">Comparar planes</button>
-    </div>
-    @if (catalogo) {
-      <div class="saas-stats">
-        <div class="saas-stat"><strong>{{ catalogo.configuracion.diasTrial }} días</strong><span>Prueba sin tarjeta</span></div>
-        <div class="saas-stat"><strong>IVA {{ catalogo.configuracion.ivaPorcentaje }}%</strong><span>Se suma al neto</span></div>
-        <div class="saas-stat"><strong>{{ catalogo.configuracion.descuentoAnualPorcentaje }}% menos</strong><span>Si pagás el año</span></div>
+<div class="card p-xl mb-4">
+  <div class="listado-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <span class="material-symbols-outlined header-icon" aria-hidden="true">sell</span>
+      <div>
+        <h1>Planes para tu centro</h1>
+        <p class="mb-0">
+          Precios en pesos, netos, con el IVA a la vista.
+          @if (catalogo) {
+            La prueba dura {{ catalogo.configuracion.diasTrial }} días y no pide tarjeta.
+          }
+        </p>
       </div>
-    }
-  </header>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-light" routerLink="/registro-saas" [queryParams]="{ ciclo: ciclo }">Empezar la prueba</a>
+      <button type="button" class="btn btn-outline-light" (click)="irA('comparacion')">Comparar</button>
+    </div>
+  </div>
 
   @if (catalogo) {
-    <div class="saas-toggle" role="radiogroup" aria-label="Ciclo de facturación">
-      <button type="button" role="radio" [attr.aria-checked]="ciclo === 'MENSUAL'" (click)="elegirCiclo('MENSUAL')">Mensual</button>
-      <button type="button" role="radio" [attr.aria-checked]="ciclo === 'ANUAL'" (click)="elegirCiclo('ANUAL')">
-        Anual
-        <span class="saas-save">−{{ catalogo.configuracion.descuentoAnualPorcentaje }}%</span>
+    <div class="btn-group mb-4" role="group" aria-label="Ciclo de facturación">
+      <button type="button" class="btn" [class.btn-primary]="ciclo === 'MENSUAL'" [class.btn-outline-primary]="ciclo !== 'MENSUAL'" [attr.aria-pressed]="ciclo === 'MENSUAL'" (click)="elegirCiclo('MENSUAL')">Mensual</button>
+      <button type="button" class="btn" [class.btn-primary]="ciclo === 'ANUAL'" [class.btn-outline-primary]="ciclo !== 'ANUAL'" [attr.aria-pressed]="ciclo === 'ANUAL'" (click)="elegirCiclo('ANUAL')">
+        Anual · {{ catalogo.configuracion.descuentoAnualPorcentaje }}% menos
       </button>
+    </div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-4"><div class="card h-100"><div class="card-body"><h3 class="h5 mb-1">{{ catalogo.configuracion.diasTrial }} días</h3><p class="text-muted mb-0">Prueba sin tarjeta</p></div></div></div>
+      <div class="col-md-4"><div class="card h-100"><div class="card-body"><h3 class="h5 mb-1">IVA {{ catalogo.configuracion.ivaPorcentaje }}%</h3><p class="text-muted mb-0">Se suma al neto</p></div></div></div>
+      <div class="col-md-4"><div class="card h-100"><div class="card-body"><h3 class="h5 mb-1">{{ catalogo.configuracion.descuentoAnualPorcentaje }}% menos</h3><p class="text-muted mb-0">Si pagás el año</p></div></div></div>
     </div>
   }
 
   @if (error && !catalogo) {
-    <div class="saas-alert error" role="alert">
-      <p>{{ error }}</p>
-      <button type="button" class="btn btn-outline-primary" (click)="cargar()">Reintentar</button>
+    <div class="alert alert-danger" role="alert">
+      {{ error }}
+      <button type="button" class="btn btn-outline-danger btn-sm ms-2" (click)="cargar()">Reintentar</button>
     </div>
   }
 
   @if (cargando) {
-    <div class="saas-skeleton" aria-hidden="true">
-      <div class="saas-skeleton__line saas-skeleton__line--lg"></div>
-      <div class="saas-plan-grid">
-        @for (item of [1, 2, 3, 4]; track item) {
-          <div class="saas-skeleton__card"></div>
-        }
-      </div>
-    </div>
-    <p class="saas-sr" role="status">Cargando planes…</p>
+    <p class="text-muted" role="status">Cargando planes…</p>
   }
 
   @if (catalogo && !catalogo.planes.length) {
-    <div class="saas-empty saas-panel">
+    <div class="empty-state">
       <span class="material-symbols-outlined" aria-hidden="true">inventory_2</span>
-      <p>Todavía no hay planes publicados.</p>
+      <h3>Todavía no hay planes publicados</h3>
     </div>
   }
 
   @if (catalogo && catalogo.planes.length) {
-    <div class="saas-plan-grid" id="planes">
+    <div class="row g-3 mb-4" id="planes">
       @for (plan of catalogo.planes; track plan.codigo) {
-        <article class="saas-card" [class.saas-card--featured]="esPlanRecomendado(plan.codigo)">
-          @if (esPlanRecomendado(plan.codigo)) {
-            <span class="saas-ribbon">Recomendado</span>
-          }
-          <div class="saas-plan-icon" aria-hidden="true">
-            <span class="material-symbols-outlined">{{ iconoPlan(plan.codigo) }}</span>
-          </div>
-          <h2>{{ plan.nombre }}</h2>
-          <p>{{ plan.descripcion }}</p>
-          @if (ciclo === 'ANUAL') {
-            <p class="saas-precio-antes">{{ formatoArs(precioLista(plan)) }} / mes</p>
-          }
-          <p class="saas-precio">
-            {{ formatoArs(precioUnitario(plan)) }}
-            <small>{{ sufijoPrecio(plan) }} · {{ plan.etiquetaPrecio }}</small>
-          </p>
-          <p class="saas-nota">
-            @if (ciclo === 'ANUAL') {
-              Se factura {{ formatoArs(ejemplo(plan).neto) }} + IVA por año
-              ({{ formatoArs(ejemplo(plan).total) }} con IVA).
-            } @else {
-              {{ formatoArs(ejemplo(plan).total) }} con IVA
-              @if ((plan.precioPorProfesional || 0) > 0) {
-                para {{ ejemplo(plan).profesionalesFacturados }} profesionales.
+        <div class="col-md-6 col-xl-3">
+          <article class="card plan-card" [class.recomendada]="esPlanRecomendado(plan.codigo)">
+            <div class="card-body d-flex flex-column">
+              @if (esPlanRecomendado(plan.codigo)) {
+                <span class="badge text-bg-primary align-self-start mb-2">Recomendado</span>
               }
-            }
-          </p>
-          @if (plan.precioPorSedeExtra) {
-            <p class="saas-nota">Incluye {{ plan.sedesIncluidas }} sedes. Cada sede extra: {{ formatoArs(plan.precioPorSedeExtra) }} + IVA.</p>
-          }
-          <ul class="saas-features">
-            @for (item of plan.incluye; track item) {
-              <li>
-                <span class="material-symbols-outlined" aria-hidden="true">check</span>
-                <span>{{ item }}</span>
-              </li>
-            }
-          </ul>
-          <a class="btn" [class.btn-primary]="esPlanRecomendado(plan.codigo)" [class.btn-outline-primary]="!esPlanRecomendado(plan.codigo)" [routerLink]="['/registro-saas']" [queryParams]="{ plan: plan.codigo, ciclo: ciclo }">
-            Empezar prueba gratis
-          </a>
-          <button type="button" class="btn btn-link" (click)="usarEnCotizador(plan.codigo)">Usar en el cotizador</button>
-        </article>
+              <h2 class="h4">{{ plan.nombre }}</h2>
+              <p class="text-muted">{{ plan.descripcion }}</p>
+              @if (ciclo === 'ANUAL') {
+                <p class="precio-antes">{{ formatoArs(precioLista(plan)) }} / mes</p>
+              }
+              <p class="precio">{{ formatoArs(precioUnitario(plan)) }}</p>
+              <p class="text-muted">{{ sufijoPrecio(plan) }} · {{ plan.etiquetaPrecio }}</p>
+              <p class="small text-muted">
+                @if (ciclo === 'ANUAL') {
+                  Se factura {{ formatoArs(ejemplo(plan).neto) }} + IVA por año ({{ formatoArs(ejemplo(plan).total) }} con IVA).
+                } @else {
+                  {{ formatoArs(ejemplo(plan).total) }} con IVA
+                  @if ((plan.precioPorProfesional || 0) > 0) {
+                    para {{ ejemplo(plan).profesionalesFacturados }} profesionales.
+                  }
+                }
+              </p>
+              @if (plan.precioPorSedeExtra) {
+                <p class="small text-muted">Incluye {{ plan.sedesIncluidas }} sedes. Cada sede extra: {{ formatoArs(plan.precioPorSedeExtra) }} + IVA.</p>
+              }
+              <ul class="list-unstyled mb-3">
+                @for (item of plan.incluye; track item) {
+                  <li class="d-flex gap-2 mb-1"><span class="material-symbols-outlined text-success" aria-hidden="true">check</span><span>{{ item }}</span></li>
+                }
+              </ul>
+              <a class="btn mt-auto" [class.btn-primary]="esPlanRecomendado(plan.codigo)" [class.btn-outline-primary]="!esPlanRecomendado(plan.codigo)" [routerLink]="['/registro-saas']" [queryParams]="{ plan: plan.codigo, ciclo: ciclo }">Empezar prueba gratis</a>
+              <button type="button" class="btn btn-link" (click)="usarEnCotizador(plan.codigo)">Usar en el cotizador</button>
+            </div>
+          </article>
+        </div>
       }
     </div>
 
-    <section class="saas-section" id="comparacion">
-      <h2>Compará los planes</h2>
-      <p class="saas-lead">Los importes siguen el ciclo que elegiste. El IVA de {{ catalogo.configuracion.ivaPorcentaje }}% se suma al cobrar.</p>
-      <div class="saas-table-wrap">
-        <table class="saas-table">
-          <caption class="saas-sr">Comparación de funciones y precios de los planes</caption>
-          <thead>
+    <h2 id="comparacion" class="h4">Compará los planes</h2>
+    <p class="text-muted">Los importes siguen el ciclo que elegiste. El IVA de {{ catalogo.configuracion.ivaPorcentaje }}% se suma al cobrar.</p>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle">
+        <caption class="visually-hidden">Comparación de funciones y precios de los planes</caption>
+        <thead>
+          <tr>
+            <th scope="col">Incluye</th>
+            @for (plan of catalogo.planes; track plan.codigo) {
+              <th scope="col">{{ plan.nombre }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of comparacion; track fila.etiqueta) {
             <tr>
-              <th scope="col">Incluye</th>
-              @for (plan of catalogo.planes; track plan.codigo) {
-                <th scope="col">{{ plan.nombre }}</th>
+              <th scope="row">{{ fila.etiqueta }}</th>
+              @for (valor of fila.valores; track $index) {
+                <td>{{ valor.texto }}</td>
               }
             </tr>
-          </thead>
-          <tbody>
-            @for (fila of comparacion; track fila.etiqueta) {
-              <tr>
-                <th scope="row">{{ fila.etiqueta }}</th>
-                @for (valor of fila.valores; track $index) {
-                  <td>
-                    @if (valor.ok === true) {
-                      <span class="saas-check-cell"><span class="material-symbols-outlined" aria-hidden="true">check</span>{{ valor.texto }}</span>
-                    } @else if (valor.ok === false) {
-                      <span class="saas-no-cell"><span class="material-symbols-outlined" aria-hidden="true">remove</span>{{ valor.texto }}</span>
-                    } @else {
-                      {{ valor.texto }}
-                    }
-                  </td>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="cotizador" class="h4">Cotizá tu centro</h2>
+    <p class="text-muted">El precio sale de la cotización en vivo.</p>
+    <div class="row g-3 mb-4">
+      <div class="col-lg-7">
+        <div class="filters-section">
+          <div class="filters-title"><span class="material-symbols-outlined">calculate</span> Datos de la cotización</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="cotiz-plan">Plan</label>
+              <select id="cotiz-plan" class="form-select" name="planCotizacion" [(ngModel)]="cotizacion.planCodigo" (ngModelChange)="alCambiarPlanCotizacion()">
+                @for (plan of catalogo.planes; track plan.codigo) {
+                  <option [value]="plan.codigo">{{ plan.nombre }}</option>
                 }
-              </tr>
+              </select>
+            </div>
+            @if (porAsiento && planCotizado) {
+              <div class="col-md-6">
+                <label class="form-label" for="cotiz-prof">Profesionales ({{ planCotizado.minProfesionales }} a {{ planCotizado.maxProfesionales }})</label>
+                <input id="cotiz-prof" class="form-control" type="number" name="profNumero" [(ngModel)]="cotizacion.profesionales" (ngModelChange)="cambiarCupo()" [min]="planCotizado.minProfesionales || 1" [max]="planCotizado.maxProfesionales || 10">
+              </div>
             }
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="saas-section" id="cotizador">
-      <h2>Cotizá tu centro</h2>
-      <p class="saas-lead">El precio sale de la cotización en vivo. Mové el cupo, las sedes o los complementos y vas a ver el neto, el IVA y el total.</p>
-      <div class="saas-quote-layout">
-        <div class="saas-panel saas-form">
-          <label class="saas-field">Plan
-            <select name="planCotizacion" [(ngModel)]="cotizacion.planCodigo" (ngModelChange)="alCambiarPlanCotizacion()">
-              @for (plan of catalogo.planes; track plan.codigo) {
-                <option [value]="plan.codigo">{{ plan.nombre }}</option>
-              }
-            </select>
-          </label>
-
-          @if (porAsiento && planCotizado) {
-            <div class="saas-field">
-              <label for="cotiz-prof">Profesionales ({{ planCotizado.minProfesionales }} a {{ planCotizado.maxProfesionales }})</label>
-              <div class="saas-range">
-                <input id="cotiz-prof" type="range" name="profRange" [(ngModel)]="cotizacion.profesionales" (ngModelChange)="cambiarCupo()" [min]="planCotizado.minProfesionales || 1" [max]="planCotizado.maxProfesionales || 10">
-                <input type="number" name="profNumero" aria-label="Cantidad de profesionales" [(ngModel)]="cotizacion.profesionales" (ngModelChange)="cambiarCupo()" [min]="planCotizado.minProfesionales || 1" [max]="planCotizado.maxProfesionales || 10">
+            @if (puedeElegirSedes && planCotizado) {
+              <div class="col-md-6">
+                <label class="form-label" for="cotiz-sedes">Sedes</label>
+                <input id="cotiz-sedes" class="form-control" type="number" name="sedesNumero" [(ngModel)]="cotizacion.sedes" (ngModelChange)="cambiarCupo()" min="1" [max]="planCotizado.maxCentros || 20">
+                <small class="text-muted">{{ planCotizado.sedesIncluidas }} incluidas.@if (planCotizado.precioPorSedeExtra) { Cada extra: {{ formatoArs(planCotizado.precioPorSedeExtra) }} + IVA. }</small>
               </div>
-            </div>
-          }
-
-          @if (puedeElegirSedes && planCotizado) {
-            <div class="saas-field">
-              <label for="cotiz-sedes">Sedes</label>
-              <div class="saas-range">
-                <input id="cotiz-sedes" type="range" name="sedesRange" [(ngModel)]="cotizacion.sedes" (ngModelChange)="cambiarCupo()" [min]="1" [max]="planCotizado.maxCentros || 20">
-                <input type="number" name="sedesNumero" aria-label="Cantidad de sedes" [(ngModel)]="cotizacion.sedes" (ngModelChange)="cambiarCupo()" min="1" [max]="planCotizado.maxCentros || 20">
-              </div>
-              <small class="saas-nota">
-                {{ planCotizado.sedesIncluidas }} incluidas.
-                @if (planCotizado.precioPorSedeExtra) {
-                  Cada extra: {{ formatoArs(planCotizado.precioPorSedeExtra) }} + IVA.
-                }
-              </small>
-            </div>
-          } @else {
-            <p class="saas-nota">Este plan incluye una sola sede.</p>
-          }
-
+            }
+          </div>
           @if (catalogo.addons.length) {
-            <fieldset class="saas-field">
-              <legend>Complementos</legend>
+            <fieldset class="mt-3">
+              <legend class="form-label">Complementos</legend>
               @for (addon of catalogo.addons; track addon.codigo) {
-                <label class="saas-switch">
-                  <input type="checkbox" [checked]="cotizacion.addons.includes(addon.codigo)" (change)="toggleAddon(addon.codigo, $any($event.target).checked)">
-                  <span>
-                    {{ addon.nombre }} — {{ addonPrecio(addon) }}
-                    <small class="saas-nota">{{ addon.placeholder ? 'Todavía no envía mensajes.' : addon.descripcion }}</small>
-                  </span>
-                </label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" [id]="'addon-' + addon.codigo" [checked]="cotizacion.addons.includes(addon.codigo)" (change)="toggleAddon(addon.codigo, $any($event.target).checked)">
+                  <label class="form-check-label" [for]="'addon-' + addon.codigo">{{ addon.nombre }} — {{ addonPrecio(addon) }}. {{ addon.placeholder ? 'Todavía no envía mensajes.' : addon.descripcion }}</label>
+                </div>
               }
             </fieldset>
           }
         </div>
-
-        <aside class="saas-quote" aria-live="polite">
-          <h2>Tu cotización</h2>
-          <p class="saas-nota">{{ planCotizado?.nombre }} · {{ ciclo === 'ANUAL' ? 'Anual' : 'Mensual' }}</p>
-          @if (cotizando) {
-            <p role="status">Calculando el precio…</p>
-          }
-          @if (cotizacionError) {
-            <p class="saas-field-error" role="alert">{{ cotizacionError }}</p>
-            <button type="button" class="btn btn-outline-primary" (click)="cambiarCupo()">Reintentar</button>
-          }
-          @if (precio && !cotizacionError) {
-            <dl class="saas-dl">
-              <dt>Neto del período</dt>
-              <dd>{{ formatoArs(precio.neto) }}</dd>
-              <dt>IVA {{ precio.ivaPorcentaje }}%</dt>
-              <dd>{{ formatoArs(precio.iva) }}</dd>
-              @if (precio.profesionalesFacturados > 1) {
-                <dt>Profesionales</dt>
-                <dd>{{ precio.profesionalesFacturados }}</dd>
-              }
-              @if (precio.sedesExtra > 0) {
-                <dt>Sedes extra</dt>
-                <dd>{{ precio.sedesExtra }}</dd>
-              }
-            </dl>
-            <div class="saas-quote__total">
-              <span class="saas-nota">Total con IVA</span>
-              <strong>{{ formatoArs(precio.total) }}</strong>
+      </div>
+      <div class="col-lg-5">
+        <aside class="card h-100" aria-live="polite">
+          <div class="card-body">
+            <h2 class="h5">Tu cotización</h2>
+            <p class="text-muted">{{ planCotizado?.nombre }} · {{ ciclo === 'ANUAL' ? 'Anual' : 'Mensual' }}</p>
+            @if (cotizando) { <p role="status">Calculando el precio…</p> }
+            @if (cotizacionError) {
+              <p class="text-danger" role="alert">{{ cotizacionError }}</p>
+              <button type="button" class="btn btn-outline-primary btn-sm" (click)="cambiarCupo()">Reintentar</button>
+            }
+            @if (precio && !cotizacionError) {
+              <dl class="row mb-2">
+                <dt class="col-7">Neto del período</dt><dd class="col-5 text-end">{{ formatoArs(precio.neto) }}</dd>
+                <dt class="col-7">IVA {{ precio.ivaPorcentaje }}%</dt><dd class="col-5 text-end">{{ formatoArs(precio.iva) }}</dd>
+                @if (precio.profesionalesFacturados > 1) {
+                  <dt class="col-7">Profesionales</dt><dd class="col-5 text-end">{{ precio.profesionalesFacturados }}</dd>
+                }
+                @if (precio.sedesExtra > 0) {
+                  <dt class="col-7">Sedes extra</dt><dd class="col-5 text-end">{{ precio.sedesExtra }}</dd>
+                }
+              </dl>
+              <p class="mb-1 text-muted">Total con IVA</p>
+              <p class="precio">{{ formatoArs(precio.total) }}</p>
               @if (ciclo === 'ANUAL') {
-                <span class="saas-nota">Equivalente a {{ formatoArs(precio.neto / 12) }} netos por mes, con el {{ precio.descuentoAnualPorcentaje }}% ya aplicado.</span>
+                <p class="small text-muted">Equivalente a {{ formatoArs(precio.neto / 12) }} netos por mes, con el {{ precio.descuentoAnualPorcentaje }}% ya aplicado.</p>
               }
-            </div>
-          }
-          @if ((cotizacion.sedes || 1) > 1) {
-            <p class="saas-nota">En el alta se crea la primera sede. Las demás las sumás desde Mi plan; esta cotización ya incluye su precio.</p>
-          }
-          <a class="btn btn-primary" [routerLink]="['/registro-saas']" [queryParams]="paramsRegistro()">Empezar con esta cotización</a>
+            }
+            @if ((cotizacion.sedes || 1) > 1) {
+              <p class="small text-muted">En el alta se crea la primera sede. Las demás las sumás desde Mi plan.</p>
+            }
+            <a class="btn btn-primary" [routerLink]="['/registro-saas']" [queryParams]="paramsRegistro()">Empezar con esta cotización</a>
+          </div>
         </aside>
       </div>
-    </section>
+    </div>
 
-    <section class="saas-section" id="complementos">
-      <h2>Complementos de mensajería</h2>
-      <p class="saas-lead">WhatsApp y SMS son opcionales. El precio queda reservado: todavía no envían mensajes.</p>
-      @if (!catalogo.addons.length) {
-        <div class="saas-empty saas-panel">
-          <span class="material-symbols-outlined" aria-hidden="true">chat</span>
-          <p>No hay complementos activos.</p>
+    <h2 id="complementos" class="h4">Complementos de mensajería</h2>
+    <p class="text-muted">WhatsApp y SMS son opcionales. El precio queda reservado: todavía no envían mensajes.</p>
+    <div class="row g-3 mb-4">
+      @for (addon of catalogo.addons; track addon.codigo) {
+        <div class="col-md-6">
+          <article class="card h-100"><div class="card-body">
+            <h3 class="h5">{{ addon.nombre }}</h3>
+            <p>{{ addon.descripcion }}</p>
+            <p class="precio">{{ formatoArs(addon.precioMensualNeto) }} <small class="fs-6 text-muted">+ IVA / mes</small></p>
+            <p class="text-muted mb-0">{{ formatoArs(addon.precioMensualConIva) }} con IVA.</p>
+          </div></article>
         </div>
       }
-      <div class="saas-addon-grid">
-        @for (addon of catalogo.addons; track addon.codigo) {
-          <article class="saas-panel">
-            <h3>{{ addon.nombre }}</h3>
-            <p>{{ addon.descripcion }}</p>
-            <p class="saas-precio">{{ formatoArs(addon.precioMensualNeto) }} <small>+ IVA / mes</small></p>
-            <p class="saas-nota">{{ formatoArs(addon.precioMensualConIva) }} con IVA.</p>
-            @if (addon.placeholder) {
-              <p class="saas-nota">Placeholder: se activa cuando se conecte el proveedor.</p>
-            }
-          </article>
-        }
-      </div>
-    </section>
+    </div>
 
-    <section class="saas-section" id="faq">
-      <h2>Preguntas frecuentes</h2>
-      <div class="saas-faq">
-        @for (item of preguntas; track item.q) {
-          <details class="saas-faq__item">
-            <summary>{{ item.q }}</summary>
-            <p>{{ item.a }}</p>
-          </details>
-        }
-      </div>
-    </section>
+    <h2 id="faq" class="h4">Preguntas frecuentes</h2>
+    <div class="mb-4">
+      @for (item of preguntas; track item.q) {
+        <details class="card mb-2">
+          <summary class="card-body fw-semibold">{{ item.q }}</summary>
+          <div class="card-body pt-0 text-muted">{{ item.a }}</div>
+        </details>
+      }
+    </div>
 
-    <section class="saas-cta">
-      <h2>Probá CheTurno {{ catalogo.configuracion.diasTrial }} días</h2>
-      <p>Sin tarjeta. Creamos la organización, el primer centro y tu usuario administrador.</p>
-      <a class="btn" [routerLink]="['/registro-saas']" [queryParams]="paramsRegistro(codigoRecomendado)">Empezar la prueba gratis</a>
-    </section>
+    <div class="card bg-primary text-white">
+      <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <h2 class="h4 text-white">Probá CheTurno {{ catalogo.configuracion.diasTrial }} días</h2>
+          <p class="mb-0">Sin tarjeta. Creamos la organización, el primer centro y tu usuario administrador.</p>
+        </div>
+        <a class="btn btn-light" [routerLink]="['/registro-saas']" [queryParams]="paramsRegistro(codigoRecomendado)">Empezar la prueba gratis</a>
+      </div>
+    </div>
   }
 </div>

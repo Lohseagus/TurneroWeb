@@ -328,10 +328,10 @@ export const MENU_CONFIG: MenuSection[] = [
     order: 5,
     items: [
       {
-        label: 'Dashboard Global',
-        route: '/superadmin-dashboard',
+        label: 'Tablero SaaS',
+        route: '/saas',
         icon: 'dashboard',
-        description: 'Panel de control global del sistema'
+        description: 'Suscripciones, MRR, pruebas y cobros'
       },
       {
         label: 'Gestión de Centros',
@@ -347,21 +347,15 @@ export const MENU_CONFIG: MenuSection[] = [
       },
       {
         label: 'Auditoría Global',
-        route: '/superadmin-auditoria',
+        route: '/turnos/audit-dashboard',
         icon: 'policy',
         description: 'Ver logs de auditoría de todos los centros'
       },
       {
         label: 'Métricas del Sistema',
-        route: '/superadmin-metricas',
+        route: '/dashboard-gestion',
         icon: 'analytics',
         description: 'Estadísticas globales de todos los centros'
-      },
-      {
-        label: 'SaaS',
-        route: '/saas',
-        icon: 'payments',
-        description: 'Suscripciones, planes, prueba y cobros'
       },
       {
         label: 'Suscripciones',

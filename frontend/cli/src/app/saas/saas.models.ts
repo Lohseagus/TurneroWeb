@@ -241,6 +241,10 @@ export function etiquetaCiclo(ciclo: string | null | undefined): string {
   }
 }
 
+export function esFalloDeAcceso(err: { status?: number } | null | undefined): boolean {
+  return err?.status === 401 || err?.status === 403;
+}
+
 export function tope(valor: number | null | undefined): string {
   return valor === null || valor === undefined ? 'Sin tope' : String(valor);
 }
