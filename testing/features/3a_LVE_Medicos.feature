@@ -92,9 +92,6 @@ Cuando el administrador crea un médico con "<nombre>", "<apellido>", "<dni>", "
     | Roberto   | González   | 99999999  | 17580-0   | Emergentología         | 409         | La Matrícula ya existe en el sistema|
     | Cecilia   | Romero     | 24204926  |           | Emergentología         | 409        | La matrícula es obligatoria        |
 
-  # create-by-admin traduce IllegalArgumentException a 409 (dbError) y,
-  # si la especialidad viene por nombre y no existe, responde 500.
-  @known-bug
   Ejemplos: Validaciones de médico reportadas con el status incorrecto
     | nombre    | apellido   | dni       | matricula | especialidades           | status_code | status_text                        |
     | Laura     | Ramírez    | 248348--66| 94546-4   | Alergia e Inmunología  | 400         | dni incorrecto, débe contener sólo números |

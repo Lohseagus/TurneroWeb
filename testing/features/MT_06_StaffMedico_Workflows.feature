@@ -81,9 +81,7 @@ Característica: Flujos de Trabajo y Conflictos de Staff Médico
     Entonces el horario se crea exitosamente
     Y NO hay conflicto de horarios
 
-  # El alta del segundo horario responde 409: el límite exacto (12:00)
-  # se considera solapado con el horario que termina a las 12:00.
-  @horarios @boundary @known-bug
+  @horarios @boundary
   Escenario: Horarios que terminan y empiezan en el mismo momento NO son conflicto
     Dado que el médico "Dr. González" tiene horario en centro 1:
       | dia    | horaInicio | horaFin |
@@ -149,9 +147,6 @@ Característica: Flujos de Trabajo y Conflictos de Staff Médico
     Y queda asociado a mi centro
 
   @esquema-turno @validate
-  # Crear un esquema en el centro 2 que pisa el horario del mismo médico
-  # en el centro 1 responde 200, sin advertencia de solapamiento.
-  @known-bug
   Escenario: Validar que esquema de turno no conflictúe con otros centros
     Dado que el médico tiene esquema de turno en centro 1:
       | dia   | horaInicio | horaFin |
