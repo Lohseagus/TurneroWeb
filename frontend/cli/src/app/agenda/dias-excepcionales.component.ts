@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TurnoService } from '../turnos/turno.service';
@@ -11,6 +11,7 @@ import { DiaExcepcional } from './diaExcepcional';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './dias-excepcionales.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './dias-excepcionales.component.css'
 })
 export class DiasExcepcionalesComponent implements OnInit {

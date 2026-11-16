@@ -1,5 +1,5 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from "@angular/core";
+
 import { FormsModule, NgForm } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 import { NgbTypeaheadModule } from "@ng-bootstrap/ng-bootstrap";
@@ -21,8 +21,9 @@ import { UserContextService } from "../services/user-context.service";
 @Component({
   selector: "app-consultorio-detail",
   standalone: true,
-  imports: [FormsModule, CommonModule, NgbTypeaheadModule],
+  imports: [FormsModule, NgbTypeaheadModule],
   templateUrl: './consultorio-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './consultorio-detail.component.css' 
 })
 export class ConsultorioDetailComponent implements OnInit {

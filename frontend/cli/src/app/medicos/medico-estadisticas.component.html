@@ -24,18 +24,19 @@
         </div>
         <div class="card-body">
           <div class="btn-group" role="group">
-            <button
-              *ngFor="let periodo of periodosDisponibles"
-              type="button"
-              class="btn"
-              [class.btn-primary]="periodoSeleccionado === periodo.valor"
+            @for (periodo of periodosDisponibles; track periodo) {
+              <button
+                type="button"
+                class="btn"
+                [class.btn-primary]="periodoSeleccionado === periodo.valor"
               [class.btn-outline-primary]="
                 periodoSeleccionado !== periodo.valor
               "
-              (click)="seleccionarPeriodo(periodo.valor)"
-            >
-              {{ periodo.nombre }}
-            </button>
+                (click)="seleccionarPeriodo(periodo.valor)"
+                >
+                {{ periodo.nombre }}
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -116,16 +117,17 @@
             <!-- Simulación de gráfico de líneas -->
             <div class="chart-placeholder">
               <div class="chart-bars">
-                <div
-                  class="chart-bar"
-                  *ngFor="let stat of evolutionData"
+                @for (stat of evolutionData; track stat) {
+                  <div
+                    class="chart-bar"
                   [style.height.%]="
                     (stat.turnosRealizados / getMaxTurnos()) * 100
                   "
-                >
-                  <div class="bar-value">{{ stat.turnosRealizados }}</div>
-                  <div class="bar-label">{{ stat.periodo }}</div>
-                </div>
+                    >
+                    <div class="bar-value">{{ stat.turnosRealizados }}</div>
+                    <div class="bar-label">{{ stat.periodo }}</div>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -144,21 +146,23 @@
         </div>
         <div class="card-body">
           <div class="specialty-stats">
-            <div class="specialty-item" *ngFor="let esp of especialidadesStats">
-              <div
-                class="d-flex justify-content-between align-items-center mb-2"
-              >
-                <span class="specialty-name">{{ esp.especialidad }}</span>
-                <span class="specialty-percentage">{{ esp.porcentaje }}%</span>
-              </div>
-              <div class="progress mb-3">
+            @for (esp of especialidadesStats; track esp) {
+              <div class="specialty-item">
                 <div
-                  class="progress-bar bg-primary"
-                  [style.width.%]="esp.porcentaje"
-                  role="progressbar"
-                ></div>
+                  class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                  <span class="specialty-name">{{ esp.especialidad }}</span>
+                  <span class="specialty-percentage">{{ esp.porcentaje }}%</span>
+                </div>
+                <div class="progress mb-3">
+                  <div
+                    class="progress-bar bg-primary"
+                    [style.width.%]="esp.porcentaje"
+                    role="progressbar"
+                  ></div>
+                </div>
               </div>
-            </div>
+            }
           </div>
         </div>
       </div>
@@ -189,29 +193,31 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let stat of rendimientoMensual">
-                  <td>{{ stat.periodo }}</td>
-                  <td>
-                    <span class="badge bg-primary">{{
-                      stat.turnosRealizados
-                    }}</span>
-                  </td>
-                  <td>{{ stat.pacientesAtendidos }}</td>
-                  <td>{{ stat.horasTrabajadas }}h</td>
-                  <td>
-                    <span
-                      class="badge"
-                      [class.bg-success]="calcularTasaExito(stat) >= 90"
+                @for (stat of rendimientoMensual; track stat) {
+                  <tr>
+                    <td>{{ stat.periodo }}</td>
+                    <td>
+                      <span class="badge bg-primary">{{
+                        stat.turnosRealizados
+                      }}</span>
+                    </td>
+                    <td>{{ stat.pacientesAtendidos }}</td>
+                    <td>{{ stat.horasTrabajadas }}h</td>
+                    <td>
+                      <span
+                        class="badge"
+                        [class.bg-success]="calcularTasaExito(stat) >= 90"
                       [class.bg-warning]="
                         calcularTasaExito(stat) >= 70 &&
                         calcularTasaExito(stat) < 90
                       "
-                      [class.bg-danger]="calcularTasaExito(stat) < 70"
-                    >
-                      {{ calcularTasaExito(stat) }}%
-                    </span>
-                  </td>
-                </tr>
+                        [class.bg-danger]="calcularTasaExito(stat) < 70"
+                        >
+                        {{ calcularTasaExito(stat) }}%
+                      </span>
+                    </td>
+                  </tr>
+                }
               </tbody>
             </table>
           </div>
@@ -240,7 +246,7 @@
                   class="comparison-arrow"
                   [class.text-success]="comparativas.turnosRealizados > 0"
                   [class.text-danger]="comparativas.turnosRealizados < 0"
-                >
+                  >
                   <i
                     class="fas"
                     [class.fa-arrow-up]="comparativas.turnosRealizados > 0"
@@ -261,7 +267,7 @@
                   class="comparison-arrow"
                   [class.text-success]="comparativas.pacientesAtendidos > 0"
                   [class.text-danger]="comparativas.pacientesAtendidos < 0"
-                >
+                  >
                   <i
                     class="fas"
                     [class.fa-arrow-up]="comparativas.pacientesAtendidos > 0"
@@ -277,79 +283,79 @@
               <div class="comparison-values">
                 <span class="current-value"
                   >{{ estadisticasActuales.horasTrabajadas }}h</span
-                >
-                <span
-                  class="comparison-arrow"
-                  [class.text-success]="comparativas.horasTrabajadas > 0"
-                  [class.text-danger]="comparativas.horasTrabajadas < 0"
-                >
-                  <i
-                    class="fas"
-                    [class.fa-arrow-up]="comparativas.horasTrabajadas > 0"
-                    [class.fa-arrow-down]="comparativas.horasTrabajadas < 0"
-                  ></i>
-                  {{ Math.abs(comparativas.horasTrabajadas) }}%
-                </span>
+                  >
+                  <span
+                    class="comparison-arrow"
+                    [class.text-success]="comparativas.horasTrabajadas > 0"
+                    [class.text-danger]="comparativas.horasTrabajadas < 0"
+                    >
+                    <i
+                      class="fas"
+                      [class.fa-arrow-up]="comparativas.horasTrabajadas > 0"
+                      [class.fa-arrow-down]="comparativas.horasTrabajadas < 0"
+                    ></i>
+                    {{ Math.abs(comparativas.horasTrabajadas) }}%
+                  </span>
+                </div>
+              </div>
+
+              <div class="comparison-item">
+                <div class="comparison-label">Tasa de Cancelación</div>
+                <div class="comparison-values">
+                  <span class="current-value"
+                    >{{ calcularTasaCancelacion() }}%</span
+                    >
+                    <span
+                      class="comparison-arrow"
+                      [class.text-danger]="comparativas.tasaCancelacion > 0"
+                      [class.text-success]="comparativas.tasaCancelacion < 0"
+                      >
+                      <i
+                        class="fas"
+                        [class.fa-arrow-up]="comparativas.tasaCancelacion > 0"
+                        [class.fa-arrow-down]="comparativas.tasaCancelacion < 0"
+                      ></i>
+                      {{ Math.abs(comparativas.tasaCancelacion) }}%
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div class="comparison-item">
-              <div class="comparison-label">Tasa de Cancelación</div>
-              <div class="comparison-values">
-                <span class="current-value"
-                  >{{ calcularTasaCancelacion() }}%</span
-                >
-                <span
-                  class="comparison-arrow"
-                  [class.text-danger]="comparativas.tasaCancelacion > 0"
-                  [class.text-success]="comparativas.tasaCancelacion < 0"
-                >
-                  <i
-                    class="fas"
-                    [class.fa-arrow-up]="comparativas.tasaCancelacion > 0"
-                    [class.fa-arrow-down]="comparativas.tasaCancelacion < 0"
-                  ></i>
-                  {{ Math.abs(comparativas.tasaCancelacion) }}%
-                </span>
+      <!-- Export Actions -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="fas fa-download me-2"></i>
+                Exportar Estadísticas
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-success" (click)="exportarExcel()">
+                  <i class="fas fa-file-excel me-2"></i>
+                  Exportar Excel
+                </button>
+                <button class="btn btn-outline-danger" (click)="exportarPDF()">
+                  <i class="fas fa-file-pdf me-2"></i>
+                  Reporte PDF
+                </button>
+                <button class="btn btn-outline-primary" (click)="enviarPorEmail()">
+                  <i class="fas fa-envelope me-2"></i>
+                  Enviar por Email
+                </button>
+                <button class="btn btn-outline-info" (click)="programarReporte()">
+                  <i class="fas fa-clock me-2"></i>
+                  Programar Reporte
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Export Actions -->
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-download me-2"></i>
-            Exportar Estadísticas
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-outline-success" (click)="exportarExcel()">
-              <i class="fas fa-file-excel me-2"></i>
-              Exportar Excel
-            </button>
-            <button class="btn btn-outline-danger" (click)="exportarPDF()">
-              <i class="fas fa-file-pdf me-2"></i>
-              Reporte PDF
-            </button>
-            <button class="btn btn-outline-primary" (click)="enviarPorEmail()">
-              <i class="fas fa-envelope me-2"></i>
-              Enviar por Email
-            </button>
-            <button class="btn btn-outline-info" (click)="programarReporte()">
-              <i class="fas fa-clock me-2"></i>
-              Programar Reporte
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>

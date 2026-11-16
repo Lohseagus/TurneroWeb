@@ -1,5 +1,5 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { EsquemaTurno } from '../../../esquemaTurno/esquemaTurno';
 import { Consultorio } from '../../../consultorios/consultorio';
@@ -24,8 +24,9 @@ interface EsquemaConDetalles extends EsquemaTurno {
 @Component({
   selector: 'app-centro-atencion-organigrama-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './centro-atencion-organigrama-tab.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./centro-atencion-organigrama-tab.component.css']
 })
 export class CentroAtencionOrganigramaTabComponent implements OnInit, OnChanges {

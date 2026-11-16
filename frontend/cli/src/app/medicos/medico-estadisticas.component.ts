@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router } from '@angular/router';
 import { TurnoService } from '../turnos/turno.service';
 import { MedicoService } from './medico.service';
@@ -24,8 +24,9 @@ interface EstadisticasEspecialidad {
 @Component({
   selector: 'app-medico-estadisticas',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './medico-estadisticas.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medico-estadisticas.component.css'
 })
 export class MedicoEstadisticasComponent implements OnInit {

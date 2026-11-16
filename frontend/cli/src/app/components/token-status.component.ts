@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../inicio-sesion/auth.service';
 import { interval, Subscription } from 'rxjs';
@@ -8,6 +8,7 @@ import { interval, Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './token-status.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './token-status.component.css'
 })
 export class TokenStatusComponent implements OnInit, OnDestroy {

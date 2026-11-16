@@ -33,10 +33,10 @@ public interface MedicoRepository extends JpaRepository<Medico, Integer> {
     @Query("""
         SELECT m FROM Medico m
         LEFT JOIN User u ON u.email = m.email
-        WHERE (:nombre IS NULL OR LOWER(m.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
-               OR LOWER(m.apellido) LIKE LOWER(CONCAT('%', :nombre, '%')))
+        WHERE (:nombre IS NULL OR LOWER(m.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%'))
+               OR LOWER(m.apellido) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%')))
            AND (:especialidad IS NULL OR EXISTS (
-               SELECT 1 FROM m.especialidades e WHERE LOWER(e.nombre) LIKE LOWER(CONCAT('%', :especialidad, '%'))
+               SELECT 1 FROM m.especialidades e WHERE LOWER(e.nombre) LIKE LOWER(CONCAT('%', CAST(:especialidad AS string), '%'))
            ))
            AND (:estado IS NULL OR
                 (:estado = 'activo' AND u IS NOT NULL) OR

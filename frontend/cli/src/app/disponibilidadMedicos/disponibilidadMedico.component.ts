@@ -1,5 +1,5 @@
-import { Component } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
+
 import { RouterModule, Router } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 import { DisponibilidadMedicoService } from "./disponibilidadMedico.service";
@@ -13,8 +13,9 @@ import { StaffMedico } from "../staffMedicos/staffMedico";
 @Component({
   selector: "app-disponibilidad-medico",
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [RouterModule, FormsModule, PaginationComponent],
   templateUrl: "./disponibilidadMedico.component.html",
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./disponibilidadMedico.component.css",
 })
 export class DisponibilidadMedicoComponent {

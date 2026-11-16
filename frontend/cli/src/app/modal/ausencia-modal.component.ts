@@ -1,12 +1,13 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
     selector: 'app-ausencia-modal',
     standalone: true,
-    imports: [CommonModule],
+    imports: [],
     templateUrl: './ausencia-modal.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './ausencia-modal.component.css'
 })
 export class AusenciaModalComponent {

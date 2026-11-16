@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { DataPackage } from '../data.package';
 import { fadeInAnimation, slideUpAnimation } from '../animations';
@@ -8,9 +8,10 @@ import { ActivacionCuentaService } from './activacion-cuenta.service';
 @Component({
   selector: 'app-activacion-cuenta',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './activacion-cuenta.component.html',
   styleUrls: ['./activacion-cuenta.component.css'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [fadeInAnimation, slideUpAnimation]
 })
 export class ActivacionCuentaComponent implements OnInit {

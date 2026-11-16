@@ -3,14 +3,14 @@
 #
 # Imagen para el desarrollo del client side (angular.io)
 # Destinada para utilizar en el desarrollo del trabajo de laboratorio.
-FROM node:alpine
+FROM node:22-alpine
 
 # Agrega la linea de comando bash
 RUN apk update && apk add --no-cache bash && apk add --no-cache sudo
 
 # Instala los paquetes de dependencias
 RUN npm install -g typescript
-RUN npm install -g @angular/cli
+RUN npm install -g @angular/cli@22
 
 # Establece el directorio de trabajo
 WORKDIR /home/node

@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router } from '@angular/router';
 import { ConsultorioService } from './consultorio.service';
 import { Consultorio } from './consultorio';
@@ -10,8 +10,9 @@ import { PaginationComponent } from '../pagination/pagination.component';
 @Component({
   selector: 'app-consultorios',
   standalone: true,
-  imports: [CommonModule, PaginationComponent],
+  imports: [PaginationComponent],
   templateUrl: './consultorios.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './consultorios.component.css'
 })
 export class ConsultoriosComponent implements OnInit {

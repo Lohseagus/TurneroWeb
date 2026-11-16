@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import unpsjb.labprog.backend.business.repository.AccountActivationTokenRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
 import unpsjb.labprog.backend.model.AccountActivationToken;
@@ -41,6 +44,9 @@ public class AccountActivationService {
     
     @Autowired
     private AuditLogService auditLogService;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
     
     private final SecureRandom secureRandom = new SecureRandom();
     
@@ -96,7 +102,11 @@ public class AccountActivationService {
             LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(tokenExpirationMinutes);
             
             AccountActivationToken activationToken = new AccountActivationToken(token, user, expiresAt);
-            tokenRepository.save(activationToken);
+            // Spring 7 revierte la transacción del @Async si el future termina en error.
+            // El token tiene que quedar commiteado aunque el SMTP falle.
+            TransactionTemplate template = new TransactionTemplate(transactionManager);
+            template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            template.executeWithoutResult(status -> tokenRepository.save(activationToken));
             
             // Construir enlace de activación
             String activationLink = frontendUrl + "/activate-account?token=" + token;

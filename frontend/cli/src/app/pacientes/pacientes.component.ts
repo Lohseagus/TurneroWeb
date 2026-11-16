@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { DeepLinkService } from '../services/deep-link.service';
@@ -25,6 +25,7 @@ interface SortConfig {
   standalone: true,
   imports: [CommonModule, RouterModule, PaginationComponent, FormsModule],
   templateUrl: './pacientes.component.html', 
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./pacientes.component.css']
 })
 export class PacientesComponent implements OnInit {

@@ -1,6 +1,6 @@
-import { Component } from "@angular/core";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
 import { NgForm, FormsModule } from "@angular/forms";
-import { CommonModule } from "@angular/common";
+
 import { Router } from "@angular/router";
 import {
   fadeInAnimation,
@@ -30,9 +30,10 @@ interface UsuarioFormulario {
 
 @Component({
   selector: "app-registro-usuario",
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: "./registro-usuario.component.html",
   styleUrl: "./registro-usuario.component.css",
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [
     fadeInAnimation,
     slideUpAnimation,

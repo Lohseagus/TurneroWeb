@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -27,6 +27,7 @@ import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
       ])
     ])
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medico-horarios.component.css'
 })
 export class MedicoHorariosComponent implements OnInit {

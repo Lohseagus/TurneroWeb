@@ -1,5 +1,5 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { CentroAtencion } from '../../centroAtencion';
 import { MapModalComponent } from '../../../modal/map-modal.component';
@@ -7,8 +7,9 @@ import { MapModalComponent } from '../../../modal/map-modal.component';
 @Component({
   selector: 'app-centro-atencion-detalle-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule, MapModalComponent],
+  imports: [FormsModule, MapModalComponent],
   templateUrl: './centro-atencion-detalle-tab.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./centro-atencion-detalle-tab.component.css']
 })
 export class CentroAtencionDetalleTabComponent implements OnInit, OnChanges {

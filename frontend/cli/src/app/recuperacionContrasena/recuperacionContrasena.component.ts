@@ -1,5 +1,5 @@
 
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -7,7 +7,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { RecuperarContrasenaService } from "./recuperarContrasena.service";
-import { CommonModule } from "@angular/common";
+
 import { ActivatedRoute, Router } from "@angular/router";
 
 @Component({
@@ -15,7 +15,8 @@ import { ActivatedRoute, Router } from "@angular/router";
   standalone: true,
   templateUrl: "./recuperar-contrasena.component.html",
   styleUrls: ["./recuperar-contrasena.component.css"],
-  imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  imports: [ReactiveFormsModule],
 })
 export class RecuperarContrasenaComponent implements OnInit {
 

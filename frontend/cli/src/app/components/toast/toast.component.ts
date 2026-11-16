@@ -1,25 +1,27 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-toast',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="toast-container">
-      <div 
-        *ngFor="let toast of toastService.getToasts()" 
-        class="toast toast-{{toast.type}}">
-        <span class="toast-icon">
-          <span class="material-symbols-outlined">
-            {{ getIcon(toast.type) }}
+      @for (toast of toastService.getToasts(); track toast) {
+        <div
+          class="toast toast-{{toast.type}}">
+          <span class="toast-icon">
+            <span class="material-symbols-outlined">
+              {{ getIcon(toast.type) }}
+            </span>
           </span>
-        </span>
-        <span class="toast-message">{{ toast.message }}</span>
-      </div>
+          <span class="toast-message">{{ toast.message }}</span>
+        </div>
+      }
     </div>
-  `,
+    `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .toast-container {
       position: fixed;

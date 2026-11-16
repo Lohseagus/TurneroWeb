@@ -23,471 +23,520 @@
         <!-- FILTROS Y CONTROLES -->
         <div class="filters-section">
           <div class="filters-container">
-      <!-- BÚSQUEDA POR NOMBRE -->
-      <div class="filter-item filter-search">
-        <label><span class="material-symbols-outlined">search</span> Buscar Centro:</label>
-        <div class="search-wrapper">
-          <input
-            type="text"
-            name="busquedaTexto"
-            class="input-field"
-            [(ngModel)]="busquedaTexto"
-            (input)="buscarCentros()"
-            placeholder="Nombre del centro o dirección..."
-            autocomplete="off"
-          />
-          <button
-            type="button"
-            class="btn-clear"
-            *ngIf="busquedaTexto"
-            (click)="limpiarBusqueda()"
-          >
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-        <div
-          class="search-results"
-          *ngIf="resultadosBusqueda.length > 0 && busquedaTexto"
-        >
-          <div
-            *ngFor="let centro of resultadosBusqueda"
-            class="search-result"
-            (click)="seleccionarCentroEnMapa(centro)"
-          >
-            <div class="result-name">{{ centro.nombre }}</div>
-            <div class="result-address">
-              {{ centro.direccion }}, {{ centro.localidad }}
+            <!-- BÚSQUEDA POR NOMBRE -->
+            <div class="filter-item filter-search">
+              <label><span class="material-symbols-outlined">search</span> Buscar Centro:</label>
+              <div class="search-wrapper">
+                <input
+                  type="text"
+                  name="busquedaTexto"
+                  class="input-field"
+                  [(ngModel)]="busquedaTexto"
+                  (input)="buscarCentros()"
+                  placeholder="Nombre del centro o dirección..."
+                  autocomplete="off"
+                  />
+                @if (busquedaTexto) {
+                  <button
+                    type="button"
+                    class="btn-clear"
+                    (click)="limpiarBusqueda()"
+                    >
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                }
+              </div>
+              @if (resultadosBusqueda.length > 0 && busquedaTexto) {
+                <div
+                  class="search-results"
+                  >
+                  @for (centro of resultadosBusqueda; track centro) {
+                    <div
+                      class="search-result"
+                      (click)="seleccionarCentroEnMapa(centro)"
+                      >
+                      <div class="result-name">{{ centro.nombre }}</div>
+                      <div class="result-address">
+                        {{ centro.direccion }}, {{ centro.localidad }}
+                      </div>
+                      @if (centro.distanciaKm !== undefined) {
+                        <div
+                          class="result-distance"
+                          >
+                          {{ formatDistance(centro.distanciaKm) }}
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
             </div>
-            <div
-              class="result-distance"
-              *ngIf="centro.distanciaKm !== undefined"
-            >
-              {{ formatDistance(centro.distanciaKm) }}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- FILTRO POR ESPECIALIDAD -->
-      <div class="filter-item" *ngIf="esOperador">
-        <label
-          ><span class="material-symbols-outlined">medical_services</span> Filtrar por Especialidad:</label
-        >
-        <select
-          class="input-field"
-          name="especialidadFiltro"
-          [(ngModel)]="especialidadFiltro"
-          (change)="aplicarFiltros()"
-        >
-          <option value="">
-            Todas las especialidades ({{ centrosFiltrados.length }})
-          </option>
-          <option
-            *ngFor="let esp of especialidadesDisponibles"
-            [value]="esp.nombre"
-          >
-            {{ esp.nombre }} ({{ contarCentrosPorEspecialidad(esp.nombre) }})
-          </option>
-        </select>
-      </div>
+            <!-- FILTRO POR ESPECIALIDAD -->
+            @if (esOperador) {
+              <div class="filter-item">
+                <label
+                  ><span class="material-symbols-outlined">medical_services</span> Filtrar por Especialidad:</label
+                  >
+                  <select
+                    class="input-field"
+                    name="especialidadFiltro"
+                    [(ngModel)]="especialidadFiltro"
+                    (change)="aplicarFiltros()"
+                    >
+                    <option value="">
+                      Todas las especialidades ({{ centrosFiltrados.length }})
+                    </option>
+                    @for (esp of especialidadesDisponibles; track esp) {
+                      <option
+                        [value]="esp.nombre"
+                        >
+                        {{ esp.nombre }} ({{ contarCentrosPorEspecialidad(esp.nombre) }})
+                      </option>
+                    }
+                  </select>
+                </div>
+              }
 
-      <!-- CONTROLES DE UBICACIÓN -->
-      <div class="filter-item filter-location">
-        <label><span class="material-symbols-outlined">location_on</span> Ubicación:</label>
-        <div class="location-actions">
-          <button
-            class="btn btn-primary"
-            [class.active]="userLocation"
-            (click)="obtenerUbicacionUsuario()"
-            [disabled]="isLoadingLocation"
+              <!-- CONTROLES DE UBICACIÓN -->
+              <div class="filter-item filter-location">
+                <label><span class="material-symbols-outlined">location_on</span> Ubicación:</label>
+                <div class="location-actions">
+                  <button
+                    class="btn btn-primary"
+                    [class.active]="userLocation"
+                    (click)="obtenerUbicacionUsuario()"
+                    [disabled]="isLoadingLocation"
             [title]="
               userLocation
                 ? 'Click para actualizar ubicación'
                 : 'Obtener mi ubicación'
             "
-          >
-            <span class="material-symbols-outlined">location_on</span>
-            {{
-              isLoadingLocation
-                ? "Ubicando..."
-                : userLocation
-                ? "Ubicado (Refrescar)"
-                : "Mi Ubicación"
-            }}
-            <span class="material-symbols-outlined spinner" *ngIf="isLoadingLocation">progress_activity</span>
-          </button>
+                    >
+                    <span class="material-symbols-outlined">location_on</span>
+                    {{
+                    isLoadingLocation
+                    ? "Ubicando..."
+                    : userLocation
+                    ? "Ubicado (Refrescar)"
+                    : "Mi Ubicación"
+                    }}
+                    @if (isLoadingLocation) {
+                      <span class="material-symbols-outlined spinner">progress_activity</span>
+                    }
+                  </button>
 
-          <button
-            class="btn btn-secondary"
-            (click)="showManualLocationForm = !showManualLocationForm"
-          >
-            <span class="material-symbols-outlined">edit_location</span>
-            Ubicación Manual
-          </button>
+                  <button
+                    class="btn btn-secondary"
+                    (click)="showManualLocationForm = !showManualLocationForm"
+                    >
+                    <span class="material-symbols-outlined">edit_location</span>
+                    Ubicación Manual
+                  </button>
 
-          <button
-            class="btn btn-secondary"
-            [class.active]="modoArrastre"
-            (click)="toggleModoArrastre()"
-            title="Arrastra el mapa para ajustar tu ubicación"
-          >
-            <span class="material-symbols-outlined">open_with</span>
-            {{ modoArrastre ? "✓ Modo Arrastre" : "Ubicación por Arrastre" }}
-          </button>
-        </div>
+                  <button
+                    class="btn btn-secondary"
+                    [class.active]="modoArrastre"
+                    (click)="toggleModoArrastre()"
+                    title="Arrastra el mapa para ajustar tu ubicación"
+                    >
+                    <span class="material-symbols-outlined">open_with</span>
+                    {{ modoArrastre ? "✓ Modo Arrastre" : "Ubicación por Arrastre" }}
+                  </button>
+                </div>
 
-        <!-- FORMULARIO DE UBICACIÓN MANUAL -->
-        <div class="manual-form" *ngIf="showManualLocationForm">
-          <div class="input-group">
-            <input
-              type="text"
-              name="direccionBusqueda"
-              class="input-field"
-              [(ngModel)]="direccionBusqueda"
-              placeholder="Ingresa tu dirección o ciudad"
-              (keyup.enter)="buscarDireccion()"
-            />
-            <button
-              class="btn btn-secondary btn-icon"
-              (click)="buscarDireccion()"
-              [disabled]="!direccionBusqueda"
-            >
-              <span class="material-symbols-outlined">search</span>
-            </button>
-          </div>
+                <!-- FORMULARIO DE UBICACIÓN MANUAL -->
+                @if (showManualLocationForm) {
+                  <div class="manual-form">
+                    <div class="input-group">
+                      <input
+                        type="text"
+                        name="direccionBusqueda"
+                        class="input-field"
+                        [(ngModel)]="direccionBusqueda"
+                        placeholder="Ingresa tu dirección o ciudad"
+                        (keyup.enter)="buscarDireccion()"
+                        />
+                      <button
+                        class="btn btn-secondary btn-icon"
+                        (click)="buscarDireccion()"
+                        [disabled]="!direccionBusqueda"
+                        >
+                        <span class="material-symbols-outlined">search</span>
+                      </button>
+                    </div>
+                    <div class="coord-group">
+                      <input
+                        type="number"
+                        name="latitudManual"
+                        class="input-field"
+                        [(ngModel)]="latitudManual"
+                        placeholder="Latitud"
+                        step="any"
+                        />
+                      <input
+                        type="number"
+                        name="longitudManual"
+                        class="input-field"
+                        [(ngModel)]="longitudManual"
+                        placeholder="Longitud"
+                        step="any"
+                        />
+                      <button
+                        class="btn btn-secondary btn-icon"
+                        (click)="establecerCoordenadas()"
+                        [disabled]="!latitudManual || !longitudManual"
+                        >
+                        <span class="material-symbols-outlined">push_pin</span>
+                      </button>
+                    </div>
+                  </div>
+                }
 
-          <div class="coord-group">
-            <input
-              type="number"
-              name="latitudManual"
-              class="input-field"
-              [(ngModel)]="latitudManual"
-              placeholder="Latitud"
-              step="any"
-            />
-            <input
-              type="number"
-              name="longitudManual"
-              class="input-field"
-              [(ngModel)]="longitudManual"
-              placeholder="Longitud"
-              step="any"
-            />
-            <button
-              class="btn btn-secondary btn-icon"
-              (click)="establecerCoordenadas()"
-              [disabled]="!latitudManual || !longitudManual"
-            >
-              <span class="material-symbols-outlined">push_pin</span>
-            </button>
-          </div>
-        </div>
+                <!-- STATUS DE UBICACIÓN -->
+                @if (userLocation) {
+                  <div class="location-status">
+                    <span class="material-symbols-outlined status-icon success">check_circle</span>
+                    <span class="status-text">
+                      Ubicación establecida
+                      @if (userLocation.source === 'geolocation') {
+                        <small>(GPS)</small>
+                      }
+                      @if (userLocation.source === 'ip') {
+                        <small>(aproximada)</small>
+                      }
+                      @if (userLocation.source === 'manual') {
+                        <small>(manual)</small>
+                      }
+                    </span>
+                  </div>
+                }
 
-        <!-- STATUS DE UBICACIÓN -->
-        <div class="location-status" *ngIf="userLocation">
-          <span class="material-symbols-outlined status-icon success">check_circle</span>
-          <span class="status-text">
-            Ubicación establecida
-            <small *ngIf="userLocation.source === 'geolocation'">(GPS)</small>
-            <small *ngIf="userLocation.source === 'ip'">(aproximada)</small>
-            <small *ngIf="userLocation.source === 'manual'">(manual)</small>
-          </span>
-        </div>
+                <!-- MENSAJE MODO ARRASTRE
+                <div class="drag-mode-info" *ngIf="modoArrastre">
+                  <small class="drag-info-text">
+                    <i class="fas fa-arrows-alt"></i>
+                    🎯 Modo arrastre activo: Mueve el mapa para ajustar tu ubicación. El ícono verde marca tu posición.
+                  </small>
+                </div>-->
 
-        <!-- MENSAJE MODO ARRASTRE 
-            <div class="drag-mode-info" *ngIf="modoArrastre">
-              <small class="drag-info-text">
-                <i class="fas fa-arrows-alt"></i>
-                🎯 Modo arrastre activo: Mueve el mapa para ajustar tu ubicación. El ícono verde marca tu posición.
-              </small>
-            </div>-->
-
-        <div class="location-status error" *ngIf="locationError">
-          <span class="material-symbols-outlined status-icon">warning</span>
-          <span class="status-text">{{ locationError }}</span>
-        </div>
-      </div>
-
-      <!-- RADIO DE BÚSQUEDA -->
-      <div class="filter-item" *ngIf="userLocation">
-        <label><span class="material-symbols-outlined">radio_button_unchecked</span> Radio de búsqueda:</label>
-        <select
-          class="input-field"
-          name="radioMaximo"
-          [(ngModel)]="radioMaximo"
-          (change)="aplicarFiltros()"
-        >
-          <option [value]="10">10 km</option>
-          <option [value]="25">25 km</option>
-          <option [value]="50">50 km</option>
-          <option [value]="100">100 km</option>
-          <option [value]="0">Sin límite</option>
-        </select>
-      </div>
-          </div>
-        </div>
-
-        <!-- RESULTADOS -->
-        <div class="results-header">
-        <h3>
-          <span class="material-symbols-outlined">local_hospital</span>
-          Centros Encontrados <span class="results-count">({{ centrosFiltrados.length }})</span>
-        </h3>
-
-        <div class="results-header-actions" *ngIf="userLocation">
-          <button
-            class="btn btn-sort"
-            [class.active]="ordenadoPorDistancia"
-            (click)="toggleOrdenarPorDistancia()"
-          >
-            <span class="material-symbols-outlined">sort</span>
-            {{
-              ordenadoPorDistancia ? "Por distancia" : "Ordenar por distancia"
-            }}
-          </button>
-        </div>
-      </div>
-
-      <!-- MENSAJE SI NO HAY CENTROS -->
-      <div class="empty-state" *ngIf="centrosFiltrados.length === 0">
-          <span class="material-symbols-outlined empty-icon">location_off</span>
-          <h4>No se encontraron centros</h4>
-          <p *ngIf="radioMaximo > 0 && userLocation">
-            No hay centros dentro de {{ radioMaximo }}km de tu ubicación.
-          </p>
-          <p *ngIf="especialidadFiltro">
-            No hay centros con la especialidad "{{ especialidadFiltro }}"
-            disponible.
-          </p>
-          <div class="empty-actions">
-            <button
-              class="btn btn-secondary"
-              *ngIf="radioMaximo < 100"
-              (click)="ampliarRadio()"
-            >
-              <span class="material-symbols-outlined">zoom_out_map</span>
-              Ampliar radio de búsqueda
-            </button>
-            <button
-              class="btn btn-secondary"
-              *ngIf="especialidadFiltro"
-              (click)="limpiarFiltros()"
-            >
-              <span class="material-symbols-outlined">filter_alt_off</span>
-              Quitar filtros
-            </button>
-          </div>
-      </div>
-
-      <!-- LISTA DE CENTROS -->
-      <div class="results-list" *ngIf="centrosFiltrados.length > 0">
-        <div
-          class="centro-card"
-          *ngFor="let centro of centrosFiltrados; let i = index"
-          [class.selected]="centroActualSeleccionado?.id === centro.id"
-          (click)="seleccionarCentro(centro)"
-        >
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="card-index">{{ i + 1 }}</span>
-                <h4>{{ centro.nombre }}</h4>
+                @if (locationError) {
+                  <div class="location-status error">
+                    <span class="material-symbols-outlined status-icon">warning</span>
+                    <span class="status-text">{{ locationError }}</span>
+                  </div>
+                }
               </div>
-              <span
-                class="distance-badge"
-                *ngIf="centro.distanciaKm !== undefined"
-              >
-                <span class="material-symbols-outlined">route</span>
-                {{ formatDistance(centro.distanciaKm) }}
-              </span>
+
+              <!-- RADIO DE BÚSQUEDA -->
+              @if (userLocation) {
+                <div class="filter-item">
+                  <label><span class="material-symbols-outlined">radio_button_unchecked</span> Radio de búsqueda:</label>
+                  <select
+                    class="input-field"
+                    name="radioMaximo"
+                    [(ngModel)]="radioMaximo"
+                    (change)="aplicarFiltros()"
+                    >
+                    <option [value]="10">10 km</option>
+                    <option [value]="25">25 km</option>
+                    <option [value]="50">50 km</option>
+                    <option [value]="100">100 km</option>
+                    <option [value]="0">Sin límite</option>
+                  </select>
+                </div>
+              }
             </div>
+          </div>
 
-            <div class="card-details">
-              <div class="detail-item">
-                <span class="material-symbols-outlined">location_on</span>
-                <span>{{ centro.direccion }}</span>
+          <!-- RESULTADOS -->
+          <div class="results-header">
+            <h3>
+              <span class="material-symbols-outlined">local_hospital</span>
+              Centros Encontrados <span class="results-count">({{ centrosFiltrados.length }})</span>
+            </h3>
+
+            @if (userLocation) {
+              <div class="results-header-actions">
+                <button
+                  class="btn btn-sort"
+                  [class.active]="ordenadoPorDistancia"
+                  (click)="toggleOrdenarPorDistancia()"
+                  >
+                  <span class="material-symbols-outlined">sort</span>
+                  {{
+                  ordenadoPorDistancia ? "Por distancia" : "Ordenar por distancia"
+                  }}
+                </button>
               </div>
-              <div class="detail-item" *ngIf="centro.localidad">
-                <span class="material-symbols-outlined">location_city</span>
-                <span>{{ centro.localidad }}, {{ centro.provincia }}</span>
-              </div>
-              <div class="detail-item" *ngIf="centro.telefono">
-                <span class="material-symbols-outlined">phone</span>
-                <span>{{ centro.telefono }}</span>
+            }
+          </div>
+
+          <!-- MENSAJE SI NO HAY CENTROS -->
+          @if (centrosFiltrados.length === 0) {
+            <div class="empty-state">
+              <span class="material-symbols-outlined empty-icon">location_off</span>
+              <h4>No se encontraron centros</h4>
+              @if (radioMaximo > 0 && userLocation) {
+                <p>
+                  No hay centros dentro de {{ radioMaximo }}km de tu ubicación.
+                </p>
+              }
+              @if (especialidadFiltro) {
+                <p>
+                  No hay centros con la especialidad "{{ especialidadFiltro }}"
+                  disponible.
+                </p>
+              }
+              <div class="empty-actions">
+                @if (radioMaximo < 100) {
+                  <button
+                    class="btn btn-secondary"
+                    (click)="ampliarRadio()"
+                    >
+                    <span class="material-symbols-outlined">zoom_out_map</span>
+                    Ampliar radio de búsqueda
+                  </button>
+                }
+                @if (especialidadFiltro) {
+                  <button
+                    class="btn btn-secondary"
+                    (click)="limpiarFiltros()"
+                    >
+                    <span class="material-symbols-outlined">filter_alt_off</span>
+                    Quitar filtros
+                  </button>
+                }
               </div>
             </div>
+          }
 
-            <!-- ESPECIALIDADES DISPONIBLES -->
+          <!-- LISTA DE CENTROS -->
+          @if (centrosFiltrados.length > 0) {
+            <div class="results-list">
+              @for (centro of centrosFiltrados; track centro; let i = $index) {
+                <div
+                  class="centro-card"
+                  [class.selected]="centroActualSeleccionado?.id === centro.id"
+                  (click)="seleccionarCentro(centro)"
+                  >
+                  <div class="card-header">
+                    <div class="card-title-group">
+                      <span class="card-index">{{ i + 1 }}</span>
+                      <h4>{{ centro.nombre }}</h4>
+                    </div>
+                    @if (centro.distanciaKm !== undefined) {
+                      <span
+                        class="distance-badge"
+                        >
+                        <span class="material-symbols-outlined">route</span>
+                        {{ formatDistance(centro.distanciaKm) }}
+                      </span>
+                    }
+                  </div>
+                  <div class="card-details">
+                    <div class="detail-item">
+                      <span class="material-symbols-outlined">location_on</span>
+                      <span>{{ centro.direccion }}</span>
+                    </div>
+                    @if (centro.localidad) {
+                      <div class="detail-item">
+                        <span class="material-symbols-outlined">location_city</span>
+                        <span>{{ centro.localidad }}, {{ centro.provincia }}</span>
+                      </div>
+                    }
+                    @if (centro.telefono) {
+                      <div class="detail-item">
+                        <span class="material-symbols-outlined">phone</span>
+                        <span>{{ centro.telefono }}</span>
+                      </div>
+                    }
+                  </div>
+                  <!-- ESPECIALIDADES DISPONIBLES -->
+                  @if (
+                    esOperador &&
+                    centro.especialidadesDisponibles &&
+                    centro.especialidadesDisponibles.length > 0
+                    ) {
+                    <div
+                      class="card-specialties"
+                      >
+                      <div class="specialties-label">
+                        <span class="material-symbols-outlined">medical_services</span>
+                        <span>Especialidades disponibles:</span>
+                      </div>
+                      <div class="specialty-tags">
+                        @for (esp of centro.especialidadesDisponibles; track esp) {
+                          <span
+                            class="tag"
+                            [class.accent]="esp === especialidadFiltro"
+                            >
+                            {{ esp }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                  <div class="card-actions">
+                    <button
+                      class="btn btn-primary"
+                      [routerLink]="['/paciente-agenda']"
+                      [queryParams]="{ centroId: centro.id }"
+                      (click)="close(); $event.stopPropagation()"
+                      title="Ver turnos disponibles en este centro"
+                      >
+                      <span class="material-symbols-outlined">event_available</span>
+                      Ver Turnos
+                    </button>
+                    <button
+                      class="btn btn-secondary btn-icon"
+                      (click)="centrarEnMapa(centro, $event)"
+                      title="Ver en mapa"
+                      >
+                      <span class="material-symbols-outlined">my_location</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- PANEL DEL MAPA (DERECHA) -->
+        <div class="map-panel">
+          <div class="map-wrapper">
+            <div #mapContainer class="map-container">
+              <!-- Ícono verde fijo en el centro para modo arrastre -->
+              @if (modoArrastre) {
+                <div class="drag-indicator">
+                  <span class="material-symbols-outlined pulse">location_on</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Botón para confirmar ubicación -->
+          @if (modoExploracion && userLocation && !ubicacionConfirmada) {
+            <div class="map-actions">
+              <button class="btn btn-primary btn-large" (click)="confirmarUbicacion()">
+                <span class="material-symbols-outlined">check_circle</span>
+                Confirmar mi ubicación y ver centros cercanos
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plantilla del popup (usada por Leaflet, editable desde HTML) -->
+  <script type="text/template" id="centro-popup-template">
+    <div class="centro-popup-compact">
+      <div class="popup-header-compact">
+        <div class="popup-title"><strong>__NOMBRE__</strong></div>
+      </div>
+      <div class="popup-body-compact">
+        <div class="popup-row-compact">
+          <i class="fas fa-map-marker-alt"></i> __DIRECCION__
+        </div>
+        __DISTANCIA__
+        __ESPECIALIDADES_PREVIEW__
+        <div class="popup-actions-compact">
+          <button class="btn-popup-compact btn-popup-primary" onclick="window.centrosModalComponent.abrirModalInfoCentro(__CENTRO_ID__)">
+            <i class="fas fa-info-circle"></i> Ver más información
+          </button>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <!-- MODAL PEQUEÑO DE INFORMACIÓN DEL CENTRO -->
+  @if (mostrarModalInfoCentro && centroInfoModal) {
+    <div
+      class="info-modal-backdrop"
+      (click)="cerrarModalInfoCentro()"
+      >
+      <div class="info-modal-container" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="info-modal-header">
+          <h3>
+            <span class="material-symbols-outlined">local_hospital</span>
+            {{ centroInfoModal.nombre }}
+          </h3>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="cerrarModalInfoCentro()"
+            >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <!-- Body -->
+        <div class="info-modal-body">
+          @if (centroInfoModal.direccion) {
+            <div class="info-item">
+              <span class="material-symbols-outlined">location_on</span>
+              <span>{{ centroInfoModal.direccion }}</span>
+            </div>
+          }
+          @if (centroInfoModal.localidad) {
+            <div class="info-item">
+              <span class="material-symbols-outlined">location_city</span>
+              <span>{{ centroInfoModal.localidad }}, {{ centroInfoModal.provincia }}</span>
+            </div>
+          }
+          @if (centroInfoModal.telefono) {
+            <div class="info-item">
+              <span class="material-symbols-outlined">phone</span>
+              <span>{{ centroInfoModal.telefono }}</span>
+            </div>
+          }
+          @if (centroInfoModal.distanciaKm !== undefined) {
+            <div class="info-item">
+              <span class="material-symbols-outlined">route</span>
+              <span>{{ formatDistance(centroInfoModal.distanciaKm) }}</span>
+            </div>
+          }
+          <!-- Especialidades -->
+          @if (centroInfoModal.especialidadesDisponibles && centroInfoModal.especialidadesDisponibles.length > 0) {
             <div
-              class="card-specialties"
-              *ngIf="
-                esOperador &&
-                centro.especialidadesDisponibles &&
-                centro.especialidadesDisponibles.length > 0
-              "
-            >
+              class="info-specialties"
+              >
               <div class="specialties-label">
                 <span class="material-symbols-outlined">medical_services</span>
-                <span>Especialidades disponibles:</span>
+                <strong>Especialidades disponibles:</strong>
               </div>
               <div class="specialty-tags">
-                <span
-                  class="tag"
-                  *ngFor="let esp of centro.especialidadesDisponibles"
-                  [class.accent]="esp === especialidadFiltro"
-                >
-                  {{ esp }}
-                </span>
+                @for (esp of centroInfoModal.especialidadesDisponibles.slice(0, 5); track esp) {
+                  <span
+                    class="tag"
+                    >
+                    {{ esp }}
+                  </span>
+                }
+                @if (centroInfoModal.especialidadesDisponibles.length > 5) {
+                  <span
+                    class="tag"
+                    >
+                    +{{ centroInfoModal.especialidadesDisponibles.length - 5 }} más
+                  </span>
+                }
               </div>
             </div>
-
-          <div class="card-actions">
-            <button
-              class="btn btn-primary"
-              [routerLink]="['/paciente-agenda']"
-              [queryParams]="{ centroId: centro.id }"
-              (click)="close(); $event.stopPropagation()"
-              title="Ver turnos disponibles en este centro"
-            >
-              <span class="material-symbols-outlined">event_available</span>
-              Ver Turnos
-            </button>
-            <button
-              class="btn btn-secondary btn-icon"
-              (click)="centrarEnMapa(centro, $event)"
-              title="Ver en mapa"
-            >
-              <span class="material-symbols-outlined">my_location</span>
-            </button>
-          </div>
+          }
         </div>
-      </div>
-      </div>
-
-      <!-- PANEL DEL MAPA (DERECHA) -->
-      <div class="map-panel">
-        <div class="map-wrapper">
-          <div #mapContainer class="map-container">
-            <!-- Ícono verde fijo en el centro para modo arrastre -->
-            <div class="drag-indicator" *ngIf="modoArrastre">
-              <span class="material-symbols-outlined pulse">location_on</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Botón para confirmar ubicación -->
-        <div class="map-actions" *ngIf="modoExploracion && userLocation && !ubicacionConfirmada">
-          <button class="btn btn-primary btn-large" (click)="confirmarUbicacion()">
-            <span class="material-symbols-outlined">check_circle</span>
-            Confirmar mi ubicación y ver centros cercanos
+        <!-- Footer con botón -->
+        <div class="info-modal-footer">
+          <button
+            class="btn btn-primary btn-block"
+            [routerLink]="['/paciente-agenda']"
+            [queryParams]="{ centroId: centroInfoModal.id }"
+            (click)="verTurnosCentro(centroInfoModal.id!)"
+            >
+            <span class="material-symbols-outlined">event_available</span>
+            Ver Turnos Disponibles
           </button>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Plantilla del popup (usada por Leaflet, editable desde HTML) -->
-<script type="text/template" id="centro-popup-template">
-  <div class="centro-popup-compact">
-    <div class="popup-header-compact">
-      <div class="popup-title"><strong>__NOMBRE__</strong></div>
-    </div>
-    <div class="popup-body-compact">
-      <div class="popup-row-compact">
-        <i class="fas fa-map-marker-alt"></i> __DIRECCION__
-      </div>
-      __DISTANCIA__
-      __ESPECIALIDADES_PREVIEW__
-      <div class="popup-actions-compact">
-        <button class="btn-popup-compact btn-popup-primary" onclick="window.centrosModalComponent.abrirModalInfoCentro(__CENTRO_ID__)">
-          <i class="fas fa-info-circle"></i> Ver más información
-        </button>
-      </div>
-    </div>
-  </div>
-</script>
-
-<!-- MODAL PEQUEÑO DE INFORMACIÓN DEL CENTRO -->
-<div 
-  class="info-modal-backdrop" 
-  *ngIf="mostrarModalInfoCentro && centroInfoModal"
-  (click)="cerrarModalInfoCentro()"
->
-  <div class="info-modal-container" (click)="$event.stopPropagation()">
-    <!-- Header -->
-    <div class="info-modal-header">
-      <h3>
-        <span class="material-symbols-outlined">local_hospital</span>
-        {{ centroInfoModal.nombre }}
-      </h3>
-      <button 
-        type="button" 
-        class="btn-close" 
-        (click)="cerrarModalInfoCentro()"
-      >
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-
-    <!-- Body -->
-    <div class="info-modal-body">
-      <div class="info-item" *ngIf="centroInfoModal.direccion">
-        <span class="material-symbols-outlined">location_on</span>
-        <span>{{ centroInfoModal.direccion }}</span>
-      </div>
-      
-      <div class="info-item" *ngIf="centroInfoModal.localidad">
-        <span class="material-symbols-outlined">location_city</span>
-        <span>{{ centroInfoModal.localidad }}, {{ centroInfoModal.provincia }}</span>
-      </div>
-      
-      <div class="info-item" *ngIf="centroInfoModal.telefono">
-        <span class="material-symbols-outlined">phone</span>
-        <span>{{ centroInfoModal.telefono }}</span>
-      </div>
-      
-      <div class="info-item" *ngIf="centroInfoModal.distanciaKm !== undefined">
-        <span class="material-symbols-outlined">route</span>
-        <span>{{ formatDistance(centroInfoModal.distanciaKm) }}</span>
-      </div>
-
-      <!-- Especialidades -->
-      <div 
-        class="info-specialties" 
-        *ngIf="centroInfoModal.especialidadesDisponibles && centroInfoModal.especialidadesDisponibles.length > 0"
-      >
-        <div class="specialties-label">
-          <span class="material-symbols-outlined">medical_services</span>
-          <strong>Especialidades disponibles:</strong>
-        </div>
-        <div class="specialty-tags">
-          <span 
-            class="tag" 
-            *ngFor="let esp of centroInfoModal.especialidadesDisponibles.slice(0, 5)"
-          >
-            {{ esp }}
-          </span>
-          <span 
-            class="tag" 
-            *ngIf="centroInfoModal.especialidadesDisponibles.length > 5"
-          >
-            +{{ centroInfoModal.especialidadesDisponibles.length - 5 }} más
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer con botón -->
-    <div class="info-modal-footer">
-      <button
-        class="btn btn-primary btn-block"
-        [routerLink]="['/paciente-agenda']"
-        [queryParams]="{ centroId: centroInfoModal.id }"
-        (click)="verTurnosCentro(centroInfoModal.id!)"
-      >
-        <span class="material-symbols-outlined">event_available</span>
-        Ver Turnos Disponibles
-      </button>
-    </div>
-  </div>
-</div>
+  }

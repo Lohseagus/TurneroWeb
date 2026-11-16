@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, EventEmitter, Output, ViewChild, ElementRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import * as L from 'leaflet';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms'; // Importar FormsModule
@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms'; // Importar FormsModule
   standalone: true, // Declarar como componente standalone
   imports: [FormsModule], // Importar FormsModule aquí
   templateUrl: './map-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './map-modal.component.css'
 })
 export class MapModalComponent implements AfterViewInit {

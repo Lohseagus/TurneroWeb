@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { trigger, state, style, transition, animate } from '@angular/animations';
@@ -26,9 +26,10 @@ interface SlotDisponible {
 
 @Component({
   selector: 'app-paciente-reagendar-turno',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './paciente-reagendar-turno.component.html', 
   styleUrl: './paciente-reagendar-turno.component.css',
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [
     trigger('slideDown', [
       state('collapsed', style({

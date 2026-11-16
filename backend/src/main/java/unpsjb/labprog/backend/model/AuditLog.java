@@ -10,8 +10,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -64,10 +66,13 @@ public class AuditLog {
     @Column(length = 500)
     private String estadoNuevo; // Nuevo estado (genérico, puede ser JSON)
 
-    @Lob
+    // Hibernate 6.2+ mapea @Lob String a oid en PostgreSQL. En producción estas columnas son text.
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(columnDefinition = "text")
     private String oldValues; // JSON con valores anteriores de la entidad
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(columnDefinition = "text")
     private String newValues; // JSON con nuevos valores de la entidad
     // TODO: BUG - Verificar que la columna en DB sea TEXT/JSON, no INTEGER. Actualmente se guarda hashCode del Map en lugar de JSON.
 

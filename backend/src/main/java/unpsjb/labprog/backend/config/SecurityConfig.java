@@ -79,8 +79,7 @@ public class SecurityConfig {
      */
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
@@ -110,16 +109,15 @@ public class SecurityConfig {
      */
     @Bean
     public RoleHierarchy roleHierarchy() {
-        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        // Definir jerarquía: ADMINISTRADOR incluye todos, MEDICO y OPERADOR incluyen PACIENTE
-        roleHierarchy.setHierarchy(
+        // Misma jerarquía de antes. fromHierarchy reemplaza al constructor y a setHierarchy, deprecados.
+        return RoleHierarchyImpl.fromHierarchy(
+            "ROLE_SUPERADMIN > ROLE_ADMINISTRADOR\n" +
             "ROLE_ADMINISTRADOR > ROLE_MEDICO\n" +
             "ROLE_ADMINISTRADOR > ROLE_OPERADOR\n" +
             "ROLE_ADMINISTRADOR > ROLE_PACIENTE\n" +
             "ROLE_MEDICO > ROLE_PACIENTE\n" +
             "ROLE_OPERADOR > ROLE_PACIENTE"
         );
-        return roleHierarchy;
     }
 
     /**
@@ -201,77 +199,66 @@ public class SecurityConfig {
                         // MODO PRODUCCIÓN - CONTROL DE ROLES
                         // =================================
 
-                        // ========== ENDPOINTS PÚBLICOS ==========
+                        // Las reglas van de la más específica a la más amplia: gana la primera.
+                        // Los controllers viven bajo /api. Las rutas viejas sin ese prefijo
+                        // ( /turnos, /pacientes, /agenda ) no matcheaban nada.
                         auth
-                                // Endpoint raíz y health checks
                                 .requestMatchers("/", "/health", "/actuator/**").permitAll()
-                                // Autenticación y recuperación de contraseñas
                                 .requestMatchers("/api/auth/**").permitAll()
-                                // Auto-registro de pacientes (público)
-                                .requestMatchers("/registro-usuario").permitAll()
-                                // Activación de cuentas
-                                .requestMatchers("/activate-account").permitAll()
-                                // Consulta pública de turnos disponibles (sin información sensible)
-                                .requestMatchers(HttpMethod.GET, "/agenda/publica").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/agenda/publica", "/api/agenda/publica/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/deep-links/validate").permitAll()
 
-                                // ========== ENDPOINTS SOLO ADMINISTRADOR ==========
-                                // Rutas que requieren AdminGuard en el frontend
-                                .requestMatchers("/turnos/advanced-search/**").hasRole("ADMINISTRADOR")
-                                .requestMatchers("/turnos/audit-dashboard/**").hasRole("ADMINISTRADOR")
-                                .requestMatchers("/turnos/{id}/edit").hasRole("ADMINISTRADOR")
-                                .requestMatchers("/especialidades/**").hasRole("ADMINISTRADOR")
-                                .requestMatchers("/admin-dashboard/**").hasRole("ADMINISTRADOR")
-                                .requestMatchers("/admin-perfil/**").hasRole("ADMINISTRADOR")
-                                // Gestión de administradores (solo admin puede gestionar otros admins)
+                                // SUPERADMIN. El alta de operadores del centro sigue siendo de ADMINISTRADOR.
+                                .requestMatchers("/api/email/**").hasRole("SUPERADMIN")
+                                .requestMatchers("/api/role-management/**").hasRole("SUPERADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/admins/operadores").hasRole("ADMINISTRADOR")
+                                .requestMatchers(HttpMethod.GET, "/api/admins").hasRole("SUPERADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/admins").hasRole("SUPERADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/admins/**").hasRole("SUPERADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/admins/**").hasRole("SUPERADMIN")
                                 .requestMatchers("/api/admins/**").hasRole("ADMINISTRADOR")
 
-                                // ========== ENDPOINTS SOLO PACIENTE ==========
-                                // Rutas que requieren PatientGuard en el frontend
-                                .requestMatchers("/paciente-dashboard/**").hasRole("PACIENTE")
-                                .requestMatchers("/paciente-agenda/**").hasRole("PACIENTE")
-                                .requestMatchers("/paciente-notificaciones/**").hasRole("PACIENTE")
-                                .requestMatchers("/paciente-perfil/**").hasRole("PACIENTE")
-                                .requestMatchers("/paciente-reagendar-turno/**").hasRole("PACIENTE")
+                                // Autoservicio del paciente (y de quien hereda PACIENTE).
+                                .requestMatchers("/api/pacientes/me/**").hasRole("PACIENTE")
+                                .requestMatchers("/api/pacientes/sync-current-user").authenticated()
+                                .requestMatchers("/api/notificaciones/**").hasRole("PACIENTE")
+                                .requestMatchers("/api/encuestas/**").hasRole("PACIENTE")
+                                .requestMatchers("/api/turno/historial/**").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.POST, "/api/turno/asignar").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.POST, "/api/lista-espera").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.GET, "/api/agenda/**").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.GET, "/api/especialidades", "/api/especialidades/**").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.GET, "/api/obra-social", "/api/obra-social/**").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.GET, "/api/centrosAtencion", "/api/centrosAtencion/**").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.GET, "/api/medicos", "/api/medicos/**").hasRole("PACIENTE")
 
-                                // ========== ENDPOINTS SOLO MÉDICO ==========
-                                // Rutas que requieren MedicoGuard en el frontend
-                                .requestMatchers("/medico-dashboard/**").hasRole("MEDICO")
-                                .requestMatchers("/medico-horarios/**").hasRole("MEDICO")
-                                .requestMatchers("/medico-estadisticas/**").hasRole("MEDICO")
-                                .requestMatchers("/medico-perfil/**").hasRole("MEDICO")
+                                // Administración
+                                .requestMatchers("/api/admin-dashboard/**", "/api/admin/encuestas/**", "/api/audit/**").hasRole("ADMINISTRADOR")
+                                .requestMatchers(HttpMethod.POST, "/api/especialidades/**").hasRole("ADMINISTRADOR")
+                                .requestMatchers(HttpMethod.PUT, "/api/especialidades/**").hasRole("ADMINISTRADOR")
+                                .requestMatchers(HttpMethod.DELETE, "/api/especialidades/**").hasRole("ADMINISTRADOR")
+                                .requestMatchers("/api/deep-links/cleanup").hasRole("ADMINISTRADOR")
 
-                                // ========== ENDPOINTS SOLO OPERADOR ==========
-                                // Rutas que requieren OperadorGuard en el frontend
-                                .requestMatchers("/operador-dashboard/**").hasRole("OPERADOR")
-                                .requestMatchers("/operador-agenda/**").hasRole("OPERADOR")
-                                .requestMatchers("/operador-perfil/**").hasRole("OPERADOR")
+                                // Médico, operador y administrador operan turnos y horarios.
+                                .requestMatchers("/api/disponibilidades-medico/**").hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
+                                .requestMatchers("/api/turno/**").hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
 
-                                // ========== ENDPOINTS ADMIN + OPERADOR ==========
-                                // Rutas que requieren AdminOperadorGuard en el frontend
-                                .requestMatchers("/turnos/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/agenda/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/pacientes/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/obraSocial/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/centrosAtencion/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/consultorios/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/medicos/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/staffMedico/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/disponibilidades-medico/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/esquema-turno/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-                                .requestMatchers("/operadores/**").hasAnyRole("OPERADOR", "ADMINISTRADOR")
+                                // Gestión de catálogo: administrador y operador.
+                                .requestMatchers(
+                                        "/api/agenda/**",
+                                        "/api/pacientes/**",
+                                        "/api/obra-social/**",
+                                        "/api/centrosAtencion/**",
+                                        "/api/consultorios/**",
+                                        "/api/medicos/**",
+                                        "/api/staff-medico/**",
+                                        "/api/esquema-turno/**",
+                                        "/api/operadores/**",
+                                        "/api/export/**",
+                                        "/api/lista-espera/**",
+                                        "/api/config/**")
+                                .hasAnyRole("ADMINISTRADOR", "OPERADOR")
 
-
-                                // ========== NUEVA REGLA PARA CONFIGURACIONES ==========
-                                // Rutas para la pantalla de configuración (/rest/config/**)
-                                .requestMatchers("/config/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
-
-                                // ========== ENDPOINTS CON AUTENTICACIÓN GENERAL ==========
-                                // Endpoints de utilidad que requieren estar logueado
-                                .requestMatchers("/roles/**").authenticated()
-                                .requestMatchers("/debug/tokens").authenticated()
-
-                                // ========== RESTO DE ENDPOINTS ==========
-                                // Cualquier otro endpoint requiere autenticación
                                 .anyRequest().authenticated();
                     }
                 })

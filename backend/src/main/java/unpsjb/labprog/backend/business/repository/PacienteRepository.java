@@ -47,10 +47,10 @@ public interface PacienteRepository extends JpaRepository<Paciente, Integer> {
     @Query("""
         SELECT p FROM Paciente p
         WHERE (:nombreApellido IS NULL OR
-               LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombreApellido, '%')) OR
-               LOWER(p.apellido) LIKE LOWER(CONCAT('%', :nombreApellido, '%')))
-           AND (:documento IS NULL OR CAST(p.dni AS string) LIKE CONCAT('%', :documento, '%'))
-           AND (:email IS NULL OR LOWER(p.email) LIKE LOWER(CONCAT('%', :email, '%')))
+               LOWER(p.nombre) LIKE LOWER(CONCAT('%', CAST(:nombreApellido AS string), '%')) OR
+               LOWER(p.apellido) LIKE LOWER(CONCAT('%', CAST(:nombreApellido AS string), '%')))
+           AND (:documento IS NULL OR CAST(p.dni AS string) LIKE CONCAT('%', CAST(:documento AS string), '%'))
+           AND (:email IS NULL OR LOWER(p.email) LIKE LOWER(CONCAT('%', CAST(:email AS string), '%')))
         """)
     Page<Paciente> findByFiltros(@Param("nombreApellido") String nombreApellido,
                                  @Param("documento") String documento,
@@ -103,10 +103,10 @@ public interface PacienteRepository extends JpaRepository<Paciente, Integer> {
         JOIN StaffMedico sm ON t.staffMedico.id = sm.id
         WHERE sm.centroAtencion.id = :centroId
            AND (:nombreApellido IS NULL OR
-                LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombreApellido, '%')) OR
-                LOWER(p.apellido) LIKE LOWER(CONCAT('%', :nombreApellido, '%')))
-           AND (:documento IS NULL OR CAST(p.dni AS string) LIKE CONCAT('%', :documento, '%'))
-           AND (:email IS NULL OR LOWER(p.email) LIKE LOWER(CONCAT('%', :email, '%')))
+                LOWER(p.nombre) LIKE LOWER(CONCAT('%', CAST(:nombreApellido AS string), '%')) OR
+                LOWER(p.apellido) LIKE LOWER(CONCAT('%', CAST(:nombreApellido AS string), '%')))
+           AND (:documento IS NULL OR CAST(p.dni AS string) LIKE CONCAT('%', CAST(:documento AS string), '%'))
+           AND (:email IS NULL OR LOWER(p.email) LIKE LOWER(CONCAT('%', CAST(:email AS string), '%')))
         """)
     Page<Paciente> findByFiltrosAndCentro(@Param("nombreApellido") String nombreApellido,
                                           @Param("documento") String documento,

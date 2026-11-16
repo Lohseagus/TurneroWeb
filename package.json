@@ -1,9 +1,5 @@
 {
   "dependencies": {
-    "angular-calendar": "^0.31.1",
-    "date-fns": "^4.1.0"
-  },
-  "devDependencies": {
-    "@types/date-fns": "^2.6.3"
+    "date-fns": "^4.4.0"
   }
 }
