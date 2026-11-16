@@ -1,161 +1,57 @@
-# 🔐 Credenciales de Acceso - TurneroWeb Multi-Tenant
+# Credenciales de acceso - CheTurno
 
-## Credenciales por Rol
+Todas las cuentas de esta página usan la contraseña `password`.
 
-> **Nota:** Todas las contraseñas son: `password`
+- `staging/poblacion_demo.sql` crea todas las cuentas (las que falten) y los datos para que cada panel tenga contenido: 53 centros en todo el país, médicos con agenda, pacientes y turnos pasados y futuros.
+- `staging/userinit.sql` es el juego mínimo de la suite multi-tenant: solo crea las marcadas con ✓ en la columna "userinit".
 
----
+El backend además crea al arrancar un superadmin propio con las variables `ADMIN_SEED_*` (por defecto `admin@turneroweb.com`).
 
-## 👤 SUPERADMIN (Acceso Global)
+## Superadmin (acceso a todos los centros)
 
-| Email | Password | Nombre Completo | Centro Asignado |
-|-------|----------|-----------------|-----------------|
-| superadmin@turnero.com | password | Super Administrador | *(acceso a todos)* |
+| Email | Nombre | userinit |
+|-------|--------|----------|
+| superadmin@turnero.com | Super Administrador | ✓ |
 
----
+## Administradores y operadores (un centro cada uno)
 
-## 🏥 ADMINISTRADORES DE CENTRO
+| Centro | Administrador | Operadores | userinit |
+|--------|---------------|------------|----------|
+| Clínica Santa María | admin.santamaria@turnero.com | operador1.santamaria@turnero.com, operador2.santamaria@turnero.com | ✓ |
+| Clínica del Sur | admin.delsur@turnero.com | operador1.delsur@turnero.com, operador2.delsur@turnero.com | ✓ |
+| Consultorios del Sol | admin.delsol@turnero.com | operador1.delsol@turnero.com, operador2.delsol@turnero.com | ✓ |
 
-| Email | Password | Nombre Completo | Centro Asignado | Centro ID |
-|-------|----------|-----------------|-----------------|-----------|
-| admin.santamaria@turnero.com | password | Carlos Rodríguez | Clínica Santa María | 1 |
-| admin.delsur@turnero.com | password | Laura Fernández | Clínica del Sur | 2 |
-| admin.delsol@turnero.com | password | Roberto Sánchez | Consultorios del Sol | 3 |
+Los otros 50 centros de la población (hospitales y sanatorios reales de todo el país) no tienen administrador ni operador propio: se ven y se gestionan con el superadmin.
 
----
+## Médicos
 
-## 💼 OPERADORES
+| Email | Nombre | Especialidad | Atiende en | userinit |
+|-------|--------|--------------|------------|----------|
+| medico@turnero.com | Dr. Juan Pérez | Cardiología | Clínica Santa María (lun, mié y vie 8-11), Clínica del Sur (mar y jue 8-11), Consultorios del Sol (lun y mié 14-17) | ✓ |
+| medico.pediatria@turnero.com | María García | Pediatría | Clínica Santa María (mar y jue 8-11) | |
+| medico.traumatologia@turnero.com | Ricardo Benítez | Traumatología | Clínica Santa María (lun y mié 14-17) | |
+| medico.clinica@turnero.com | Andrea Suárez | Clínica Médica | Clínica Santa María (mar y jue 14-17) | |
 
-### Clínica Santa María (Centro ID: 1)
+Estos cuatro tienen 9 meses de historial; el panel del médico muestra los turnos del primer centro de la lista. La población agrega unos 135 médicos más (nombres ficticios, sin cuenta de login), entre 2 y 4 por centro.
 
-| Email | Password | Nombre Completo | DNI |
-|-------|----------|-----------------|-----|
-| operador1.santamaria@turnero.com | password | Ana Martínez | 22222221 |
-| operador2.santamaria@turnero.com | password | Pedro López | 22222222 |
+## Pacientes
 
-### Clínica del Sur (Centro ID: 2)
+| Email | Nombre | Centro donde tiene sus turnos | userinit |
+|-------|--------|-------------------------------|----------|
+| paciente1.santamaria@turnero.com | María González | Clínica Santa María | ✓ |
+| paciente2.santamaria@turnero.com | José Ramírez | Clínica Santa María | ✓ |
+| paciente1.delsur@turnero.com | Lucía Morales | Clínica del Sur | ✓ |
+| paciente2.delsur@turnero.com | Fernando Silva | Clínica del Sur | ✓ |
+| paciente1.delsol@turnero.com | Sofía Vargas | Consultorios del Sol | ✓ |
+| paciente2.delsol@turnero.com | Diego Ortiz | Consultorios del Sol | ✓ |
 
-| Email | Password | Nombre Completo | DNI |
-|-------|----------|-----------------|-----|
-| operador1.delsur@turnero.com | password | Marta Gómez | 22222223 |
-| operador2.delsur@turnero.com | password | Jorge Díaz | 22222224 |
+Cada uno tiene unos 10 turnos pasados, 2 o 3 próximos (confirmados) y notificaciones. `userinit.sql` crea además `aguspalqui@hotmail.com`; la población no le asigna turnos. Los ~1800 pacientes generados usan `@example.com` y no tienen login.
 
-### Consultorios del Sol (Centro ID: 3)
+## Cargar la población
 
-| Email | Password | Nombre Completo | DNI |
-|-------|----------|-----------------|-----|
-| operador1.delsol@turnero.com | password | Silvia Torres | 22222225 |
-| operador2.delsol@turnero.com | password | Miguel Castro | 22222226 |
+```bash
+cd testing && npm run db:demo        # contra la base de PGHOST/PGUSER/PGPASSWORD/PGDATABASE
+./lpl staging poblacion_demo         # contra el stack de desarrollo
+```
 
----
-
-## 👨‍⚕️ MÉDICOS (Global)
-
-| Email | Password | Nombre Completo | DNI | Matrícula | Especialidad | Centros Asociados |
-|-------|----------|-----------------|-----|-----------|--------------|-------------------|
-| medico@turnero.com | password | Dr. Juan Pérez | 33333333 | MP-12345 | Cardiología | *Trabaja en los 3 centros* |
-
----
-
-## 🧑‍🤝‍🧑 PACIENTES
-
-### Asociados a Clínica Santa María
-
-| Email | Password | Nombre Completo | DNI | Fecha Nacimiento | Obra Social |
-|-------|----------|-----------------|-----|------------------|-------------|
-| paciente1.santamaria@turnero.com | password | María González | 44444441 | 15/03/1985 | OSDE |
-| paciente2.santamaria@turnero.com | password | José Ramírez | 44444442 | 22/07/1990 | OSDE |
-
-### Asociados a Clínica del Sur
-
-| Email | Password | Nombre Completo | DNI | Fecha Nacimiento | Obra Social |
-|-------|----------|-----------------|-----|------------------|-------------|
-| paciente1.delsur@turnero.com | password | Lucía Morales | 44444443 | 30/11/1988 | Swiss Medical |
-| paciente2.delsur@turnero.com | password | Fernando Silva | 44444444 | 18/05/1992 | Swiss Medical |
-
-### Asociados a Consultorios del Sol
-
-| Email | Password | Nombre Completo | DNI | Fecha Nacimiento | Obra Social |
-|-------|----------|-----------------|-----|------------------|-------------|
-| paciente1.delsol@turnero.com | password | Sofía Vargas | 44444445 | 12/01/1995 | Galeno |
-| paciente2.delsol@turnero.com | password | Diego Ortiz | 44444446 | 25/09/1987 | Galeno |
-
-### Pacientes Globales
-
-| Email | Password | Nombre Completo | DNI | Fecha Nacimiento | Obra Social |
-|-------|----------|-----------------|-----|------------------|-------------|
-| aguspalqui@hotmail.com | password | Agustín Palma | 43808170 | 15/05/2002 | OSDE |
-
----
-
-## 📊 Resumen de Estructura
-
-### Centros de Atención
-
-| ID | Nombre | Dirección | Localidad | Teléfono |
-|----|--------|-----------|-----------|----------|
-| 1 | Clínica Santa María | Av. San Martín 123 | Trelew, Chubut | +5492804501111 |
-| 2 | Clínica del Sur | Calle Belgrano 456 | Trelew, Chubut | +5492804502222 |
-| 3 | Consultorios del Sol | Av. Fontana 789 | Trelew, Chubut | +5492804503333 |
-
-### Obras Sociales
-
-| ID | Nombre | Código |
-|----|--------|--------|
-| 1 | OSDE | OSDE001 |
-| 2 | Swiss Medical | SWISS001 |
-| 3 | Galeno | GALENO001 |
-
-### Especialidades
-
-| ID | Nombre |
-|----|--------|
-| 1 | Cardiología |
-| 2 | Pediatría |
-| 3 | Traumatología |
-
----
-
-## 🔍 Guía Rápida de Pruebas
-
-### Escenarios de Prueba Recomendados:
-
-1. **Login como SUPERADMIN**
-   - Email: `superadmin@turnero.com`
-   - Verificar acceso a todos los centros
-   - Probar gestión global de centros
-
-2. **Login como ADMINISTRADOR**
-   - Email: `admin.santamaria@turnero.com`
-   - Verificar acceso solo a Clínica Santa María (ID: 1)
-   - Probar gestión de operadores y consultorios
-
-3. **Login como OPERADOR**
-   - Email: `operador1.santamaria@turnero.com`
-   - Verificar gestión de turnos para Clínica Santa María
-   - Probar asignación de turnos con Dr. Juan Pérez
-
-4. **Login como MÉDICO**
-   - Email: `medico@turnero.com`
-   - Verificar visibilidad de turnos en los 3 centros
-   - Probar acceso a agenda en múltiples clínicas
-
-5. **Login como PACIENTE**
-   - Email: `aguspalqui@hotmail.com`
-   - Verificar solicitud de turnos en cualquier centro
-   - Probar acceso a historial de turnos
-
----
-
-## 📝 Notas Importantes
-
-- **Centro NULL**: SUPERADMIN, MÉDICO y PACIENTE no tienen centro asignado (`centro_atencion_id = NULL`)
-- **Centro Específico**: ADMINISTRADOR y OPERADOR tienen `centro_atencion_id` asignado
-- **StaffMedico**: Dr. Juan Pérez está asociado a los 3 centros via tabla `staff_medico`
-- **Consultorios**: Cada centro tiene 4 consultorios (numerados 1-4)
-- **Hash Password**: `$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi` (BCrypt de "password")
-
----
-
-*Generado desde: `staging/userinit.sql`*
-*Fecha: 11 de diciembre de 2025*
+Se puede correr con el backend levantado y repetir cuando haga falta: borra los datos de dominio generados (turnos, agendas, médicos y pacientes sin login) y los regenera con fechas relativas a hoy. No borra ni modifica cuentas de `users`.

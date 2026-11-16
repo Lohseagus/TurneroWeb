@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Levanta Postgres + backend y corre la suite Cucumber.
-# Requiere Docker Compose y Node en el host.
+# Levanta Postgres + backend, corre la suite Cucumber y deja la base con la
+# población demo (staging/poblacion_demo.sql) para seguir probando a mano.
+# Requiere Docker Compose y Node en el host. SKIP_DEMO=1 saltea la población.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -32,4 +33,16 @@ else
   npm install
 fi
 
+# La suite deja la base con datos de prueba. Pase o falle, se repuebla después
+# y el script termina con el resultado de los tests.
+set +e
 npm test
+resultado=$?
+set -e
+
+if [ "${SKIP_DEMO:-0}" != "1" ]; then
+  echo "Cargando la población demo..."
+  npm run db:demo
+fi
+
+exit "$resultado"

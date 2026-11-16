@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { TurnoService } from '../turnos/turno.service';
 import { DisponibilidadMedicoService } from '../disponibilidadMedicos/disponibilidadMedico.service';
@@ -492,7 +493,7 @@ Posible problema de configuración. Verifique:
       return;
     }
 
-    console.log('� OPTIMIZADO: Cargando TODOS los datos en UNA sola consulta');
+    console.log('� Cargando los turnos del panel en dos consultas');
     console.log('StaffMedicoId:', this.staffMedicoId);
 
     const hoy = new Date().toISOString().split('T')[0];
@@ -505,17 +506,33 @@ Posible problema de configuración. Verifique:
     console.log('Fecha mañana:', manana);
     console.log('Rango semana:', { inicioSemana, finSemana });
 
-    // === UNA SOLA CONSULTA PARA TODOS LOS TURNOS DEL MÉDICO ===
-    const filtrosCompletos = {
-      staffMedicoId: this.staffMedicoId,
-      sortBy: 'fecha',
-      size: 100  // Traer todos los turnos del médico
-    };
-    console.log('🎯 Filtros ÚNICOS para TODOS los turnos:', filtrosCompletos);
+    // El backend devuelve como máximo 100 turnos por página. Con una sola consulta
+    // ordenada por fecha, un médico con historial recibía solo sus 100 turnos más
+    // viejos y el panel mostraba 0 turnos para hoy. Se piden dos ventanas: desde el
+    // lunes de esta semana en adelante, y los 100 turnos anteriores más recientes.
+    const domingoAnterior = this.getStartOfWeek(new Date());
+    domingoAnterior.setDate(domingoAnterior.getDate() - 1);
+    const finSemanaAnterior = domingoAnterior.toISOString().split('T')[0];
 
-    this.turnoService.searchWithFilters(filtrosCompletos).subscribe({
-      next: (response) => {
-        const todosTurnos = response.data?.content || response.data || [];
+    const proximos$ = this.turnoService.searchWithFilters({
+      staffMedicoId: this.staffMedicoId,
+      fechaDesde: inicioSemana,
+      sortBy: 'fecha',
+      sortDirection: 'ASC',
+      size: 100
+    });
+    const anteriores$ = this.turnoService.searchWithFilters({
+      staffMedicoId: this.staffMedicoId,
+      fechaHasta: finSemanaAnterior,
+      sortBy: 'fecha',
+      sortDirection: 'DESC',
+      size: 100
+    });
+
+    forkJoin([anteriores$, proximos$]).subscribe({
+      next: ([anteriores, proximos]) => {
+        const contenido = (response: any): any[] => response.data?.content || response.data || [];
+        const todosTurnos = [...contenido(anteriores).reverse(), ...contenido(proximos)];
         console.log('✅ TODOS los turnos del médico cargados:', todosTurnos.length);
         console.log('✅ Datos completos:', todosTurnos);
 
@@ -572,7 +589,7 @@ Posible problema de configuración. Verifique:
           });
         }
 
-        console.log('🎉 OPTIMIZACIÓN COMPLETA: 1 consulta en lugar de 6');
+        console.log('🎉 Panel cargado con 2 consultas');
       },
       error: (error) => {
         console.error('❌ Error al cargar datos:', error);
