@@ -1,0 +1,14 @@
+{
+  "/rest": {
+    "target": "https://cheturno.site",
+    "secure": true,
+    "changeOrigin": true,
+    "headers": {
+      "Origin": "https://cheturno.site",
+      "Referer": "https://cheturno.site/"
+    },
+    "pathRewrite": {
+      "^/rest": "/api"
+    }
+  }
+}
