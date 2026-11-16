@@ -228,6 +228,16 @@
           </div>
         </div>
 
+        <div class="hce-actions">
+          <button type="button" class="btn btn-primary" (click)="iniciarConsulta(turno)">
+            <span class="material-symbols-outlined">clinical_notes</span>
+            Iniciar consulta
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="verHistoria(turno)">
+            Historia clínica
+          </button>
+        </div>
+
         <!-- Control de Asistencia -->
         <div class="attendance-controls" *ngIf="isTurnoCompletado(turno)">
           <div class="toggle-container">

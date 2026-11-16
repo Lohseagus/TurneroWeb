@@ -40,6 +40,13 @@ public class Paciente extends Persona {
     @Column(nullable = false)
     private boolean profileCompleted = false;
 
+    /**
+     * Identificador del paciente en un federador (Red Nacional de Salud Digital).
+     * Opcional hasta que exista la integración.
+     */
+    @Column(length = 120)
+    private String identificadorFederado;
+
     @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private Set<PreferenciaHoraria> preferenciasHorarias = new HashSet<>();

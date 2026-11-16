@@ -1,0 +1,20 @@
+package unpsjb.labprog.backend.model.hce;
+
+public enum AccionAuditoriaHce {
+    VER_PERFIL,
+    VER_TIMELINE,
+    VER_CONSULTA,
+    CREAR_CONSULTA,
+    ACTUALIZAR_CONSULTA,
+    CERRAR_CONSULTA,
+    ENMIENDA,
+    SUBIR_ADJUNTO,
+    DESCARGAR_ADJUNTO,
+    EXPORTAR_PDF,
+    EXPORTAR_FHIR,
+    ACTUALIZAR_PERFIL,
+    VER_METADATA,
+    VER_AUDITORIA,
+    CONSENTIMIENTO,
+    ACCESO_DENEGADO
+}

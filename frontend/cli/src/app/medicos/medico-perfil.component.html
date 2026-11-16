@@ -68,6 +68,14 @@
           </div>
 
           <div class="info-card">
+            <label>REFEPS</label>
+            <div class="info-value">
+              <i class="fas fa-id-card me-2"></i>
+              {{ medicoActual?.refepsId || "Sin identificador" }}
+            </div>
+          </div>
+
+          <div class="info-card">
             <label>Especialidad(es)</label>
             <div class="info-value">
               <i class="fas fa-stethoscope me-2"></i>
@@ -200,6 +208,17 @@
                     >Formato inválido (7-9 dígitos)</small
                   >
                 </div>
+              </div>
+
+              <div class="form-group">
+                <label for="refepsId">REFEPS</label>
+                <input
+                  type="text"
+                  id="refepsId"
+                  class="form-control"
+                  formControlName="refepsId"
+                  placeholder="Identificador nacional, opcional"
+                />
               </div>
 
               <div class="form-group">

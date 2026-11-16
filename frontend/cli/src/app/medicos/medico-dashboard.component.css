@@ -1009,3 +1009,10 @@ input:disabled + .slider {
     margin-top: var(--space-sm);
   }
 }
+
+.hce-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-md);
+}

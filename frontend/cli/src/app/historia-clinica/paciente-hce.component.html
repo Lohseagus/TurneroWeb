@@ -1,0 +1,73 @@
+<div class="hce-page">
+  <div class="hce-header">
+    <div>
+      <h1>Mi historia clínica</h1>
+      <p *ngIf="perfil">{{ perfil.nombre }} {{ perfil.apellido }} · DNI {{ perfil.dni || '—' }}</p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="pdfResumen()">Descargar resumen PDF</button>
+  </div>
+
+  <div class="hce-error" *ngIf="error">{{ error }}</div>
+  <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
+  <p *ngIf="cargando">Cargando…</p>
+
+  <section class="hce-panel" *ngIf="perfil">
+    <h2>Perfil</h2>
+    <p>Grupo sanguíneo: {{ perfil.grupoSanguineo || 'Desconocido' }}</p>
+    <p>Antecedentes personales: {{ perfil.antecedentesPersonales || '—' }}</p>
+    <p>Antecedentes familiares: {{ perfil.antecedentesFamiliares || '—' }}</p>
+    <p>Antecedentes quirúrgicos: {{ perfil.antecedentesQuirurgicos || '—' }}</p>
+    <p>Hábitos: {{ perfil.habitos || '—' }}</p>
+    <p *ngIf="perfil.alergias?.length">Alergias: {{ alergiasTexto }}</p>
+    <p *ngIf="perfil.medicaciones?.length">Medicación: {{ medicacionTexto }}</p>
+    <label>
+      <input type="checkbox" [(ngModel)]="perfil.comparteEntreCentros" (change)="guardarConsentimiento()" />
+      Autorizo a que médicos de otros centros lean mi historia
+    </label>
+  </section>
+
+  <section class="hce-panel">
+    <div class="hce-filters">
+      <h2>Línea de tiempo</h2>
+      <select [(ngModel)]="filtrosTipo" (ngModelChange)="filtrar()">
+        <option value="">Todos</option>
+        <option value="CONSULTA">Consultas</option>
+        <option value="ENMIENDA">Enmiendas</option>
+        <option value="ADJUNTO">Adjuntos</option>
+      </select>
+    </div>
+    <div class="hce-timeline">
+      <button type="button" class="hce-card hce-event" *ngFor="let item of timeline" (click)="ver(item)">
+        <span>{{ item.fecha | date:'dd/MM/yyyy' }}</span>
+        <span>{{ item.resumen || item.tipo }}<div class="hce-muted">{{ item.centroNombre }} · {{ item.medicoNombre }}</div></span>
+        <span class="hce-badge">{{ item.tipo }}</span>
+      </button>
+      <p *ngIf="!timeline.length" class="hce-muted">Todavía no hay evoluciones registradas.</p>
+    </div>
+  </section>
+
+  <section class="hce-panel" *ngIf="consulta">
+    <div class="hce-header">
+      <h2>Consulta</h2>
+      <button type="button" class="btn btn-secondary" (click)="pdfConsulta()">PDF de esta consulta</button>
+    </div>
+    <p><strong>Motivo:</strong> {{ consulta.motivoConsulta || '—' }}</p>
+    <p><strong>Anamnesis:</strong> {{ consulta.anamnesis || '—' }}</p>
+    <p><strong>Examen:</strong> {{ consulta.examenFisico || '—' }}</p>
+    <p><strong>Indicaciones:</strong> {{ consulta.indicaciones || '—' }}</p>
+    <p><strong>Plan:</strong> {{ consulta.plan || '—' }}</p>
+    <p *ngFor="let diagnostico of consulta.diagnosticos">{{ diagnostico.code }} {{ diagnostico.display }}</p>
+    <article *ngFor="let enmienda of consulta.enmiendas">
+      <p class="hce-muted">Enmienda {{ enmienda.creadaEn | date:'dd/MM/yyyy HH:mm' }} — {{ enmienda.motivo }}</p>
+      <p>{{ enmienda.texto }}</p>
+    </article>
+  </section>
+
+  <section class="hce-panel" *ngIf="adjuntos.length">
+    <h2>Estudios</h2>
+    <div class="hce-list-item" *ngFor="let adjunto of adjuntos">
+      <span>{{ adjunto.nombreOriginal }}</span>
+      <button type="button" class="btn btn-secondary" (click)="descargar(adjunto)">Descargar</button>
+    </div>
+  </section>
+</div>

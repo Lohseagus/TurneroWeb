@@ -440,6 +440,9 @@ public class MedicoService {
             existente.setTelefono(medico.getTelefono());
             existente.setEspecialidades(medico.getEspecialidades());
             existente.setMatricula(medico.getMatricula());
+            if (dto.getRefepsId() != null) {
+                existente.setRefepsId(medico.getRefepsId());
+            }
             // No manejamos contraseña en entidad médico
             medico = existente;
         }
@@ -615,6 +618,7 @@ public class MedicoService {
         dto.setEmail(medico.getEmail());
         dto.setTelefono(medico.getTelefono());
         dto.setMatricula(medico.getMatricula());
+        dto.setRefepsId(medico.getRefepsId());
 
         // Mapear Especialidades (múltiples)
         if (medico.getEspecialidades() != null && !medico.getEspecialidades().isEmpty()) {
@@ -650,6 +654,10 @@ public class MedicoService {
         medico.setEmail(dto.getEmail());
         medico.setTelefono(dto.getTelefono());
         medico.setMatricula(dto.getMatricula());
+        if (dto.getRefepsId() != null) {
+            String refeps = dto.getRefepsId().trim();
+            medico.setRefepsId(refeps.isEmpty() ? null : refeps);
+        }
 
         // Asignar Especialidades (múltiples)
         if (dto.getEspecialidades() != null && !dto.getEspecialidades().isEmpty()) {

@@ -270,6 +270,11 @@ public class SecurityConfig {
                                 .requestMatchers("/roles/**").authenticated()
                                 .requestMatchers("/debug/tokens").authenticated()
 
+                                // Historia clínica. El servicio autoriza por rol primario,
+                                // centro, consentimiento y titularidad: la jerarquía hace que
+                                // ADMINISTRADOR y SUPERADMIN hereden ROLE_MEDICO.
+                                .requestMatchers("/api/hce/**").authenticated()
+
                                 // ========== RESTO DE ENDPOINTS ==========
                                 // Cualquier otro endpoint requiere autenticación
                                 .anyRequest().authenticated();

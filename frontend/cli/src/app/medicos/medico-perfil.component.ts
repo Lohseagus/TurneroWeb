@@ -135,6 +135,7 @@ export class MedicoPerfilComponent implements OnInit {
       apellido: this.medicoActual.apellido || '',
       dni: this.medicoActual.dni || '',
       matricula: this.medicoActual.matricula || '',
+      refepsId: this.medicoActual.refepsId || '',
       email: this.medicoActual.email || '',
       telefono: this.medicoActual.telefono || ''
     });
@@ -168,6 +169,7 @@ export class MedicoPerfilComponent implements OnInit {
       email: emailValue || this.medicoActual?.email || '',
       telefono: telefonoValue || this.medicoActual?.telefono || '',
       matricula: this.perfilForm.get('matricula')?.value?.trim() || '',
+      refepsId: this.perfilForm.get('refepsId')?.value?.trim() || '',
       // Mantener las especialidades existentes
       especialidades: this.medicoActual?.especialidades || []
     };
@@ -187,6 +189,7 @@ export class MedicoPerfilComponent implements OnInit {
           this.medicoActual.email = datosActualizados.email;
           this.medicoActual.telefono = datosActualizados.telefono;
           this.medicoActual.matricula = datosActualizados.matricula;
+          this.medicoActual.refepsId = datosActualizados.refepsId;
         }
         
         // Salir del modo edición
@@ -389,6 +392,7 @@ export class MedicoPerfilComponent implements OnInit {
         Validators.maxLength(9)
       ]],
       matricula: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20)]],
+      refepsId: ['', [Validators.maxLength(40)]],
       email: ['', [Validators.required, Validators.email]], // Email requerido y debe ser válido
       telefono: ['', [Validators.required, Validators.pattern(/^[\d\s\-\+\(\)]{7,15}$/)]] // Teléfono requerido
     });

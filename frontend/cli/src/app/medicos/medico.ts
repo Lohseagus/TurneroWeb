@@ -8,6 +8,7 @@ export interface Medico {
   email: string;
   telefono: string;
   matricula: string;
+  refepsId?: string;
   especialidades: Especialidad[]; // Cambiado de especialidad singular a especialidades plural
   
   // Mantenemos especialidad para compatibilidad hacia atrás (deprecated)

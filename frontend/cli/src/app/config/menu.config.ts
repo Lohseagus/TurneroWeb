@@ -67,6 +67,12 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Ver historial de atenciones médicas'
       },
       {
+        label: 'Mi historia clínica',
+        route: '/paciente-historia-clinica',
+        icon: 'clinical_notes',
+        description: 'Consultas, estudios y perfil clínico'
+      },
+      {
         label: 'Mis Notificaciones',
         route: '/paciente-notificaciones',
         icon: 'notifications',
@@ -113,6 +119,12 @@ export const MENU_CONFIG: MenuSection[] = [
         route: '/medico-horarios',
         icon: 'schedule',
         description: 'Gestionar disponibilidad'
+      },
+      {
+        label: 'Historia clínica',
+        route: '/medico-hce',
+        icon: 'clinical_notes',
+        description: 'Evoluciones de los pacientes que atendés'
       },
       {
         label: 'Estadísticas',

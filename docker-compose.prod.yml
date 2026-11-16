@@ -44,6 +44,10 @@ services:
       SECURITY_DEV_MODE: "false"
       PORT: "8080"
       JAVA_TOOL_OPTIONS: "-Xmx384m -Xms128m"
+      # Adjuntos de la historia clínica. El binario no va a Postgres.
+      HCE_STORAGE_PATH: /var/cheturno/hce
+    volumes:
+      - hce_files:/var/cheturno/hce
     depends_on:
       db:
         condition: service_healthy
@@ -104,3 +108,6 @@ volumes:
     name: cheturno_caddy_data
   caddy_config:
     name: cheturno_caddy_config
+  # Estudios, imágenes y PDFs de la historia clínica. No borrarlo en un deploy.
+  hce_files:
+    name: cheturno_hce_files

@@ -4,5 +4,6 @@ image-tag.env
 .deployed-sha
 node_modules/
 backend/target/
+backend/data/
 .netlify
 docker-compose.override.yml

@@ -1,0 +1,118 @@
+<div class="hce-page">
+  <div class="hce-header">
+    <div>
+      <h1>Historia clínica</h1>
+      <p *ngIf="!pacienteId">Pacientes que atendiste</p>
+      <p *ngIf="perfil">{{ perfil.apellido }}, {{ perfil.nombre }} · DNI {{ perfil.dni || '—' }}</p>
+    </div>
+    <div class="hce-actions" *ngIf="pacienteId">
+      <a class="btn btn-secondary" routerLink="/medico-hce">Volver</a>
+      <button type="button" class="btn btn-primary" (click)="nuevaConsulta()">Nueva consulta</button>
+    </div>
+  </div>
+
+  <div class="hce-error" *ngIf="error">{{ error }}</div>
+  <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
+  <p *ngIf="cargando">Cargando…</p>
+
+  <section class="hce-panel" *ngIf="!pacienteId && !cargando">
+    <div class="hce-list" *ngIf="pacientes.length; else vacio">
+      <a class="hce-card hce-list-item" *ngFor="let paciente of pacientes" [routerLink]="['/medico-hce', paciente.id]">
+        <div>
+          <strong>{{ paciente.apellido }}, {{ paciente.nombre }}</strong>
+          <div class="hce-muted">DNI {{ paciente.dni || '—' }}</div>
+        </div>
+        <span class="material-symbols-outlined">chevron_right</span>
+      </a>
+    </div>
+    <ng-template #vacio>
+      <p>Todavía no hay pacientes atendidos. Iniciá una consulta desde un turno.</p>
+    </ng-template>
+  </section>
+
+  <ng-container *ngIf="pacienteId && perfil">
+    <div class="hce-tabs">
+      <button type="button" class="hce-tab" [class.active]="tab === 'timeline'" (click)="tab = 'timeline'">Línea de tiempo</button>
+      <button type="button" class="hce-tab" [class.active]="tab === 'perfil'" (click)="tab = 'perfil'">Perfil clínico</button>
+    </div>
+
+    <section class="hce-panel" *ngIf="tab === 'timeline'">
+      <div class="hce-filters">
+        <select [(ngModel)]="filtros.tipo">
+          <option value="">Todos los tipos</option>
+          <option value="CONSULTA">Consultas</option>
+          <option value="ENMIENDA">Enmiendas</option>
+          <option value="ADJUNTO">Adjuntos</option>
+        </select>
+        <input type="number" placeholder="Centro" [(ngModel)]="filtros.centroId" />
+        <input type="number" placeholder="Médico" [(ngModel)]="filtros.medicoId" />
+        <input type="number" placeholder="Especialidad" [(ngModel)]="filtros.especialidadId" />
+        <button type="button" class="btn btn-secondary" (click)="buscarTimeline()">Filtrar</button>
+      </div>
+      <div class="hce-timeline">
+        <button type="button" class="hce-card hce-event" *ngFor="let item of timeline" (click)="abrir(item)">
+          <span class="hce-muted">{{ item.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+          <span>
+            <strong>{{ item.resumen || item.tipo }}</strong>
+            <div class="hce-muted">{{ item.centroNombre }} · {{ item.medicoNombre }} · {{ item.especialidadNombre }}</div>
+          </span>
+          <span class="hce-badge" [class.cerrada]="item.estado === 'CERRADA'" [class.borrador]="item.estado === 'BORRADOR'">{{ item.tipo }}</span>
+        </button>
+        <p *ngIf="!timeline.length" class="hce-muted">No hay eventos para esos filtros.</p>
+      </div>
+    </section>
+
+    <section class="hce-panel" *ngIf="tab === 'perfil'">
+      <div class="hce-grid">
+        <div>
+          <label>Grupo sanguíneo</label>
+          <select [(ngModel)]="perfil.grupoSanguineo">
+            <option *ngFor="let grupo of grupos" [value]="grupo.value">{{ grupo.label }}</option>
+          </select>
+        </div>
+        <div>
+          <label>Identificador federado</label>
+          <input type="text" [(ngModel)]="perfil.identificadorFederado" />
+        </div>
+      </div>
+      <label>Antecedentes personales</label>
+      <textarea [(ngModel)]="perfil.antecedentesPersonales"></textarea>
+      <label>Antecedentes familiares</label>
+      <textarea [(ngModel)]="perfil.antecedentesFamiliares"></textarea>
+      <label>Antecedentes quirúrgicos</label>
+      <textarea [(ngModel)]="perfil.antecedentesQuirurgicos"></textarea>
+      <label>Hábitos</label>
+      <textarea [(ngModel)]="perfil.habitos"></textarea>
+      <label><input type="checkbox" [(ngModel)]="perfil.comparteEntreCentros" /> El paciente consiente que otros centros lean esta historia</label>
+
+      <h2>Alergias</h2>
+      <div class="hce-list-item" *ngFor="let alergia of perfil.alergias; let i = index">
+        <input type="text" placeholder="Sustancia" [(ngModel)]="alergia.sustancia" [disabled]="!alergia.activa" />
+        <input type="text" placeholder="Reacción" [(ngModel)]="alergia.reaccion" [disabled]="!alergia.activa" />
+        <button type="button" class="btn btn-secondary" (click)="desactivarAlergia(i)">{{ alergia.activa ? 'Inactivar' : 'Inactiva' }}</button>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="agregarAlergia()">Agregar alergia</button>
+
+      <h2>Medicación habitual</h2>
+      <div class="hce-list-item" *ngFor="let med of perfil.medicaciones; let i = index">
+        <input type="text" placeholder="Fármaco" [(ngModel)]="med.farmaco" [disabled]="!med.activa" />
+        <input type="text" placeholder="Dosis" [(ngModel)]="med.dosis" [disabled]="!med.activa" />
+        <input type="text" placeholder="Frecuencia" [(ngModel)]="med.frecuencia" [disabled]="!med.activa" />
+        <button type="button" class="btn btn-secondary" (click)="desactivarMedicacion(i)">{{ med.activa ? 'Inactivar' : 'Inactiva' }}</button>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="agregarMedicacion()">Agregar medicación</button>
+
+      <h2>Vacunas</h2>
+      <div class="hce-list-item" *ngFor="let vacuna of perfil.vacunas">
+        <input type="text" placeholder="Nombre" [(ngModel)]="vacuna.nombre" [disabled]="!!vacuna.id" />
+        <input type="date" [(ngModel)]="vacuna.fechaAplicacion" [disabled]="!!vacuna.id" />
+        <input type="text" placeholder="Dosis" [(ngModel)]="vacuna.dosis" [disabled]="!!vacuna.id" />
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="agregarVacuna()">Agregar vacuna</button>
+
+      <div class="hce-actions">
+        <button type="button" class="btn btn-primary" (click)="guardarPerfil()" [disabled]="guardando">Guardar perfil</button>
+      </div>
+    </section>
+  </ng-container>
+</div>

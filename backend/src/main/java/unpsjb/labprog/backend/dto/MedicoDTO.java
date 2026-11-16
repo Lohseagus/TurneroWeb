@@ -20,6 +20,7 @@ public class MedicoDTO {
     private String password; // Para registro
     private String telefono; // Para registro
     private String matricula;
+    private String refepsId;
     private Set<EspecialidadDTO> especialidades;
     private Set<Integer> especialidadIds; // IDs de las especialidades para registro
     
