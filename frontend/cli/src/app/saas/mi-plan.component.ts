@@ -1,32 +1,65 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SaasService } from './saas.service';
-import { CatalogoSaas, SuscripcionSaas, etiquetaEstado, formatoArs, tope } from './saas.models';
+import { ToastService } from '../services/toast.service';
+import {
+  CatalogoSaas,
+  PrecioSaas,
+  SuscripcionSaas,
+  claseEstado,
+  etiquetaCiclo,
+  etiquetaEstado,
+  etiquetaPago,
+  etiquetaTipoPago,
+  formatoArs,
+  formatoFecha,
+  nivelUso,
+  porcentajeUso,
+  tope
+} from './saas.models';
+
+type DialogoMiPlan = '' | 'cambio' | 'pago';
 
 @Component({
   selector: 'app-mi-plan',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './mi-plan.component.html',
-  styleUrl: './saas.css'
+  styleUrl: './saas.css',
+  changeDetection: ChangeDetectionStrategy.Eager
 })
 export class MiPlanComponent implements OnInit {
+  @ViewChild('dialogoRef') dialogoRef?: ElementRef<HTMLElement>;
+
   suscripcion: SuscripcionSaas | null = null;
   catalogo: CatalogoSaas | null = null;
+  cargando = true;
+  operando = false;
   error = '';
   ok = '';
   planCodigo = '';
   ciclo = 'MENSUAL';
   cupo = 1;
   addons: string[] = [];
-  sede = { nombre: '', direccion: '', localidad: '', provincia: '', telefono: '', latitud: -34.6, longitud: -58.38 };
+  precioCambio: PrecioSaas | null = null;
+  dialogo: DialogoMiPlan = '';
+  sede = { nombre: '', direccion: '', localidad: '', provincia: '', telefono: '', latitud: -34.6 as number | null, longitud: -58.38 as number | null };
+  erroresSede: Record<string, string> = {};
   formatoArs = formatoArs;
+  formatoFecha = formatoFecha;
   etiquetaEstado = etiquetaEstado;
+  etiquetaPago = etiquetaPago;
+  etiquetaTipoPago = etiquetaTipoPago;
+  etiquetaCiclo = etiquetaCiclo;
+  claseEstado = claseEstado;
   tope = tope;
+  porcentajeUso = porcentajeUso;
+  nivelUso = nivelUso;
+  private retornoFoco: HTMLElement | null = null;
 
-  constructor(private saas: SaasService) {}
+  constructor(private saas: SaasService, private toast: ToastService) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -38,19 +71,23 @@ export class MiPlanComponent implements OnInit {
   }
 
   cargar(): void {
+    this.cargando = true;
     this.saas.miSuscripcion().subscribe({
       next: (resp) => {
+        this.cargando = false;
         if (resp.status_code === 200) {
-          this.suscripcion = resp.data;
-          this.planCodigo = resp.data.plan.codigo;
-          this.ciclo = resp.data.ciclo;
-          this.cupo = resp.data.profesionalesContratados;
-          this.addons = [...resp.data.addons];
+          this.aplicar(resp.data);
+          this.error = '';
         } else {
-          this.error = resp.status_text;
+          this.error = resp.status_text || 'No se pudo leer la suscripción.';
+          this.toast.error(this.error);
         }
       },
-      error: () => this.error = 'No se pudo leer la suscripción.'
+      error: () => {
+        this.cargando = false;
+        this.error = 'No se pudo leer la suscripción.';
+        this.toast.error(this.error);
+      }
     });
   }
 
@@ -60,28 +97,107 @@ export class MiPlanComponent implements OnInit {
     return uso.maxCentros === null || uso.centros < uso.maxCentros;
   }
 
+  get formularioSucio(): boolean {
+    const actual = this.suscripcion;
+    if (!actual) return false;
+    return this.planCodigo !== actual.plan.codigo
+      || this.ciclo !== actual.ciclo
+      || Number(this.cupo) !== actual.profesionalesContratados
+      || !this.mismosAddons(this.addons, actual.addons);
+  }
+
+  get trialTotal(): number {
+    return this.catalogo?.configuracion.diasTrial || 30;
+  }
+
+  get trialRestante(): number {
+    return Math.max(0, Math.min(100, Math.round(((this.suscripcion?.diasTrialRestantes ?? 0) / this.trialTotal) * 100)));
+  }
+
+  get planElegido() {
+    return this.catalogo?.planes.find((plan) => plan.codigo === this.planCodigo);
+  }
+
+  get porAsiento(): boolean {
+    return (this.planElegido?.precioPorProfesional || 0) > 0;
+  }
+
+  get precioPago(): PrecioSaas | null {
+    if (!this.suscripcion) return null;
+    return this.ciclo === 'ANUAL' ? this.suscripcion.precioAnual : this.suscripcion.precioMensual;
+  }
+
   toggleAddon(codigo: string, activo: boolean): void {
     if (activo && !this.addons.includes(codigo)) this.addons = [...this.addons, codigo];
     if (!activo) this.addons = this.addons.filter((item) => item !== codigo);
   }
 
-  pagar(): void {
-    this.error = '';
-    this.ok = '';
-    this.saas.pagar(this.ciclo).subscribe({
+  abrirCambio(event: Event): void {
+    if (this.suscripcion?.estado === 'CANCELADA') {
+      this.error = 'La suscripción está cancelada.';
+      this.toast.error(this.error);
+      return;
+    }
+    this.operando = true;
+    this.saas.cotizar({
+      planCodigo: this.planCodigo,
+      ciclo: this.ciclo,
+      profesionalesContratados: Number(this.cupo) || 1,
+      sedes: Math.max(1, this.suscripcion?.uso.centros || 1),
+      addons: this.addons
+    }).subscribe({
       next: (resp) => {
+        this.operando = false;
         if (resp.status_code === 200) {
-          this.ok = `Pago simulado registrado: ${formatoArs(resp.data.total)} con IVA.`;
-          this.cargar();
+          this.precioCambio = resp.data;
+          this.abrir('cambio', event);
         } else {
-          this.error = resp.status_text;
+          this.error = resp.status_text || 'No se pudo calcular el cambio.';
+          this.toast.error(this.error);
         }
       },
-      error: () => this.error = 'No se pudo registrar el pago.'
+      error: () => {
+        this.operando = false;
+        this.error = 'No se pudo calcular el cambio.';
+        this.toast.error(this.error);
+      }
     });
   }
 
-  guardar(): void {
+  abrir(tipo: DialogoMiPlan, event?: Event): void {
+    this.retornoFoco = (event?.currentTarget as HTMLElement) ?? null;
+    this.dialogo = tipo;
+    setTimeout(() => this.dialogoRef?.nativeElement.querySelector<HTMLElement>('[data-autofocus]')?.focus());
+  }
+
+  cerrarDialogo(): void {
+    this.dialogo = '';
+    setTimeout(() => this.retornoFoco?.focus());
+  }
+
+  onDialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cerrarDialogo();
+      return;
+    }
+    if (event.key !== 'Tab' || !this.dialogoRef) return;
+    const items = Array.from(this.dialogoRef.nativeElement.querySelectorAll<HTMLElement>('button, [href], input, select, textarea'))
+      .filter((el) => !el.hasAttribute('disabled'));
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  confirmarCambio(): void {
+    this.operando = true;
     this.error = '';
     this.ok = '';
     this.saas.cambiarPlan({
@@ -91,18 +207,66 @@ export class MiPlanComponent implements OnInit {
       addons: this.addons
     }).subscribe({
       next: (resp) => {
+        this.operando = false;
         if (resp.status_code === 200) {
           this.ok = 'Los cambios del plan quedaron guardados.';
-          this.suscripcion = resp.data;
+          this.toast.success(this.ok);
+          this.aplicar(resp.data);
+          this.cerrarDialogo();
         } else {
-          this.error = resp.status_text;
+          this.error = resp.status_text || 'No se pudo cambiar el plan.';
+          this.toast.error(this.error);
         }
       },
-      error: () => this.error = 'No se pudo cambiar el plan.'
+      error: () => {
+        this.operando = false;
+        this.error = 'No se pudo cambiar el plan.';
+        this.toast.error(this.error);
+      }
+    });
+  }
+
+  confirmarPago(): void {
+    this.operando = true;
+    this.error = '';
+    this.ok = '';
+    this.saas.pagar(this.ciclo).subscribe({
+      next: (resp) => {
+        this.operando = false;
+        if (resp.status_code === 200) {
+          this.ok = `Pago simulado registrado: ${formatoArs(resp.data.total)} con IVA.`;
+          this.toast.success(this.ok);
+          this.cerrarDialogo();
+          this.cargar();
+        } else {
+          this.error = resp.status_text || 'No se pudo registrar el pago.';
+          this.toast.error(this.error);
+        }
+      },
+      error: () => {
+        this.operando = false;
+        this.error = 'No se pudo registrar el pago.';
+        this.toast.error(this.error);
+      }
     });
   }
 
   crearSede(): void {
+    this.erroresSede = {};
+    if (!this.sede.nombre.trim()) this.erroresSede['nombre'] = 'Ingresá el nombre de la sede.';
+    if (!this.sede.direccion.trim()) this.erroresSede['direccion'] = 'Ingresá la dirección.';
+    if (!this.sede.localidad.trim()) this.erroresSede['localidad'] = 'Ingresá la localidad.';
+    if (!this.sede.provincia.trim()) this.erroresSede['provincia'] = 'Ingresá la provincia.';
+    if (!/^\d+$/.test(this.sede.telefono.trim())) this.erroresSede['telefono'] = 'El teléfono tiene que tener solo números.';
+    if (this.sede.latitud == null || Number(this.sede.latitud) < -90 || Number(this.sede.latitud) > 90) {
+      this.erroresSede['latitud'] = 'La latitud tiene que estar entre -90 y 90.';
+    }
+    if (this.sede.longitud == null || Number(this.sede.longitud) < -180 || Number(this.sede.longitud) > 180) {
+      this.erroresSede['longitud'] = 'La longitud tiene que estar entre -180 y 180.';
+    }
+    if (Object.keys(this.erroresSede).length) return;
+
+    this.operando = true;
     this.error = '';
     this.ok = '';
     this.saas.crearSede({
@@ -111,14 +275,36 @@ export class MiPlanComponent implements OnInit {
       longitud: Number(this.sede.longitud)
     }).subscribe({
       next: (resp) => {
+        this.operando = false;
         if (resp.status_code === 200) {
           this.ok = `Sede ${resp.data.nombre} creada.`;
+          this.toast.success(this.ok);
+          this.sede = { nombre: '', direccion: '', localidad: '', provincia: '', telefono: '', latitud: -34.6, longitud: -58.38 };
           this.cargar();
         } else {
-          this.error = resp.status_text;
+          this.error = resp.status_text || 'No se pudo crear la sede.';
+          this.toast.error(this.error);
         }
       },
-      error: () => this.error = 'No se pudo crear la sede.'
+      error: () => {
+        this.operando = false;
+        this.error = 'No se pudo crear la sede.';
+        this.toast.error(this.error);
+      }
     });
+  }
+
+  private aplicar(data: SuscripcionSaas): void {
+    this.suscripcion = data;
+    this.planCodigo = data.plan.codigo;
+    this.ciclo = data.ciclo;
+    this.cupo = data.profesionalesContratados;
+    this.addons = [...(data.addons || [])];
+  }
+
+  private mismosAddons(a: string[], b: string[]): boolean {
+    const izquierda = [...a].sort().join('|');
+    const derecha = [...(b || [])].sort().join('|');
+    return izquierda === derecha;
   }
 }

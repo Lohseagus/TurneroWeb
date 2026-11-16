@@ -80,6 +80,7 @@ export class AppComponent implements OnInit, OnDestroy {
         if (!context) return 'Usuario';
         switch (context.primaryRole?.toUpperCase()) {
           case 'ADMINISTRADOR': return 'Administrador';
+          case 'SUPERADMIN': return 'Superadmin';
           case 'PACIENTE': return 'Paciente';
           case 'MEDICO': return 'Médico';
           case 'OPERADOR': return 'Operador';
@@ -195,6 +196,8 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!context) return 'Usuario';
     
     switch (context.primaryRole?.toUpperCase()) {
+      case "SUPERADMIN":
+        return "Superadmin";
       case "ADMINISTRADOR":
         return "Administrador";
       case "PACIENTE":
