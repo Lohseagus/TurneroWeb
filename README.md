@@ -36,8 +36,9 @@ El sistema implementa una arquitectura moderna de tres capas, dockerizada para f
 - **PostgreSQL**.
 
 ### Infraestructura & DevOps
-- **Contenedores**: Docker & Docker Compose.
-- **Servidor Web**: Nginx (Proxy Inverso).
+- **Contenedores**: Docker y Docker Compose.
+- **Borde**: Caddy termina HTTPS y manda `/api` al backend. Nginx solo sirve el frontend.
+- **CI/CD**: GitHub Actions. El detalle está en [docs/CI_CD.md](docs/CI_CD.md).
 
 ## Arquitectura del Sistema
 
@@ -52,7 +53,7 @@ Para ejecutar el proyecto en tu máquina local, asegúrate de tener instalado Do
 
 ### Clonar el repositorio:
 ```bash
-git clone https://github.com/agustxnpm/TurneroWeb.git
+git clone https://github.com/Lohseagus/TurneroWeb.git
 cd TurneroWeb
 ```
 
@@ -64,6 +65,12 @@ Crea un archivo `.env` en la raíz con las credenciales de base de datos y clave
 - **Frontend**: http://localhost:4200
 - **Backend API**: http://localhost:8080
 - **Producción**: https://cheturno.site
+
+## CI/CD
+
+Cada PR a `master` compila el backend (`mvn test`, Java 17) y hace el build de producción del frontend. Al mergear, GitHub Actions arma las imágenes, las publica en GHCR y las despliega por SSH en la VM de `https://cheturno.site`. El `.env` y el volumen de Postgres no se tocan.
+
+Cómo cargar los secrets, preparar el servidor la primera vez, proteger `master` y hacer rollback está en [docs/CI_CD.md](docs/CI_CD.md).
 
 ## Uso del Script `lpl`
 

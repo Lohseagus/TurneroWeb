@@ -37,7 +37,7 @@ export interface PacienteDTO {
   providedIn: 'root'
 })
 export class RegistroService {
-  private readonly apiUrl = environment.production ? `${environment.apiUrl}/api/auth` : 'rest/api/auth';
+  private readonly apiUrl = environment.production ? `${environment.apiUrl}/auth` : 'rest/api/auth';
 
   constructor(private http: HttpClient) {}
 

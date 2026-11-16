@@ -1,80 +1,106 @@
-version: '3.8'
+# Compose de producción. El workflow lo copia a /home/ubuntu/cheturno/docker-compose.yml.
+# No incluye secretos: los lee de .env (DB_USERNAME, DB_PASSWORD, JWT_SECRET), que vive solo en el servidor.
+# IMAGE_TAG llega en image-tag.env (el SHA publicado en GHCR). No borra volúmenes.
+
+name: cheturno
 
 services:
-  # 1. Base de Datos
   db:
     image: postgres:15-alpine
-    restart: always
-    ports:
-      - "5432:5432"
+    container_name: cheturno-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: turnerodb
-      POSTGRES_USER: ${DB_USERNAME}     # Variables que definiremos en el servidor
+      POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persistencia de datos
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d turnerodb"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
-      - app_network
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # 2. Backend (Java)
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile  # Usamos el que ya tenías, funciona bien
-    restart: always
-    # ports:  # Removido: no exponer al host, solo accesible internamente
+    image: ghcr.io/lohseagus/turneroweb-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     expose:
       - "8080"
     environment:
-      # Conectamos con el servicio 'db' definido arriba
       DB_URL: jdbc:postgresql://db:5432/turnerodb
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      # Configuración JWT y Mail
       JWT_SECRET: ${JWT_SECRET}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
       APP_URL: https://cheturno.site
-      APP_ALLOWED_ORIGINS: https://cheturno.site
-      SECURITY_DEV_MODE: ${SECURITY_DEV_MODE}
+      APP_ALLOWED_ORIGINS: https://cheturno.site,https://www.cheturno.site
+      SECURITY_DEV_MODE: "false"
+      PORT: "8080"
+      JAVA_TOOL_OPTIONS: "-Xmx384m -Xms128m"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
-      - app_network
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # 3. Frontend (Angular + Nginx)
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod # El archivo nuevo que creamos
-    restart: always
-    # ports:  # Removido: no exponer al host, solo accesible internamente
+    image: ghcr.io/lohseagus/turneroweb-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     expose:
       - "80"
     depends_on:
       - backend
     networks:
-      - app_network
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # 4. Nginx Proxy Manager
-  nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:latest
-    restart: always
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
     ports:
-      - "80:80"    # HTTP
-      - "443:443"  # HTTPS
-      - "81:81"    # Panel de administración
+      - "80:80"
+      - "443:443"
     volumes:
-      - npm_data:/data
-      - npm_ssl:/etc/letsencrypt
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
     networks:
-      - app_network
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
-  app_network:
-    driver: bridge
+  app:
+    name: cheturno_app
 
 volumes:
-  postgres_data:
-  npm_data:
-  npm_ssl:
+  # Nombre real del volumen de Docker. Tiene que coincidir con el que ya existe
+  # (proyecto compose "cheturno" + clave pgdata). Si no, el primer deploy crea una base vacía.
+  pgdata:
+    name: cheturno_pgdata
+  caddy_data:
+    name: cheturno_caddy_data
+  caddy_config:
+    name: cheturno_caddy_config

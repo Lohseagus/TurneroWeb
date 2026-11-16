@@ -1,0 +1,91 @@
+name: Cucumber
+
+# Manual a propósito: la suite hoy pega a rutas sin /api (http://backend:8080/centrosAtencion)
+# y otro PR la está corrigiendo. No es un check obligatorio.
+#
+# Para volverla obligatoria cuando esté verde:
+#   1. Descomentá pull_request y push, acá abajo.
+#   2. En GitHub → Settings → Rules → Rulesets (o Branches) de master,
+#      exigí el check "Cucumber / Cucumber".
+#   3. Mergeá ese cambio. A partir de ahí un PR no entra a master si Cucumber falla.
+on:
+  workflow_dispatch:
+  # pull_request:
+  #   branches: [master]
+  # push:
+  #   branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  cucumber:
+    name: Cucumber
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: turnerodb
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d turnerodb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Comprobar Maven
+        run: |
+          if ! command -v mvn >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y maven
+          fi
+
+      - name: Levantar el backend
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/turnerodb
+          DB_USERNAME: ci
+          DB_PASSWORD: ci
+          JWT_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+          SECURITY_DEV_MODE: "true"
+          APP_URL: http://localhost:4200
+          APP_ALLOWED_ORIGINS: http://localhost:4200
+        run: |
+          mvn -B -ntp -DskipTests package
+          echo "127.0.0.1 backend" | sudo tee -a /etc/hosts >/dev/null
+          java -Dserver.port=8080 -jar target/backend-*.jar > /tmp/backend.log 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/ | grep -q "Server Online"; then
+              echo "Backend listo en http://backend:8080"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "El backend no arrancó."
+          cat /tmp/backend.log
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Correr Cucumber
+        working-directory: testing
+        run: |
+          npm install
+          npm test
