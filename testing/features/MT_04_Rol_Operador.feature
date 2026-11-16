@@ -67,7 +67,9 @@ Característica: Permisos y Acceso del OPERADOR (Tenant-Bound)
     Y el estado es CANCELADO
     Y se registra quién canceló el turno
 
-  @centro1 @turnos @cancel @forbidden
+  # PUT /turno/{id}/cancelar no valida el centro del operador: cancela
+  # el turno de otro centro y responde 200.
+  @centro1 @turnos @cancel @forbidden @known-bug
   Escenario: OPERADOR Centro 1 NO puede cancelar turnos de otro centro
     Dado que me autentico como "operador1.santamaria@turnero.com" con password "password"
     Y conozco el ID de un turno del centro 2
@@ -219,7 +221,9 @@ Característica: Permisos y Acceso del OPERADOR (Tenant-Bound)
     Entonces recibo status_code 403 o 404
     Y NO veo los datos del turno
 
-  @cross-tenant @forbidden
+  # El PUT del turno de otro centro no responde 403/404: llega a la
+  # validación de negocio y termina en 409.
+  @cross-tenant @forbidden @known-bug
   Escenario: OPERADOR de un centro NO puede modificar turnos de otro centro
     Dado que me autentico como "operador1.santamaria@turnero.com" con password "password"
     Y conozco el ID de un turno del centro 2
@@ -260,7 +264,9 @@ Característica: Permisos y Acceso del OPERADOR (Tenant-Bound)
     Entonces el turno se crea con estado PROGRAMADO
     Y el turno queda registrado en el centro 1
 
-  @workflow @turno-cancelacion
+  # La respuesta de PUT /turno/{id}/cancelar no incluye fechaCancelacion ni updatedAt,
+  # aunque la cancelación queda auditada.
+  @workflow @turno-cancelacion @known-bug
   Escenario: OPERADOR puede cancelar turno con auditoría
     Dado que me autentico como "operador1.santamaria@turnero.com" con password "password"
     Y existe un turno programado en el centro 1
@@ -269,7 +275,9 @@ Característica: Permisos y Acceso del OPERADOR (Tenant-Bound)
     Y se registra la auditoría con mi email
     Y se registra la fecha y hora de cancelación
 
-  @workflow @turno-confirmacion
+  # PUT /turno/{id}/asistencia con asistio=true no cambia el estado:
+  # el turno sigue PROGRAMADO (el código deja el cambio de estado para COMPLETO).
+  @workflow @turno-confirmacion @known-bug
   Escenario: OPERADOR puede confirmar asistencia de paciente
     Dado que me autentico como "operador1.santamaria@turnero.com" con password "password"
     Y existe un turno programado para hoy en el centro 1

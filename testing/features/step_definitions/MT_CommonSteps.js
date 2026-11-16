@@ -566,7 +566,7 @@ Given('que tengo un refreshToken expirado', function () {
 });
 
 When('solicito refresh con ese token', function () {
-  const result = POST(ENDPOINTS.AUTH_REFRESH, {
+  const result = POST(ENDPOINTS.REFRESH, {
     refreshToken: this.expiredRefreshToken
   });
   this.statusCode = result.statusCode;

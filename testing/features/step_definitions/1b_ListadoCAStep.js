@@ -1,6 +1,6 @@
 const { When, Then } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
 
 When('el usuario solicita la lista de centros de atención', function () {
   try {

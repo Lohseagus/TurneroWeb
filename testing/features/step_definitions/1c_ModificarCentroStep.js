@@ -1,6 +1,6 @@
 const { When, Then, Given } = require('@cucumber/cucumber');
 const assert = require('assert');
-const request = require('sync-request');
+const request = require('../../support/request');
 
 Given('que existen centros de atención creados en el sistema', function () {
  // console.log('🌟 Base de datos inicializada.');
