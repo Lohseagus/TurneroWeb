@@ -1,62 +1,250 @@
-<div class="saas-page">
-  <h1>Empezar la prueba</h1>
-  <p class="saas-lead">
-    Creamos la organización, el primer centro y el usuario administrador.
-    <span *ngIf="catalogo">Son {{ catalogo.configuracion.diasTrial }} días sin tarjeta.</span>
-    <a routerLink="/planes">Ver planes</a>
-  </p>
-
-  <div class="saas-alert error" *ngIf="error">{{ error }}</div>
-  <div class="saas-alert ok" *ngIf="ok">{{ ok }}</div>
-
-  <form class="saas-form saas-panel" (ngSubmit)="enviar()" *ngIf="catalogo">
-    <label>Plan
-      <select name="plan" [(ngModel)]="form.planCodigo" (ngModelChange)="ajustarCupo()">
-        <option *ngFor="let plan of catalogo.planes" [value]="plan.codigo">{{ plan.nombre }}</option>
-      </select>
-    </label>
-    <label>Facturación
-      <select name="ciclo" [(ngModel)]="form.ciclo" (ngModelChange)="cotizar()">
-        <option value="MENSUAL">Mensual</option>
-        <option value="ANUAL">Anual ({{ catalogo.configuracion.descuentoAnualPorcentaje }}% sobre el neto)</option>
-      </select>
-    </label>
-    <label *ngIf="porAsiento">Profesionales contratados ({{ planActual?.minProfesionales }} a {{ planActual?.maxProfesionales }})
-      <input type="number" name="cupo" [(ngModel)]="form.profesionalesContratados" (ngModelChange)="cotizar()" [min]="planActual?.minProfesionales || 1" [max]="planActual?.maxProfesionales || 10">
-    </label>
-
-    <div *ngIf="catalogo.addons.length">
-      <strong>Complementos</strong>
-      <label class="saas-check" *ngFor="let addon of catalogo.addons">
-        <input type="checkbox" [checked]="form.addons.includes(addon.codigo)" (change)="toggleAddon(addon.codigo, $any($event.target).checked)">
-        <span>{{ addon.nombre }} — {{ formatoArs(addon.precioMensualNeto) }} + IVA. {{ addon.placeholder ? 'Todavía no envía mensajes.' : '' }}</span>
-      </label>
-    </div>
-
-    <p *ngIf="precio">
-      A pagar cuando termine la prueba:
-      <strong>{{ formatoArs(precio.neto) }} + IVA</strong>
-      ({{ formatoArs(precio.total) }} con IVA).
+<div class="saas-page" #raiz>
+  <header class="saas-hero">
+    <p class="saas-kicker">
+      <span class="material-symbols-outlined" aria-hidden="true">rocket_launch</span>
+      Alta de organización
     </p>
+    <h1>Empezá la prueba</h1>
+    <p class="saas-lead">
+      En cuatro pasos creamos la organización, el primer centro y el usuario administrador.
+      @if (catalogo) { Son {{ catalogo.configuracion.diasTrial }} días, sin tarjeta. }
+      <a routerLink="/planes">Ver planes</a>
+    </p>
+  </header>
 
-    <h2>Organización y centro</h2>
-    <label>Nombre de la organización<input name="org" [(ngModel)]="form.organizacionNombre" required></label>
-    <label>Nombre del centro<input name="centro" [(ngModel)]="form.centroNombre" required></label>
-    <label>Dirección<input name="direccion" [(ngModel)]="form.direccion" required></label>
-    <label>Localidad<input name="localidad" [(ngModel)]="form.localidad" required></label>
-    <label>Provincia<input name="provincia" [(ngModel)]="form.provincia" required></label>
-    <label>Teléfono del centro (solo números)<input name="telCentro" [(ngModel)]="form.telefonoCentro" required></label>
-    <label>Latitud<input type="number" step="0.0001" name="lat" [(ngModel)]="form.latitud" required></label>
-    <label>Longitud<input type="number" step="0.0001" name="lng" [(ngModel)]="form.longitud" required></label>
+  @if (cargando) {
+    <div class="saas-skeleton" aria-hidden="true">
+      <div class="saas-skeleton__line saas-skeleton__line--lg"></div>
+      <div class="saas-skeleton__card"></div>
+    </div>
+    <p class="saas-sr" role="status">Cargando el alta…</p>
+  }
 
-    <h2>Administrador</h2>
-    <label>Nombre<input name="nombre" [(ngModel)]="form.adminNombre" required></label>
-    <label>Apellido<input name="apellido" [(ngModel)]="form.adminApellido" required></label>
-    <label>Email<input type="email" name="email" [(ngModel)]="form.adminEmail" required></label>
-    <label>Contraseña<input type="password" name="password" [(ngModel)]="form.adminPassword" minlength="6" required></label>
-    <label>DNI<input name="dni" [(ngModel)]="form.adminDni" required></label>
-    <label>Teléfono<input name="telAdmin" [(ngModel)]="form.adminTelefono" required></label>
+  @if (error && !catalogo) {
+    <div class="saas-alert error" role="alert">{{ error }}</div>
+  }
 
-    <button class="btn btn-primary" type="submit" [disabled]="enviando">{{ enviando ? 'Creando...' : 'Crear cuenta y empezar' }}</button>
-  </form>
+  @if (ok) {
+    <div class="saas-alert ok" role="status">{{ ok }}</div>
+  }
+
+  @if (catalogo) {
+    <ol class="saas-steps" aria-label="Progreso del alta">
+      @for (item of pasos; track item.id) {
+        <li [class.is-current]="paso === item.id" [class.is-done]="paso > item.id">
+          <button type="button" (click)="irA(item.id)" [disabled]="item.id > maxAlcanzado" [attr.aria-current]="paso === item.id ? 'step' : null">
+            <span class="saas-step-index">{{ item.id }}</span>
+            <span class="saas-step-label">{{ item.titulo }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+
+    @if (error && catalogo) {
+      <div class="saas-alert error" role="alert">{{ error }}</div>
+    }
+
+    <div class="saas-wizard">
+      <form class="saas-panel saas-form" novalidate (ngSubmit)="siguiente()">
+        @if (paso === 1) {
+          <h2>Elegí el plan</h2>
+          <div class="saas-choice" role="radiogroup" aria-label="Plan">
+            @for (plan of catalogo.planes; track plan.codigo) {
+              <label [class.is-invalid]="errores['plan']">
+                <input type="radio" name="plan" [value]="plan.codigo" [checked]="form.planCodigo === plan.codigo" (change)="elegirPlan(plan.codigo)">
+                <span>
+                  {{ plan.nombre }}
+                  @if (esPlanRecomendado(plan.codigo)) { <span class="saas-badge activa">Recomendado</span> }
+                  <small class="saas-nota">{{ plan.descripcion }}</small>
+                </span>
+              </label>
+            }
+          </div>
+          @if (errores['plan']) { <p class="saas-field-error" id="err-plan">{{ errores['plan'] }}</p> }
+
+          <div class="saas-choice" role="radiogroup" aria-label="Facturación">
+            <label>
+              <input type="radio" name="ciclo" value="MENSUAL" [(ngModel)]="form.ciclo" (ngModelChange)="ajustarCupo()">
+              <span>Mensual</span>
+            </label>
+            <label>
+              <input type="radio" name="ciclo" value="ANUAL" [(ngModel)]="form.ciclo" (ngModelChange)="ajustarCupo()">
+              <span>Anual <small class="saas-nota">{{ catalogo.configuracion.descuentoAnualPorcentaje }}% sobre el neto de 12 meses</small></span>
+            </label>
+          </div>
+
+          @if (porAsiento) {
+            <label class="saas-field" [class.is-invalid]="errores['cupo']">
+              <span>Profesionales contratados ({{ planActual?.minProfesionales }} a {{ planActual?.maxProfesionales }})</span>
+              <input id="cupo" type="number" name="cupo" [(ngModel)]="form.profesionalesContratados" (ngModelChange)="ajustarCupo()" [min]="planActual?.minProfesionales || 1" [max]="planActual?.maxProfesionales || 10" [attr.aria-invalid]="!!errores['cupo']" [attr.aria-describedby]="errores['cupo'] ? 'err-cupo' : null">
+              @if (errores['cupo']) { <small class="saas-field-error" id="err-cupo">{{ errores['cupo'] }}</small> }
+            </label>
+          }
+
+          @if (catalogo.addons.length) {
+            <fieldset>
+              <legend>Complementos</legend>
+              @for (addon of catalogo.addons; track addon.codigo) {
+                <label class="saas-switch">
+                  <input type="checkbox" [checked]="form.addons.includes(addon.codigo)" (change)="toggleAddon(addon.codigo, $any($event.target).checked)">
+                  <span>{{ addon.nombre }} — {{ formatoArs(addon.precioMensualNeto) }} + IVA. {{ addon.placeholder ? 'Todavía no envía mensajes.' : '' }}</span>
+                </label>
+              }
+            </fieldset>
+          }
+        }
+
+        @if (paso === 2) {
+          <h2>Organización y centro</h2>
+          <div class="saas-fields">
+            <label class="saas-field" [class.is-invalid]="errores['organizacionNombre']">
+              <span>Nombre de la organización</span>
+              <input id="org" name="org" [(ngModel)]="form.organizacionNombre" autocomplete="organization" [attr.aria-invalid]="!!errores['organizacionNombre']" [attr.aria-describedby]="errores['organizacionNombre'] ? 'err-org' : null">
+              @if (errores['organizacionNombre']) { <small class="saas-field-error" id="err-org">{{ errores['organizacionNombre'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['cuit']">
+              <span>CUIT (opcional)</span>
+              <input id="cuit" name="cuit" inputmode="numeric" [(ngModel)]="form.cuit" [attr.aria-invalid]="!!errores['cuit']" [attr.aria-describedby]="errores['cuit'] ? 'err-cuit' : null">
+              @if (errores['cuit']) { <small class="saas-field-error" id="err-cuit">{{ errores['cuit'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['centroNombre']">
+              <span>Nombre del centro</span>
+              <input id="centro" name="centro" [(ngModel)]="form.centroNombre" [attr.aria-invalid]="!!errores['centroNombre']" [attr.aria-describedby]="errores['centroNombre'] ? 'err-centro' : null">
+              @if (errores['centroNombre']) { <small class="saas-field-error" id="err-centro">{{ errores['centroNombre'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['emailContacto']">
+              <span>Email de contacto (opcional)</span>
+              <input id="email-org" type="email" name="emailContacto" [(ngModel)]="form.emailContacto" autocomplete="email" [attr.aria-invalid]="!!errores['emailContacto']" [attr.aria-describedby]="errores['emailContacto'] ? 'err-email-org' : null">
+              @if (errores['emailContacto']) { <small class="saas-field-error" id="err-email-org">{{ errores['emailContacto'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['direccion']">
+              <span>Dirección</span>
+              <input id="direccion" name="direccion" [(ngModel)]="form.direccion" autocomplete="street-address" [attr.aria-invalid]="!!errores['direccion']" [attr.aria-describedby]="errores['direccion'] ? 'err-direccion' : null">
+              @if (errores['direccion']) { <small class="saas-field-error" id="err-direccion">{{ errores['direccion'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['localidad']">
+              <span>Localidad</span>
+              <input id="localidad" name="localidad" [(ngModel)]="form.localidad" autocomplete="address-level2" [attr.aria-invalid]="!!errores['localidad']" [attr.aria-describedby]="errores['localidad'] ? 'err-localidad' : null">
+              @if (errores['localidad']) { <small class="saas-field-error" id="err-localidad">{{ errores['localidad'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['provincia']">
+              <span>Provincia</span>
+              <input id="provincia" name="provincia" [(ngModel)]="form.provincia" autocomplete="address-level1" [attr.aria-invalid]="!!errores['provincia']" [attr.aria-describedby]="errores['provincia'] ? 'err-provincia' : null">
+              @if (errores['provincia']) { <small class="saas-field-error" id="err-provincia">{{ errores['provincia'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['telefonoCentro']">
+              <span>Teléfono del centro (solo números)</span>
+              <input id="tel-centro" name="telCentro" inputmode="numeric" [(ngModel)]="form.telefonoCentro" autocomplete="tel" [attr.aria-invalid]="!!errores['telefonoCentro']" [attr.aria-describedby]="errores['telefonoCentro'] ? 'err-tel-centro' : null">
+              @if (errores['telefonoCentro']) { <small class="saas-field-error" id="err-tel-centro">{{ errores['telefonoCentro'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['latitud']">
+              <span>Latitud</span>
+              <input id="lat" type="number" step="0.0001" name="lat" [(ngModel)]="form.latitud" [attr.aria-invalid]="!!errores['latitud']" [attr.aria-describedby]="errores['latitud'] ? 'err-lat' : null">
+              @if (errores['latitud']) { <small class="saas-field-error" id="err-lat">{{ errores['latitud'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['longitud']">
+              <span>Longitud</span>
+              <input id="lng" type="number" step="0.0001" name="lng" [(ngModel)]="form.longitud" [attr.aria-invalid]="!!errores['longitud']" [attr.aria-describedby]="errores['longitud'] ? 'err-lng' : null">
+              @if (errores['longitud']) { <small class="saas-field-error" id="err-lng">{{ errores['longitud'] }}</small> }
+            </label>
+          </div>
+        }
+
+        @if (paso === 3) {
+          <h2>Administrador</h2>
+          <div class="saas-fields">
+            <label class="saas-field" [class.is-invalid]="errores['adminNombre']">
+              <span>Nombre</span>
+              <input id="nombre" name="nombre" [(ngModel)]="form.adminNombre" autocomplete="given-name" [attr.aria-invalid]="!!errores['adminNombre']" [attr.aria-describedby]="errores['adminNombre'] ? 'err-nombre' : null">
+              @if (errores['adminNombre']) { <small class="saas-field-error" id="err-nombre">{{ errores['adminNombre'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['adminApellido']">
+              <span>Apellido</span>
+              <input id="apellido" name="apellido" [(ngModel)]="form.adminApellido" autocomplete="family-name" [attr.aria-invalid]="!!errores['adminApellido']" [attr.aria-describedby]="errores['adminApellido'] ? 'err-apellido' : null">
+              @if (errores['adminApellido']) { <small class="saas-field-error" id="err-apellido">{{ errores['adminApellido'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['adminEmail']">
+              <span>Email</span>
+              <input id="email" type="email" name="email" [(ngModel)]="form.adminEmail" autocomplete="email" [attr.aria-invalid]="!!errores['adminEmail']" [attr.aria-describedby]="errores['adminEmail'] ? 'err-email' : null">
+              @if (errores['adminEmail']) { <small class="saas-field-error" id="err-email">{{ errores['adminEmail'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['adminTelefono']">
+              <span>Teléfono</span>
+              <input id="tel-admin" name="telAdmin" [(ngModel)]="form.adminTelefono" autocomplete="tel" [attr.aria-invalid]="!!errores['adminTelefono']" [attr.aria-describedby]="errores['adminTelefono'] ? 'err-tel-admin' : null">
+              @if (errores['adminTelefono']) { <small class="saas-field-error" id="err-tel-admin">{{ errores['adminTelefono'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['adminDni']">
+              <span>DNI</span>
+              <input id="dni" name="dni" inputmode="numeric" [(ngModel)]="form.adminDni" [attr.aria-invalid]="!!errores['adminDni']" [attr.aria-describedby]="errores['adminDni'] ? 'err-dni' : null">
+              @if (errores['adminDni']) { <small class="saas-field-error" id="err-dni">{{ errores['adminDni'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['adminPassword']">
+              <span>Contraseña</span>
+              <input id="password" type="password" name="password" [(ngModel)]="form.adminPassword" autocomplete="new-password" [attr.aria-invalid]="!!errores['adminPassword']" [attr.aria-describedby]="errores['adminPassword'] ? 'err-password' : null">
+              <small class="saas-nota">Mínimo 6 caracteres.</small>
+              @if (errores['adminPassword']) { <small class="saas-field-error" id="err-password">{{ errores['adminPassword'] }}</small> }
+            </label>
+            <label class="saas-field" [class.is-invalid]="errores['password2']">
+              <span>Repetí la contraseña</span>
+              <input id="password2" type="password" name="password2" [(ngModel)]="password2" autocomplete="new-password" [attr.aria-invalid]="!!errores['password2']" [attr.aria-describedby]="errores['password2'] ? 'err-password2' : null">
+              @if (errores['password2']) { <small class="saas-field-error" id="err-password2">{{ errores['password2'] }}</small> }
+            </label>
+          </div>
+        }
+
+        @if (paso === 4) {
+          <h2>Revisá y confirmá</h2>
+          <dl class="saas-dl">
+            <dt>Plan</dt><dd>{{ planActual?.nombre }}</dd>
+            <dt>Ciclo</dt><dd>{{ form.ciclo === 'ANUAL' ? 'Anual' : 'Mensual' }}</dd>
+            @if (porAsiento) {
+              <dt>Profesionales</dt><dd>{{ form.profesionalesContratados }}</dd>
+            }
+            <dt>Complementos</dt><dd>{{ nombresAddons() }}</dd>
+            <dt>Organización</dt><dd>{{ form.organizacionNombre }}</dd>
+            <dt>Centro</dt><dd>{{ form.centroNombre }}</dd>
+            <dt>Dirección</dt><dd>{{ form.direccion }}, {{ form.localidad }}, {{ form.provincia }}</dd>
+            <dt>Administrador</dt><dd>{{ form.adminNombre }} {{ form.adminApellido }}</dd>
+            <dt>Email</dt><dd>{{ form.adminEmail }}</dd>
+            <dt>Prueba</dt><dd>{{ catalogo.configuracion.diasTrial }} días, sin tarjeta</dd>
+          </dl>
+          <p class="saas-nota">Al confirmar se crea la cuenta en prueba. La tarjeta se pide recién cuando decidas pagar.</p>
+          <button type="button" class="btn btn-link" (click)="irA(1)">Cambiar el plan</button>
+        }
+
+        <div class="saas-actions">
+          @if (paso > 1) {
+            <button type="button" class="btn btn-outline-primary" (click)="anterior()">Atrás</button>
+          }
+          <button class="btn btn-primary" type="submit" [disabled]="enviando">
+            @if (paso < 4) { Seguir }
+            @else { {{ enviando ? 'Creando…' : 'Crear cuenta y empezar' }} }
+          </button>
+        </div>
+      </form>
+
+      <aside class="saas-summary" aria-label="Resumen del plan">
+        <p class="saas-kicker">Tu prueba</p>
+        <h2>{{ planActual?.nombre || 'Plan' }}</h2>
+        <p class="saas-nota">{{ planActual?.descripcion }}</p>
+        <p><span class="saas-badge trial">{{ catalogo.configuracion.diasTrial }} días sin tarjeta</span></p>
+        <p class="saas-nota">{{ form.ciclo === 'ANUAL' ? 'Facturación anual' : 'Facturación mensual' }}
+          @if (porAsiento) { · {{ form.profesionalesContratados }} profesionales }
+        </p>
+        @if (precio) {
+          <dl class="saas-dl">
+            <dt>Neto al terminar la prueba</dt>
+            <dd>{{ formatoArs(precio.neto) }}</dd>
+            <dt>IVA {{ precio.ivaPorcentaje }}%</dt>
+            <dd>{{ formatoArs(precio.iva) }}</dd>
+            <dt>Total con IVA</dt>
+            <dd>{{ formatoArs(precio.total) }}</dd>
+          </dl>
+        } @else {
+          <p class="saas-nota">Calculando el precio…</p>
+        }
+        <p class="saas-nota">Hoy no se cobra. El importe es el que verías al pasar a un plan pago.</p>
+      </aside>
+    </div>
+  }
 </div>

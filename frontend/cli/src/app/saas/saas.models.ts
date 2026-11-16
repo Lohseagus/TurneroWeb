@@ -167,6 +167,29 @@ export function formatoArs(valor: number | null | undefined): string {
   }).format(Number(valor));
 }
 
+export function formatoFecha(valor: string | null | undefined): string {
+  if (!valor) {
+    return '—';
+  }
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) {
+    return valor;
+  }
+  return new Intl.DateTimeFormat('es-AR', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(fecha);
+}
+
+export function formatoPorcentaje(valor: number | null | undefined): string {
+  if (valor === null || valor === undefined || Number.isNaN(Number(valor))) {
+    return '—';
+  }
+  return new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: 1
+  }).format(Number(valor)) + '%';
+}
+
 export function etiquetaEstado(estado: string | null | undefined): string {
   switch (estado) {
     case 'TRIAL': return 'Prueba';
@@ -179,6 +202,80 @@ export function etiquetaEstado(estado: string | null | undefined): string {
   }
 }
 
+export function claseEstado(estado: string | null | undefined): string {
+  switch (estado) {
+    case 'TRIAL': return 'trial';
+    case 'ACTIVA': return 'activa';
+    case 'VENCIDA': return 'vencida';
+    case 'MOROSA': return 'morosa';
+    case 'SUSPENDIDA': return 'suspendida';
+    case 'CANCELADA': return 'cancelada';
+    default: return 'neutro';
+  }
+}
+
+export function etiquetaPago(estado: string | null | undefined): string {
+  switch (estado) {
+    case 'PENDIENTE': return 'Pendiente';
+    case 'APROBADO': return 'Aprobado';
+    case 'RECHAZADO': return 'Rechazado';
+    case 'REEMBOLSADO': return 'Reembolsado';
+    default: return estado || '—';
+  }
+}
+
+export function etiquetaTipoPago(tipo: string | null | undefined): string {
+  switch (tipo) {
+    case 'ALTA': return 'Alta';
+    case 'RENOVACION': return 'Renovación';
+    case 'CAMBIO_PLAN': return 'Cambio de plan';
+    default: return tipo || '—';
+  }
+}
+
+export function etiquetaCiclo(ciclo: string | null | undefined): string {
+  switch (ciclo) {
+    case 'ANUAL': return 'Anual';
+    case 'MENSUAL': return 'Mensual';
+    default: return ciclo || '—';
+  }
+}
+
 export function tope(valor: number | null | undefined): string {
-  return valor === null || valor === undefined ? 'sin tope' : String(valor);
+  return valor === null || valor === undefined ? 'Sin tope' : String(valor);
+}
+
+export function iconoPlan(codigo: string | null | undefined): string {
+  switch (codigo) {
+    case 'PROFESIONAL': return 'stethoscope';
+    case 'CONSULTORIO': return 'groups';
+    case 'CENTRO': return 'local_hospital';
+    case 'RED': return 'account_tree';
+    default: return 'sell';
+  }
+}
+
+export function esPlanRecomendado(codigo: string | null | undefined): boolean {
+  return codigo === 'CENTRO';
+}
+
+export function porcentajeUso(actual: number, max: number | null | undefined): number {
+  if (max == null || max <= 0) {
+    return 100;
+  }
+  return Math.max(0, Math.min(100, Math.round((actual / max) * 100)));
+}
+
+export function nivelUso(actual: number, max: number | null | undefined): 'ok' | 'alerta' | 'limite' | 'libre' {
+  if (max == null) {
+    return 'libre';
+  }
+  const porcentaje = porcentajeUso(actual, max);
+  if (porcentaje >= 100) {
+    return 'limite';
+  }
+  if (porcentaje >= 80) {
+    return 'alerta';
+  }
+  return 'ok';
 }

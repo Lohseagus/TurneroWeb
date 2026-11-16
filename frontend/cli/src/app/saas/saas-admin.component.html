@@ -1,177 +1,428 @@
 <div class="saas-page">
-  <h1>SaaS</h1>
-  <nav class="saas-row" style="margin-bottom: 16px">
-    <a routerLink="/saas" class="btn btn-outline-primary">Tablero</a>
-    <a routerLink="/saas/suscripciones" class="btn btn-outline-primary">Suscripciones</a>
-    <a routerLink="/saas/planes" class="btn btn-outline-primary">Planes y precios</a>
-    <a routerLink="/saas/pagos" class="btn btn-outline-primary">Pagos</a>
+  <header class="saas-hero">
+    <p class="saas-kicker">
+      <span class="material-symbols-outlined" aria-hidden="true">monitoring</span>
+      Panel comercial
+    </p>
+    <h1>SaaS</h1>
+    <p class="saas-lead">Suscripciones, prueba, precios y cobros de CheTurno.</p>
+  </header>
+
+  <nav class="saas-nav" aria-label="Secciones de SaaS">
+    <a routerLink="/saas" [class.is-active]="vista === 'dashboard'" [attr.aria-current]="vista === 'dashboard' ? 'page' : null">Tablero</a>
+    <a routerLink="/saas/suscripciones" [class.is-active]="vista === 'suscripciones' || vista === 'detalle'" [attr.aria-current]="vista === 'suscripciones' ? 'page' : null">Suscripciones</a>
+    <a routerLink="/saas/planes" [class.is-active]="vista === 'planes'" [attr.aria-current]="vista === 'planes' ? 'page' : null">Planes y precios</a>
+    <a routerLink="/saas/pagos" [class.is-active]="vista === 'pagos'" [attr.aria-current]="vista === 'pagos' ? 'page' : null">Pagos</a>
   </nav>
-  <div class="saas-alert error" *ngIf="error">{{ error }}</div>
-  <div class="saas-alert ok" *ngIf="ok">{{ ok }}</div>
 
-  <section *ngIf="vista === 'dashboard' && resumen as r">
-    <p class="saas-lead">Prueba de {{ r.configuracion.diasTrial }} días · IVA {{ r.configuracion.ivaPorcentaje }}% · descuento anual {{ r.configuracion.descuentoAnualPorcentaje }}% · pasarela {{ r.configuracion.proveedorPago }}.</p>
-    <div class="saas-kpis">
-      <div class="saas-kpi"><span>Activas</span><strong>{{ r.activas }}</strong></div>
-      <div class="saas-kpi"><span>En prueba</span><strong>{{ r.trials }}</strong></div>
-      <div class="saas-kpi"><span>Pruebas por vencer (7 días)</span><strong>{{ r.trialsPorVencer }}</strong></div>
-      <div class="saas-kpi"><span>Vencidas</span><strong>{{ r.vencidas }}</strong></div>
-      <div class="saas-kpi"><span>Morosas</span><strong>{{ r.morosas }}</strong></div>
-      <div class="saas-kpi"><span>Heredadas activas</span><strong>{{ r.heredadasActivas }}</strong></div>
-      <div class="saas-kpi"><span>MRR neto</span><strong>{{ formatoArs(r.mrrNeto) }}</strong></div>
-      <div class="saas-kpi"><span>Cobrado este mes (con IVA)</span><strong>{{ formatoArs(r.ingresosConIvaMes) }}</strong></div>
-    </div>
-    <div class="saas-table-wrap saas-panel">
-      <table class="saas-table">
-        <thead><tr><th>Plan</th><th>Suscripciones</th><th>MRR neto</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let plan of r.porPlan">
-            <td>{{ plan.nombre }}</td>
-            <td>{{ plan.cantidad }}</td>
-            <td>{{ formatoArs(plan.mrrNeto) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  @if (error) { <div class="saas-alert error" role="alert">{{ error }}</div> }
+  @if (ok) { <div class="saas-alert ok" role="status">{{ ok }}</div> }
 
-  <section *ngIf="vista === 'suscripciones'">
-    <form class="saas-row" (ngSubmit)="buscar()">
-      <select name="estado" [(ngModel)]="filtroEstado">
-        <option value="">Todos los estados</option>
-        <option value="TRIAL">Prueba</option>
-        <option value="ACTIVA">Activa</option>
-        <option value="VENCIDA">Vencida</option>
-        <option value="MOROSA">Morosa</option>
-        <option value="SUSPENDIDA">Suspendida</option>
-        <option value="CANCELADA">Cancelada</option>
-      </select>
-      <select name="plan" [(ngModel)]="filtroPlan">
-        <option value="">Todos los planes</option>
-        <option value="PROFESIONAL">Profesional</option>
-        <option value="CONSULTORIO">Consultorio</option>
-        <option value="CENTRO">Centro</option>
-        <option value="RED">Red</option>
-      </select>
-      <input name="q" [(ngModel)]="filtroTexto" placeholder="Organización o email">
+  @if (vista === 'dashboard') {
+    @if (cargando && !resumen) {
+      <div class="saas-skeleton" aria-hidden="true">
+        <div class="saas-kpis">
+          @for (item of [1, 2, 3, 4, 5]; track item) { <div class="saas-skeleton__card"></div> }
+        </div>
+      </div>
+      <p class="saas-sr" role="status">Cargando el tablero…</p>
+    }
+    @if (resumen; as r) {
+      <p class="saas-lead">Prueba de {{ r.configuracion.diasTrial }} días · IVA {{ r.configuracion.ivaPorcentaje }}% · descuento anual {{ r.configuracion.descuentoAnualPorcentaje }}% · pasarela {{ r.configuracion.proveedorPago }}.</p>
+      <div class="saas-kpis">
+        <div class="saas-kpi"><span>MRR neto</span><strong>{{ formatoArs(r.mrrNeto) }}</strong><small>Sin las heredadas</small></div>
+        <div class="saas-kpi"><span>Suscripciones activas</span><strong>{{ r.activas }}</strong></div>
+        <div class="saas-kpi"><span>En prueba</span><strong>{{ r.trials }}</strong><small>{{ r.trialsPorVencer }} vencen en 7 días</small></div>
+        <div class="saas-kpi"><span>Morosas</span><strong>{{ r.morosas }}</strong></div>
+        <div class="saas-kpi"><span>Churn</span><strong>{{ formatoPorcentaje(churn) }}</strong><small>Canceladas sobre el total</small></div>
+        <div class="saas-kpi"><span>Cobrado este mes</span><strong>{{ formatoArs(r.ingresosConIvaMes) }}</strong><small>Con IVA · neto {{ formatoArs(r.ingresosNetosMes) }}</small></div>
+      </div>
+
+      <div class="saas-kpis" style="margin-top: 12px">
+        <div class="saas-kpi"><span>Vencidas</span><strong>{{ r.vencidas }}</strong></div>
+        <div class="saas-kpi"><span>Suspendidas</span><strong>{{ r.suspendidas }}</strong></div>
+        <div class="saas-kpi"><span>Canceladas</span><strong>{{ r.canceladas }}</strong></div>
+        <div class="saas-kpi"><span>Heredadas activas</span><strong>{{ r.heredadasActivas }}</strong><small>No entran al MRR</small></div>
+      </div>
+
+      <div class="saas-charts" style="margin-top: 16px">
+        <section class="saas-panel">
+          <h2>Suscripciones por estado</h2>
+          @if (hayGraficoEstados) {
+            <div class="saas-mix" aria-hidden="true">
+              @for (item of mezclaEstados; track item.clave) {
+                <span [class]="item.clase" [style.width.%]="ancho(item.valor)"></span>
+              }
+            </div>
+            <ul class="saas-legend">
+              @for (item of mezclaEstados; track item.clave) {
+                <li><i [style.background]="item.color"></i>{{ item.etiqueta }}: {{ item.valor }}</li>
+              }
+            </ul>
+            <div class="saas-chart__canvas" role="img" aria-label="Gráfico de suscripciones por estado">
+              <canvas baseChart [data]="estadosChart" [options]="opcionesDona" type="doughnut"></canvas>
+            </div>
+          } @else {
+            <div class="saas-empty">
+              <span class="material-symbols-outlined" aria-hidden="true">donut_large</span>
+              <p>Todavía no hay suscripciones para graficar.</p>
+            </div>
+          }
+        </section>
+        <section class="saas-panel">
+          <h2>MRR por plan</h2>
+          @if (hayGraficoMrr) {
+            <div class="saas-chart__canvas" role="img" aria-label="Gráfico de ingreso mensual recurrente por plan">
+              <canvas baseChart [data]="mrrChart" [options]="opcionesBarras" type="bar"></canvas>
+            </div>
+          } @else {
+            <div class="saas-empty">
+              <span class="material-symbols-outlined" aria-hidden="true">bar_chart</span>
+              <p>No hay MRR para mostrar. Las suscripciones heredadas no se facturan.</p>
+            </div>
+          }
+        </section>
+      </div>
+
+      <div class="saas-table-wrap" style="margin-top: 16px">
+        <table class="saas-table">
+          <caption class="saas-sr">Suscripciones e ingreso mensual por plan</caption>
+          <thead><tr><th>Plan</th><th>Suscripciones</th><th>MRR neto</th></tr></thead>
+          <tbody>
+            @for (plan of r.porPlan; track plan.codigo) {
+              <tr>
+                <td>{{ plan.nombre }}</td>
+                <td>{{ plan.cantidad }}</td>
+                <td>{{ formatoArs(plan.mrrNeto) }}</td>
+              </tr>
+            }
+            @if (!r.porPlan.length) {
+              <tr><td colspan="3">No hay planes con suscripciones.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  @if (vista === 'suscripciones') {
+    <form class="saas-filters" (ngSubmit)="buscar()">
+      <label>Estado
+        <select name="estado" [(ngModel)]="filtroEstado">
+          <option value="">Todos los estados</option>
+          <option value="TRIAL">Prueba</option>
+          <option value="ACTIVA">Activa</option>
+          <option value="VENCIDA">Vencida</option>
+          <option value="MOROSA">Morosa</option>
+          <option value="SUSPENDIDA">Suspendida</option>
+          <option value="CANCELADA">Cancelada</option>
+        </select>
+      </label>
+      <label>Plan
+        <select name="plan" [(ngModel)]="filtroPlan">
+          <option value="">Todos los planes</option>
+          <option value="PROFESIONAL">Profesional</option>
+          <option value="CONSULTORIO">Consultorio</option>
+          <option value="CENTRO">Centro</option>
+          <option value="RED">Red</option>
+        </select>
+      </label>
+      <label>Buscar
+        <input name="q" [(ngModel)]="filtroTexto" placeholder="Organización o email" aria-label="Buscar por organización o email">
+      </label>
       <button class="btn btn-primary" type="submit">Filtrar</button>
     </form>
-    <div class="saas-table-wrap saas-panel" style="margin-top: 12px">
-      <table class="saas-table">
-        <thead><tr><th>Organización</th><th>Plan</th><th>Estado</th><th>Neto mensual</th><th></th></tr></thead>
-        <tbody>
-          <tr *ngFor="let item of suscripciones">
-            <td>{{ item.organizacion.nombre }}</td>
-            <td>{{ item.plan.nombre }}</td>
-            <td>{{ etiquetaEstado(item.estado) }}</td>
-            <td>{{ formatoArs(item.precioMensual.neto) }}</td>
-            <td><a [routerLink]="['/saas/suscripciones', item.id]">Ver</a></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
 
-  <section *ngIf="vista === 'detalle' && detalle as d">
-    <h2>{{ d.organizacion.nombre }}</h2>
-    <p>{{ etiquetaEstado(d.estado) }} · {{ d.plan.nombre }} · {{ d.heredada ? 'heredada' : 'comercial' }}</p>
-    <p>Preapproval: {{ d.mpPreapprovalId || '—' }} · estado pasarela: {{ d.mpStatus || '—' }}</p>
-    <p>Sedes: {{ d.uso.centros }} / {{ tope(d.uso.maxCentros) }} · médicos: {{ d.uso.medicos }} / {{ tope(d.uso.maxMedicos) }} · operadores: {{ d.uso.operadores }} / {{ tope(d.uso.maxOperadores) }}</p>
-    <p>Neto mensual {{ formatoArs(d.precioMensual.neto) }} + IVA ({{ formatoArs(d.precioMensual.total) }})</p>
+    @if (cargando && !suscripciones.length) {
+      <div class="saas-skeleton__card" aria-hidden="true"></div>
+      <p class="saas-sr" role="status">Cargando suscripciones…</p>
+    } @else if (!suscripciones.length) {
+      <div class="saas-empty saas-panel">
+        <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
+        <p>No hay suscripciones con esos filtros.</p>
+      </div>
+    } @else {
+      <div class="saas-table-wrap">
+        <table class="saas-table">
+          <caption class="saas-sr">Listado de suscripciones</caption>
+          <thead><tr><th>Organización</th><th>Plan</th><th>Estado</th><th>Neto mensual</th><th></th></tr></thead>
+          <tbody>
+            @for (item of listaPagina; track item.id) {
+              <tr>
+                <td>
+                  {{ item.organizacion.nombre }}
+                  @if (item.heredada) { <span class="saas-badge neutro">Heredada</span> }
+                </td>
+                <td>{{ item.plan.nombre }}</td>
+                <td><span class="saas-badge" [ngClass]="claseEstado(item.estado)">{{ etiquetaEstado(item.estado) }}</span></td>
+                <td>{{ formatoArs(item.precioMensual.neto) }}</td>
+                <td><a [routerLink]="['/saas/suscripciones', item.id]">Ver organización</a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="saas-pager">
+        <p class="saas-meta">{{ suscripciones.length }} suscripciones · página {{ paginaLista }} de {{ paginasLista }}</p>
+        <div class="saas-actions">
+          <button type="button" class="btn btn-outline-primary" (click)="paginaLista = paginaLista - 1" [disabled]="paginaLista <= 1">Anterior</button>
+          <button type="button" class="btn btn-outline-primary" (click)="paginaLista = paginaLista + 1" [disabled]="paginaLista >= paginasLista">Siguiente</button>
+        </div>
+      </div>
+    }
+  }
 
-    <div class="saas-actions">
-      <label>Días de prueba<input type="number" name="dias" [(ngModel)]="diasExtension" min="1" max="365"></label>
-      <button class="btn btn-outline-primary" type="button" (click)="extender()">Extender prueba</button>
-    </div>
-    <div class="saas-actions">
-      <input name="motivo" [(ngModel)]="motivo" placeholder="Motivo">
-      <button class="btn btn-outline-primary" type="button" (click)="suspender()">Suspender</button>
-      <button class="btn btn-outline-primary" type="button" (click)="reactivar()">Reactivar</button>
-      <button class="btn btn-outline-primary" type="button" (click)="cancelar()">Cancelar</button>
-    </div>
-    <div class="saas-actions" *ngIf="catalogo">
-      <select name="planDestino" [(ngModel)]="planDestino">
-        <option *ngFor="let plan of catalogo.planes" [value]="plan.codigo">{{ plan.nombre }}</option>
-      </select>
-      <button class="btn btn-primary" type="button" (click)="cambiarPlan()">Cambiar plan</button>
-    </div>
+  @if (vista === 'detalle') {
+    @if (cargando && !detalle) {
+      <div class="saas-skeleton__card" aria-hidden="true"></div>
+      <p class="saas-sr" role="status">Cargando la organización…</p>
+    }
+    @if (detalle; as d) {
+      <p><a routerLink="/saas/suscripciones">Volver al listado</a></p>
+      <header class="saas-hero">
+        <h2>{{ d.organizacion.nombre }}</h2>
+        <p>
+          <span class="saas-badge" [ngClass]="claseEstado(d.estado)">{{ etiquetaEstado(d.estado) }}</span>
+          {{ d.plan.nombre }} · {{ d.heredada ? 'Heredada, sin facturar' : 'Comercial' }}
+        </p>
+        <p class="saas-nota">{{ d.organizacion.emailContacto }} · {{ d.organizacion.telefono || 'sin teléfono' }} · CUIT {{ d.organizacion.cuit || '—' }}</p>
+      </header>
 
-    <h3>Centros</h3>
-    <ul><li *ngFor="let centro of d.centros">{{ centro.nombre }} — {{ centro.localidad }}</li></ul>
-    <h3>Pagos</h3>
-    <ul><li *ngFor="let pago of d.pagos">{{ pago.fecha }} · {{ pago.tipo }} · {{ formatoArs(pago.total) }} · {{ pago.mpPaymentId }}</li></ul>
-    <h3>Historial</h3>
-    <ul><li *ngFor="let evento of d.eventos">{{ evento.fecha }} · {{ evento.detalle }}</li></ul>
-  </section>
+      <div class="saas-kpis">
+        <div class="saas-kpi"><span>Neto mensual</span><strong>{{ formatoArs(d.precioMensual.neto) }}</strong><small>{{ formatoArs(d.precioMensual.total) }} con IVA</small></div>
+        <div class="saas-kpi"><span>Médicos</span><strong>{{ d.uso.medicos }} / {{ tope(d.uso.maxMedicos) }}</strong></div>
+        <div class="saas-kpi"><span>Sedes</span><strong>{{ d.uso.centros }} / {{ tope(d.uso.maxCentros) }}</strong><small>{{ d.uso.sedesIncluidas }} incluidas, {{ d.uso.sedesExtra }} extra</small></div>
+        <div class="saas-kpi"><span>Operadores</span><strong>{{ d.uso.operadores }} / {{ tope(d.uso.maxOperadores) }}</strong></div>
+      </div>
 
-  <section *ngIf="vista === 'planes' && catalogo as c">
-    <form class="saas-form saas-panel" (ngSubmit)="guardarConfig()">
-      <h2>Parámetros comerciales</h2>
-      <label>IVA %<input type="number" name="iva" [(ngModel)]="c.configuracion.ivaPorcentaje" step="0.01"></label>
-      <label>Días de prueba<input type="number" name="dias" [(ngModel)]="c.configuracion.diasTrial" min="1" max="365"></label>
-      <label>Descuento anual %<input type="number" name="descuento" [(ngModel)]="c.configuracion.descuentoAnualPorcentaje" step="0.01"></label>
-      <label>Moneda<input name="moneda" [(ngModel)]="c.configuracion.moneda"></label>
-      <button class="btn btn-primary" type="submit">Guardar parámetros</button>
-      <p class="saas-nota">Pasarela actual: {{ c.configuracion.proveedorPago }}. Los precios de los planes son netos.</p>
-    </form>
+      <section class="saas-panel" style="margin-top: 16px">
+        <h2>Acciones</h2>
+        <p class="saas-nota">Preapproval: {{ d.mpPreapprovalId || '—' }} · estado de la pasarela: {{ d.mpStatus || '—' }}</p>
+        @if (d.motivo) { <p>Motivo: {{ d.motivo }}</p> }
+        <div class="saas-actions">
+          <label class="saas-field">Días de prueba
+            <input type="number" name="dias" [(ngModel)]="diasExtension" min="1" max="365">
+          </label>
+          <button class="btn btn-outline-primary" type="button" [disabled]="operando" (click)="extender()">Extender prueba</button>
+        </div>
+        <div class="saas-actions">
+          <button class="btn btn-outline-primary" type="button" (click)="abrir('suspender', $event)">Suspender</button>
+          <button class="btn btn-outline-primary" type="button" [disabled]="operando" (click)="reactivar()">Reactivar</button>
+          <button class="btn btn-outline-primary" type="button" (click)="abrir('cancelar', $event)">Cancelar suscripción</button>
+        </div>
+        @if (catalogo) {
+          <div class="saas-actions">
+            <label class="saas-field">Plan destino
+              <select name="planDestino" [(ngModel)]="planDestino">
+                @for (plan of catalogo.planes; track plan.codigo) {
+                  <option [value]="plan.codigo">{{ plan.nombre }}</option>
+                }
+              </select>
+            </label>
+            <button class="btn btn-primary" type="button" (click)="abrir('cambiar', $event)">Cambiar plan</button>
+          </div>
+        }
+      </section>
 
-    <article class="saas-panel" style="margin-top: 16px" *ngFor="let plan of c.planes">
-      <h2>{{ plan.codigo }}</h2>
-      <form class="saas-form" (ngSubmit)="guardarPlan(plan)">
-        <label>Nombre<input name="nombre-{{ plan.id }}" [(ngModel)]="plan.nombre"></label>
-        <label>Descripción<textarea name="desc-{{ plan.id }}" [(ngModel)]="plan.descripcion"></textarea></label>
-        <label>Precio base mensual neto<input type="number" name="base-{{ plan.id }}" [(ngModel)]="plan.precioBaseMensual" step="0.01"></label>
-        <label>Precio por profesional neto<input type="number" name="prof-{{ plan.id }}" [(ngModel)]="plan.precioPorProfesional" step="0.01"></label>
-        <label>Mínimo de profesionales<input type="number" name="min-{{ plan.id }}" [(ngModel)]="plan.minProfesionales"></label>
-        <label>Máximo de profesionales<input type="number" name="maxp-{{ plan.id }}" [(ngModel)]="plan.maxProfesionales"></label>
-        <label>Máximo de médicos (vacío = sin tope)<input type="number" name="med-{{ plan.id }}" [(ngModel)]="plan.maxMedicos"></label>
-        <label>Máximo de operadores<input type="number" name="op-{{ plan.id }}" [(ngModel)]="plan.maxOperadores"></label>
-        <label>Máximo de consultorios<input type="number" name="cons-{{ plan.id }}" [(ngModel)]="plan.maxConsultorios"></label>
-        <label>Máximo de sedes<input type="number" name="sedes-{{ plan.id }}" [(ngModel)]="plan.maxCentros"></label>
-        <label>Sedes incluidas<input type="number" name="inc-{{ plan.id }}" [(ngModel)]="plan.sedesIncluidas"></label>
-        <label>Precio sede extra neto<input type="number" name="extra-{{ plan.id }}" [(ngModel)]="plan.precioPorSedeExtra" step="0.01"></label>
-        <label>Descuento anual propio (vacío = el general)<input type="number" name="descAnual-{{ plan.id }}" [(ngModel)]="plan.descuentoAnualPorcentaje" step="0.01"></label>
-        <label>preapproval_plan mensual<input name="mp-m-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdMensual"></label>
-        <label>preapproval_plan anual<input name="mp-a-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdAnual"></label>
-        <label class="saas-check"><input type="checkbox" name="rep-{{ plan.id }}" [(ngModel)]="plan.reportesBasicos"> Reportes</label>
-        <label class="saas-check"><input type="checkbox" name="red-{{ plan.id }}" [(ngModel)]="plan.reportesConsolidados"> Reportes consolidados</label>
-        <label class="saas-check"><input type="checkbox" name="sop-{{ plan.id }}" [(ngModel)]="plan.soportePrioritario"> Soporte prioritario</label>
-        <label class="saas-check"><input type="checkbox" name="act-{{ plan.id }}" [(ngModel)]="plan.activo"> Activo</label>
-        <p class="saas-nota">Ejemplo mensual: {{ formatoArs(plan.ejemploMensual.neto) }} + IVA = {{ formatoArs(plan.ejemploMensual.total) }}</p>
-        <button class="btn btn-primary" type="submit">Guardar {{ plan.nombre }}</button>
+      <div class="saas-split" style="margin-top: 16px">
+        <section class="saas-panel">
+          <h2>Centros</h2>
+          @if (!d.centros.length) {
+            <p class="saas-nota">Esta organización no tiene centros asociados.</p>
+          }
+          <ul class="saas-features">
+            @for (centro of d.centros; track centro.id) {
+              <li>{{ centro.nombre }} — {{ centro.localidad }}, {{ centro.provincia }}</li>
+            }
+          </ul>
+          <h3>Uso</h3>
+          <div class="saas-meter">
+            <div class="saas-meter__top"><span>Consultorios</span><span>{{ d.uso.consultorios }} / {{ tope(d.uso.maxConsultorios) }}</span></div>
+            <div class="saas-meter__track"><div class="saas-meter__fill" [ngClass]="nivelUso(d.uso.consultorios, d.uso.maxConsultorios)" [style.width.%]="porcentajeUso(d.uso.consultorios, d.uso.maxConsultorios)"></div></div>
+          </div>
+        </section>
+        <section class="saas-panel">
+          <h2>Historial</h2>
+          @if (!d.eventos.length) {
+            <p class="saas-nota">Todavía no hay eventos.</p>
+          }
+          <ol class="saas-timeline">
+            @for (evento of d.eventos; track evento.fecha + evento.detalle) {
+              <li>
+                <time [attr.datetime]="evento.fecha">{{ formatoFecha(evento.fecha) }}</time>
+                <strong>{{ evento.detalle }}</strong>
+                <div class="saas-meta">{{ evento.actor }}</div>
+              </li>
+            }
+          </ol>
+        </section>
+      </div>
+
+      <section class="saas-section">
+        <h2>Pagos de la organización</h2>
+        @if (!d.pagos.length) {
+          <div class="saas-empty saas-panel">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            <p>Esta organización todavía no tiene pagos.</p>
+          </div>
+        } @else {
+          <div class="saas-table-wrap">
+            <table class="saas-table">
+              <thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Total</th><th>Referencia</th></tr></thead>
+              <tbody>
+                @for (pago of d.pagos; track pago.id) {
+                  <tr>
+                    <td>{{ formatoFecha(pago.fecha) }}</td>
+                    <td>{{ etiquetaTipoPago(pago.tipo) }}</td>
+                    <td>{{ etiquetaPago(pago.estado) }}</td>
+                    <td>{{ formatoArs(pago.total) }}</td>
+                    <td>{{ pago.mpPaymentId }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  }
+
+  @if (vista === 'planes') {
+    @if (cargando && !catalogo) {
+      <div class="saas-skeleton__card" aria-hidden="true"></div>
+      <p class="saas-sr" role="status">Cargando planes…</p>
+    }
+    @if (catalogo; as c) {
+      <form class="saas-form saas-panel" (ngSubmit)="guardarConfig()">
+        <h2>Parámetros comerciales</h2>
+        <div class="saas-fields">
+          <label class="saas-field">IVA %<input type="number" name="iva" [(ngModel)]="c.configuracion.ivaPorcentaje" step="0.01"></label>
+          <label class="saas-field">Días de prueba<input type="number" name="dias" [(ngModel)]="c.configuracion.diasTrial" min="1" max="365"></label>
+          <label class="saas-field">Descuento anual %<input type="number" name="descuento" [(ngModel)]="c.configuracion.descuentoAnualPorcentaje" step="0.01"></label>
+          <label class="saas-field">Moneda<input name="moneda" [(ngModel)]="c.configuracion.moneda"></label>
+        </div>
+        <button class="btn btn-primary" type="submit">Guardar parámetros</button>
+        <p class="saas-nota">Pasarela actual: {{ c.configuracion.proveedorPago }}. Los precios de los planes son netos. Un reinicio no los pisa.</p>
       </form>
-    </article>
 
-    <article class="saas-panel" style="margin-top: 16px" *ngFor="let addon of c.addons">
-      <h2>{{ addon.nombre }} <span *ngIf="addon.placeholder">(placeholder)</span></h2>
-      <form class="saas-form" (ngSubmit)="guardarAddon(addon)">
-        <label>Nombre<input name="an-{{ addon.id }}" [(ngModel)]="addon.nombre"></label>
-        <label>Descripción<textarea name="ad-{{ addon.id }}" [(ngModel)]="addon.descripcion"></textarea></label>
-        <label>Precio mensual neto<input type="number" name="ap-{{ addon.id }}" [(ngModel)]="addon.precioMensualNeto" step="0.01"></label>
-        <label class="saas-check"><input type="checkbox" name="aa-{{ addon.id }}" [(ngModel)]="addon.activo"> Activo</label>
-        <p class="saas-nota">{{ formatoArs(addon.precioMensualConIva) }} con IVA</p>
-        <button class="btn btn-outline-primary" type="submit">Guardar complemento</button>
-      </form>
-    </article>
-  </section>
+      @for (plan of c.planes; track plan.id) {
+        <article class="saas-panel" style="margin-top: 16px">
+          <h2>{{ plan.codigo }} · {{ plan.nombre }}</h2>
+          <form class="saas-form" (ngSubmit)="guardarPlan(plan)">
+            <div class="saas-fields">
+              <label class="saas-field">Nombre<input name="nombre-{{ plan.id }}" [(ngModel)]="plan.nombre"></label>
+              <label class="saas-field">Descripción<textarea name="desc-{{ plan.id }}" [(ngModel)]="plan.descripcion"></textarea></label>
+              <label class="saas-field">Precio base mensual neto<input type="number" name="base-{{ plan.id }}" [(ngModel)]="plan.precioBaseMensual" step="0.01"></label>
+              <label class="saas-field">Precio por profesional neto<input type="number" name="prof-{{ plan.id }}" [(ngModel)]="plan.precioPorProfesional" step="0.01"></label>
+              <label class="saas-field">Mínimo de profesionales<input type="number" name="min-{{ plan.id }}" [(ngModel)]="plan.minProfesionales"></label>
+              <label class="saas-field">Máximo de profesionales<input type="number" name="maxp-{{ plan.id }}" [(ngModel)]="plan.maxProfesionales"></label>
+              <label class="saas-field">Máximo de médicos (vacío = sin tope)<input type="number" name="med-{{ plan.id }}" [(ngModel)]="plan.maxMedicos"></label>
+              <label class="saas-field">Máximo de operadores<input type="number" name="op-{{ plan.id }}" [(ngModel)]="plan.maxOperadores"></label>
+              <label class="saas-field">Máximo de consultorios<input type="number" name="cons-{{ plan.id }}" [(ngModel)]="plan.maxConsultorios"></label>
+              <label class="saas-field">Máximo de sedes<input type="number" name="sedes-{{ plan.id }}" [(ngModel)]="plan.maxCentros"></label>
+              <label class="saas-field">Sedes incluidas<input type="number" name="inc-{{ plan.id }}" [(ngModel)]="plan.sedesIncluidas"></label>
+              <label class="saas-field">Precio sede extra neto<input type="number" name="extra-{{ plan.id }}" [(ngModel)]="plan.precioPorSedeExtra" step="0.01"></label>
+              <label class="saas-field">Descuento anual propio (vacío = el general)<input type="number" name="descAnual-{{ plan.id }}" [(ngModel)]="plan.descuentoAnualPorcentaje" step="0.01"></label>
+              <label class="saas-field">preapproval_plan mensual<input name="mp-m-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdMensual"></label>
+              <label class="saas-field">preapproval_plan anual<input name="mp-a-{{ plan.id }}" [(ngModel)]="plan.mpPreapprovalPlanIdAnual"></label>
+            </div>
+            <label class="saas-switch"><input type="checkbox" name="rep-{{ plan.id }}" [(ngModel)]="plan.reportesBasicos"><span>Reportes</span></label>
+            <label class="saas-switch"><input type="checkbox" name="red-{{ plan.id }}" [(ngModel)]="plan.reportesConsolidados"><span>Reportes consolidados</span></label>
+            <label class="saas-switch"><input type="checkbox" name="sop-{{ plan.id }}" [(ngModel)]="plan.soportePrioritario"><span>Soporte prioritario</span></label>
+            <label class="saas-switch"><input type="checkbox" name="act-{{ plan.id }}" [(ngModel)]="plan.activo"><span>Activo</span></label>
+            <p class="saas-nota">Ejemplo mensual: {{ formatoArs(plan.ejemploMensual.neto) }} + IVA = {{ formatoArs(plan.ejemploMensual.total) }}</p>
+            <button class="btn btn-primary" type="submit">Guardar {{ plan.nombre }}</button>
+          </form>
+        </article>
+      }
 
-  <section *ngIf="vista === 'pagos'">
-    <div class="saas-table-wrap saas-panel">
-      <table class="saas-table">
-        <thead><tr><th>Fecha</th><th>Organización</th><th>Plan</th><th>Tipo</th><th>Estado</th><th>Neto</th><th>Total</th><th>Id pasarela</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let pago of pagos">
-            <td>{{ pago.fecha }}</td>
-            <td>{{ pago.organizacion }}</td>
-            <td>{{ pago.plan }}</td>
-            <td>{{ pago.tipo }}</td>
-            <td>{{ pago.estado }}</td>
-            <td>{{ formatoArs(pago.neto) }}</td>
-            <td>{{ formatoArs(pago.total) }}</td>
-            <td>{{ pago.mpPaymentId }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+      @for (addon of c.addons; track addon.id) {
+        <article class="saas-panel" style="margin-top: 16px">
+          <h2>{{ addon.nombre }} @if (addon.placeholder) { <span class="saas-badge neutro">Placeholder</span> }</h2>
+          <form class="saas-form" (ngSubmit)="guardarAddon(addon)">
+            <label class="saas-field">Nombre<input name="an-{{ addon.id }}" [(ngModel)]="addon.nombre"></label>
+            <label class="saas-field">Descripción<textarea name="ad-{{ addon.id }}" [(ngModel)]="addon.descripcion"></textarea></label>
+            <label class="saas-field">Precio mensual neto<input type="number" name="ap-{{ addon.id }}" [(ngModel)]="addon.precioMensualNeto" step="0.01"></label>
+            <label class="saas-switch"><input type="checkbox" name="aa-{{ addon.id }}" [(ngModel)]="addon.activo"><span>Activo</span></label>
+            <p class="saas-nota">{{ formatoArs(addon.precioMensualConIva) }} con IVA</p>
+            <button class="btn btn-outline-primary" type="submit">Guardar complemento</button>
+          </form>
+        </article>
+      }
+    }
+  }
+
+  @if (vista === 'pagos') {
+    <label class="saas-field">Buscar pago
+      <input name="filtroPago" [(ngModel)]="filtroPago" (ngModelChange)="alFiltrarPagos()" placeholder="Organización, plan, estado o referencia">
+    </label>
+    @if (cargando && !pagos.length) {
+      <div class="saas-skeleton__card" aria-hidden="true"></div>
+      <p class="saas-sr" role="status">Cargando pagos…</p>
+    } @else if (!pagosFiltrados.length) {
+      <div class="saas-empty saas-panel">
+        <span class="material-symbols-outlined" aria-hidden="true">payments</span>
+        <p>{{ pagos.length ? 'Ningún pago coincide con la búsqueda.' : 'Todavía no hay pagos registrados.' }}</p>
+      </div>
+    } @else {
+      <div class="saas-table-wrap">
+        <table class="saas-table">
+          <caption class="saas-sr">Pagos de todas las organizaciones</caption>
+          <thead><tr><th>Fecha</th><th>Organización</th><th>Plan</th><th>Tipo</th><th>Estado</th><th>Neto</th><th>Total</th><th>Id pasarela</th></tr></thead>
+          <tbody>
+            @for (pago of pagosPagina; track pago.id) {
+              <tr>
+                <td>{{ formatoFecha(pago.fecha) }}</td>
+                <td>{{ pago.organizacion }}</td>
+                <td>{{ pago.plan }}</td>
+                <td>{{ etiquetaTipoPago(pago.tipo) }}</td>
+                <td><span class="saas-badge" [ngClass]="pago.estado === 'APROBADO' ? 'activa' : 'vencida'">{{ etiquetaPago(pago.estado) }}</span></td>
+                <td>{{ formatoArs(pago.neto) }}</td>
+                <td>{{ formatoArs(pago.total) }}</td>
+                <td>{{ pago.mpPaymentId }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="saas-pager">
+        <p class="saas-meta">{{ pagosFiltrados.length }} pagos · página {{ paginaPagos }} de {{ paginasPagos }}</p>
+        <div class="saas-actions">
+          <button type="button" class="btn btn-outline-primary" (click)="paginaPagos = paginaPagos - 1" [disabled]="paginaPagos <= 1">Anterior</button>
+          <button type="button" class="btn btn-outline-primary" (click)="paginaPagos = paginaPagos + 1" [disabled]="paginaPagos >= paginasPagos">Siguiente</button>
+        </div>
+      </div>
+    }
+  }
 </div>
+
+@if (dialogo && detalle) {
+  <div class="saas-dialog-backdrop" (click)="cerrarDialogo()" (keydown)="onDialogKeydown($event)">
+    <div class="saas-dialog" #dialogoRef role="dialog" aria-modal="true" aria-labelledby="titulo-admin" (click)="$event.stopPropagation()">
+      @if (dialogo === 'suspender') {
+        <h2 id="titulo-admin">¿Suspendés esta suscripción?</h2>
+        <p>{{ detalle.organizacion.nombre }} pasa a solo lectura hasta que la reactives.</p>
+        <label class="saas-field">Motivo (opcional)
+          <input name="motivo-susp" [(ngModel)]="motivo" data-autofocus>
+        </label>
+      }
+      @if (dialogo === 'cancelar') {
+        <h2 id="titulo-admin">¿Cancelás esta suscripción?</h2>
+        <p>La cuenta de {{ detalle.organizacion.nombre }} queda en solo lectura. Los datos no se borran.</p>
+        <label class="saas-field">Motivo (opcional)
+          <input name="motivo-can" [(ngModel)]="motivo" data-autofocus>
+        </label>
+      }
+      @if (dialogo === 'cambiar') {
+        <h2 id="titulo-admin">¿Confirmás el cambio de plan?</h2>
+        <p>{{ detalle.organizacion.nombre }} pasa de {{ detalle.plan.nombre }} a {{ planDestino }}.</p>
+      }
+      <div class="saas-actions">
+        <button type="button" class="btn btn-outline-primary" (click)="cerrarDialogo()">Volver</button>
+        <button type="button" class="btn btn-primary" [attr.data-autofocus]="dialogo === 'cambiar' ? '' : null" [disabled]="operando" (click)="dialogo === 'suspender' ? suspender() : dialogo === 'cancelar' ? cancelar() : cambiarPlan()">
+          {{ operando ? 'Guardando…' : 'Confirmar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
