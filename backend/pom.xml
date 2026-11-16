@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.16</version>
+		<version>4.1.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>unpsjb.labprog</groupId>
@@ -14,8 +14,7 @@
 	<name>backend</name>
 	<description>Backend - Laboratorio de Programación y Lenguajes</description>
 	<properties>
-		<java.version>17</java.version>
-		<!-- Parche posterior al 1.18.46 que trae Boot 3.5.16. -->
+		<java.version>21</java.version>
 		<lombok.version>1.18.48</lombok.version>
 		<jjwt.version>0.13.0</jjwt.version>
 		<itext.version>9.8.1</itext.version>
@@ -73,19 +72,13 @@
 			<artifactId>io</artifactId>
 			<version>${itext.version}</version>
 		</dependency>
-		<!-- Jackson JSR310 para soporte de LocalDate/LocalDateTime -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
-		</dependency>
-		
 		<!-- Spring Boot Mail Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
-		<!-- Versión la administra spring-boot-starter-parent (angus-mail 2.0.5 en Boot 3.5.16). -->
+		<!-- Versión la administra spring-boot-starter-parent. -->
 		<dependency>
 			<groupId>org.eclipse.angus</groupId>
 			<artifactId>angus-mail</artifactId>
@@ -130,7 +123,7 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<release>17</release>
+					<release>21</release>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

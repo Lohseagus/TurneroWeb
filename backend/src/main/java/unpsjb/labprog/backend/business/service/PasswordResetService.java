@@ -8,7 +8,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import unpsjb.labprog.backend.business.repository.PasswordResetTokenRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
 import unpsjb.labprog.backend.model.PasswordResetToken;
@@ -39,6 +42,9 @@ public class PasswordResetService {
     
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
     
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -90,7 +96,10 @@ public class PasswordResetService {
             
             // Crear y guardar el token
             PasswordResetToken resetToken = new PasswordResetToken(token, user, expiresAt);
-            tokenRepository.save(resetToken);
+            // El future en error revierte la transacción del @Async en Spring 7.
+            TransactionTemplate template = new TransactionTemplate(transactionManager);
+            template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            template.executeWithoutResult(status -> tokenRepository.save(resetToken));
             
             // Construir el enlace de recuperación
             String resetLink = appUrl + "/reset-password?token=" + token;
