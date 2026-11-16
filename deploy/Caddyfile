@@ -1,0 +1,12 @@
+# Borde de https://cheturno.site.
+# /api/* se reenvía al backend CON el prefijo (los controllers viven en /api/...).
+# El resto va al nginx del frontend, que solo sirve la SPA.
+cheturno.site, www.cheturno.site {
+	encode gzip
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy frontend:80
+	}
+}

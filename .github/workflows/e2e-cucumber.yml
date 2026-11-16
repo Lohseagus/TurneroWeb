@@ -23,13 +23,21 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
           cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Comprobar Maven
+        run: |
+          if ! command -v mvn >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y maven
+          fi
 
       - name: Instalar cliente de Postgres
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -58,7 +66,7 @@ jobs:
           tail -n 200 /tmp/backend.log
           exit 1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm

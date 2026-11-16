@@ -1,5 +1,7 @@
 .vscode
 .env
+image-tag.env
+.deployed-sha
 node_modules/
 backend/target/
 .netlify

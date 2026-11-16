@@ -1,0 +1,5 @@
+cli/node_modules
+cli/dist
+cli/.angular
+.git
+*.md
