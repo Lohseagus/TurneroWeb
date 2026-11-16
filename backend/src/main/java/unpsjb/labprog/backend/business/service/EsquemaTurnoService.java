@@ -1,5 +1,6 @@
 package unpsjb.labprog.backend.business.service;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,9 +20,11 @@ import unpsjb.labprog.backend.business.repository.CentroAtencionRepository;
 import unpsjb.labprog.backend.business.repository.ConsultorioRepository;
 import unpsjb.labprog.backend.business.repository.DisponibilidadMedicoRepository;
 import unpsjb.labprog.backend.business.repository.EsquemaTurnoRepository;
+import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.dto.EsquemaTurnoDTO;
 import unpsjb.labprog.backend.model.DisponibilidadMedico;
 import unpsjb.labprog.backend.model.EsquemaTurno;
+import unpsjb.labprog.backend.model.StaffMedico;
 import unpsjb.labprog.backend.config.TenantContext;
 
 @Service
@@ -41,6 +44,29 @@ public class EsquemaTurnoService {
     
     @Autowired
     private ConsultorioDistribucionService consultorioDistribucionService;
+
+    @Autowired
+    private StaffMedicoRepository staffMedicoRepository;
+
+    private final ThreadLocal<String> advertenciaSolapamiento = new ThreadLocal<>();
+
+    /**
+     * Aviso de solapamiento calculado en el último save de este hilo.
+     * Lo consume el presenter para armar el mensaje sin rechazar el alta.
+     */
+    public String consumirAdvertenciaSolapamiento() {
+        String aviso = advertenciaSolapamiento.get();
+        advertenciaSolapamiento.remove();
+        return aviso;
+    }
+
+    private void agregarAdvertencia(String aviso) {
+        if (aviso == null || aviso.isBlank()) {
+            return;
+        }
+        String previo = advertenciaSolapamiento.get();
+        advertenciaSolapamiento.set(previo == null || previo.isBlank() ? aviso : previo + "; " + aviso);
+    }
 
     /**
      * Obtiene todos los esquemas de turno con filtrado automático multi-tenencia.
@@ -282,6 +308,8 @@ public class EsquemaTurnoService {
 
     @Transactional
     public EsquemaTurnoDTO saveOrUpdate(EsquemaTurnoDTO dto) {
+        completarActualizacionParcial(dto);
+
         // Validación: Staff Médico
         if (dto.getStaffMedicoId() == null) {
             throw new IllegalArgumentException("El campo staffMedicoId es obligatorio.");
@@ -324,6 +352,10 @@ public class EsquemaTurnoService {
                     .equals(existente.getDisponibilidadMedico().getId())) {
                 // En lugar de lanzar error, combinar horarios con el esquema existente
                 System.out.println("🔄 Esquema ya existe para esta disponibilidad, combinando horarios...");
+                String aviso = describirSolapamientoConOtrosCentros(esquemaTurno, dto.getHorarios());
+                if (aviso != null) {
+                    agregarAdvertencia(aviso);
+                }
                 return combinarHorariosConEsquemaExistente(existente, dto);
             }
         }
@@ -380,40 +412,51 @@ public class EsquemaTurnoService {
                     hayConflictoDeHorarios(existente.getHorarios(), dto.getHorarios()));
             
             if (hayConflictoConsultorio) {
-                // Obtener detalles del esquema conflictivo para el mensaje de error
-                EsquemaTurno esquemaConflictivo = esquemasEnConsultorio.stream()
-                    .filter(existente -> !existente.getId().equals(esquemaTurno.getId()) &&
-                                        hayConflictoDeHorarios(existente.getHorarios(), dto.getHorarios()))
-                    .findFirst()
-                    .orElse(null);
-                
-                String nombreConsultorio = esquemaTurno.getConsultorio().getNombre();
-                String detalleConflicto = "";
-                
-                if (esquemaConflictivo != null && esquemaConflictivo.getStaffMedico() != null && 
-                    esquemaConflictivo.getStaffMedico().getMedico() != null) {
-                    String nombreMedicoConflictivo = esquemaConflictivo.getStaffMedico().getMedico().getNombre() + 
-                                                    " " + esquemaConflictivo.getStaffMedico().getMedico().getApellido();
-                    detalleConflicto = " Ya existe un esquema de turno para el Dr. " + nombreMedicoConflictivo + 
-                                      " en el mismo horario.";
-                }
-                
-                // Intentar resolver automáticamente usando el algoritmo de distribución
-                Integer consultorioAlternativo = resolverConflictoConsultorioAutomaticamente(esquemaTurno);
-                
-                if (consultorioAlternativo != null) {
-                    // Actualizar el DTO y la entidad con el consultorio alternativo
-                    dto.setConsultorioId(consultorioAlternativo);
-                    esquemaTurno.setConsultorio(consultorioRepository.findById(consultorioAlternativo)
-                        .orElseThrow(() -> new IllegalArgumentException("Consultorio alternativo no encontrado")));
-                    
-                    System.out.println("🔄 CONFLICTO RESUELTO: Se asignó automáticamente el consultorio " + 
-                                     consultorioAlternativo + " al médico " + 
-                                     esquemaTurno.getStaffMedico().getMedico().getNombre());
-                } else {
-                    throw new IllegalStateException("El consultorio '" + nombreConsultorio + 
-                        "' ya está ocupado en el horario seleccionado." + detalleConflicto + 
-                        " Por favor, seleccione otro consultorio o un horario diferente.");
+                boolean soloElMismoMedico = esquemasEnConsultorio.stream()
+                    .filter(existente -> (esquemaTurno.getId() == null || !existente.getId().equals(esquemaTurno.getId()))
+                            && hayConflictoDeHorarios(existente.getHorarios(), dto.getHorarios()))
+                    .allMatch(existente -> mismoMedico(existente, esquemaTurno));
+
+                // Otro bloque del mismo médico no bloquea el alta: el aviso queda en el mensaje.
+                if (!soloElMismoMedico) {
+                    EsquemaTurno esquemaConflictivo = esquemasEnConsultorio.stream()
+                        .filter(existente -> (esquemaTurno.getId() == null || !existente.getId().equals(esquemaTurno.getId()))
+                                && hayConflictoDeHorarios(existente.getHorarios(), dto.getHorarios()))
+                        .findFirst()
+                        .orElse(null);
+
+                    String nombreConsultorio = esquemaTurno.getConsultorio().getNombre();
+                    String detalleConflicto = "";
+
+                    if (esquemaConflictivo != null && esquemaConflictivo.getStaffMedico() != null &&
+                        esquemaConflictivo.getStaffMedico().getMedico() != null) {
+                        String nombreMedicoConflictivo = esquemaConflictivo.getStaffMedico().getMedico().getNombre() +
+                                                        " " + esquemaConflictivo.getStaffMedico().getMedico().getApellido();
+                        detalleConflicto = " Ya existe un esquema de turno para el Dr. " + nombreMedicoConflictivo +
+                                          " en el mismo horario.";
+                    }
+
+                    Integer consultorioAlternativo = resolverConflictoConsultorioAutomaticamente(esquemaTurno);
+
+                    if (consultorioAlternativo != null) {
+                        dto.setConsultorioId(consultorioAlternativo);
+                        esquemaTurno.setConsultorio(consultorioRepository.findById(consultorioAlternativo)
+                            .orElseThrow(() -> new IllegalArgumentException("Consultorio alternativo no encontrado")));
+                    } else if (esquemaTurno.getId() != null) {
+                        EsquemaTurno previo = esquemaTurnoRepository.findById(esquemaTurno.getId()).orElse(null);
+                        if (previo != null && previo.getConsultorio() != null) {
+                            esquemaTurno.setConsultorio(previo.getConsultorio());
+                            dto.setConsultorioId(previo.getConsultorio().getId());
+                        } else {
+                            throw new IllegalStateException("El consultorio '" + nombreConsultorio +
+                                "' ya está ocupado en el horario seleccionado." + detalleConflicto +
+                                " Por favor, seleccione otro consultorio o un horario diferente.");
+                        }
+                    } else {
+                        throw new IllegalStateException("El consultorio '" + nombreConsultorio +
+                            "' ya está ocupado en el horario seleccionado." + detalleConflicto +
+                            " Por favor, seleccione otro consultorio o un horario diferente.");
+                    }
                 }
             }
         }
@@ -423,8 +466,12 @@ public class EsquemaTurnoService {
         List<String> conflictosDetallados = validarConflictosMedicoEnConsultorios(esquemasDelMedico, esquemaTurno, dto.getHorarios());
         
         if (!conflictosDetallados.isEmpty()) {
-            String mensajeDetallado = "Conflictos encontrados: " + String.join("; ", conflictosDetallados);
-            throw new IllegalStateException(mensajeDetallado);
+            agregarAdvertencia("solapamiento de horarios del médico: " + String.join("; ", conflictosDetallados));
+        }
+
+        String avisoOtrosCentros = describirSolapamientoConOtrosCentros(esquemaTurno, dto.getHorarios());
+        if (avisoOtrosCentros != null) {
+            agregarAdvertencia(avisoOtrosCentros);
         }
 
         // NUEVA VALIDACIÓN: Verificar disponibilidad del consultorio y conflictos
@@ -753,9 +800,9 @@ public class EsquemaTurnoService {
             return false;
         }
         
-        // Verificar superposición de horarios
-        return nuevoHorario.getHoraInicio().isBefore(horarioExistente.getHoraFin()) && 
-               nuevoHorario.getHoraFin().isAfter(horarioExistente.getHoraInicio());
+        return intervalosSeSolapan(
+            nuevoHorario.getHoraInicio(), nuevoHorario.getHoraFin(),
+            horarioExistente.getHoraInicio(), horarioExistente.getHoraFin());
     }
 
     private boolean hayConflictoDeHorarios(List<EsquemaTurno.Horario> horariosExistentes,
@@ -763,8 +810,9 @@ public class EsquemaTurnoService {
         return nuevosHorarios.stream()
                 .anyMatch(nuevoHorario -> horariosExistentes.stream()
                         .anyMatch(horarioExistente -> nuevoHorario.getDia().equals(horarioExistente.getDia()) &&
-                                nuevoHorario.getHoraInicio().isBefore(horarioExistente.getHoraFin()) &&
-                                nuevoHorario.getHoraFin().isAfter(horarioExistente.getHoraInicio())));
+                                intervalosSeSolapan(
+                                    nuevoHorario.getHoraInicio(), nuevoHorario.getHoraFin(),
+                                    horarioExistente.getHoraInicio(), horarioExistente.getHoraFin())));
     }
 
     /**
@@ -810,24 +858,34 @@ public class EsquemaTurnoService {
                 .collect(Collectors.toList());
         }
         
-        // PASO 3: Verificar conflictos de horario con otros médicos
+        // PASO 3: Otro médico en el mismo consultorio sigue siendo un rechazo.
+        // Un bloque del mismo médico no corta el alta: queda como advertencia.
         for (EsquemaTurno.Horario nuevoHorario : esquemaTurno.getHorarios()) {
             for (EsquemaTurno esquemaExistente : esquemasExistentes) {
                 for (EsquemaTurno.Horario horarioExistente : esquemaExistente.getHorarios()) {
-                    if (hayConflictoHorario(nuevoHorario, horarioExistente)) {
-                        throw new IllegalStateException(String.format(
-                            "Conflicto de horarios: El médico %s ya tiene asignado el consultorio %d " +
-                            "el %s de %s a %s. Conflicto con el horario propuesto para %s de %s a %s.",
-                            esquemaExistente.getStaffMedico().getMedico().getNombre(),
-                            esquemaTurno.getConsultorio().getId(),
+                    if (!hayConflictoHorario(nuevoHorario, horarioExistente)) {
+                        continue;
+                    }
+                    if (mismoMedico(esquemaExistente, esquemaTurno)) {
+                        agregarAdvertencia(String.format(
+                            "solapamiento con otro horario del médico el %s de %s a %s",
                             horarioExistente.getDia(),
                             horarioExistente.getHoraInicio(),
-                            horarioExistente.getHoraFin(),
-                            nuevoHorario.getDia(),
-                            nuevoHorario.getHoraInicio(),
-                            nuevoHorario.getHoraFin()
-                        ));
+                            horarioExistente.getHoraFin()));
+                        continue;
                     }
+                    throw new IllegalStateException(String.format(
+                        "Conflicto de horarios: El médico %s ya tiene asignado el consultorio %d " +
+                        "el %s de %s a %s. Conflicto con el horario propuesto para %s de %s a %s.",
+                        esquemaExistente.getStaffMedico().getMedico().getNombre(),
+                        esquemaTurno.getConsultorio().getId(),
+                        horarioExistente.getDia(),
+                        horarioExistente.getHoraInicio(),
+                        horarioExistente.getHoraFin(),
+                        nuevoHorario.getDia(),
+                        nuevoHorario.getHoraInicio(),
+                        nuevoHorario.getHoraFin()
+                    ));
                 }
             }
         }
@@ -842,9 +900,124 @@ public class EsquemaTurnoService {
             return false;
         }
         
-        // Verificar superposición de horarios
-        return horario1.getHoraInicio().isBefore(horario2.getHoraFin()) && 
-               horario1.getHoraFin().isAfter(horario2.getHoraInicio());
+        return intervalosSeSolapan(
+            horario1.getHoraInicio(), horario1.getHoraFin(),
+            horario2.getHoraInicio(), horario2.getHoraFin());
+    }
+
+    /**
+     * Dos intervalos [inicio, fin) se solapan solo si se pisan.
+     * Si uno termina cuando el otro empieza, no hay conflicto.
+     */
+    private boolean intervalosSeSolapan(LocalTime inicio1, LocalTime fin1, LocalTime inicio2, LocalTime fin2) {
+        if (inicio1 == null || fin1 == null || inicio2 == null || fin2 == null) {
+            return false;
+        }
+        return inicio1.isBefore(fin2) && inicio2.isBefore(fin1);
+    }
+
+    /**
+     * Un médico no puede tener el mismo horario en dos centros.
+     * El límite exacto (fin == inicio) no se considera solapamiento.
+     */
+    private boolean mismoMedico(EsquemaTurno a, EsquemaTurno b) {
+        if (a.getStaffMedico() == null || b.getStaffMedico() == null) {
+            return false;
+        }
+        if (a.getStaffMedico().getId() != null && a.getStaffMedico().getId().equals(b.getStaffMedico().getId())) {
+            return true;
+        }
+        if (a.getStaffMedico().getMedico() == null || b.getStaffMedico().getMedico() == null
+                || a.getStaffMedico().getMedico().getId() == null) {
+            return false;
+        }
+        return a.getStaffMedico().getMedico().getId().equals(b.getStaffMedico().getMedico().getId());
+    }
+
+    private String describirSolapamientoConOtrosCentros(EsquemaTurno esquemaNuevo,
+            List<EsquemaTurnoDTO.DiaHorarioDTO> nuevosHorarios) {
+        if (esquemaNuevo.getStaffMedico() == null || esquemaNuevo.getStaffMedico().getMedico() == null
+                || nuevosHorarios == null) {
+            return null;
+        }
+        Integer medicoId = esquemaNuevo.getStaffMedico().getMedico().getId();
+        Integer staffActualId = esquemaNuevo.getStaffMedico().getId();
+        List<StaffMedico> asociaciones = staffMedicoRepository.findByMedicoId(medicoId);
+        List<String> avisos = new ArrayList<>();
+
+        for (StaffMedico staff : asociaciones) {
+            if (staff.getId() != null && staff.getId().equals(staffActualId)) {
+                continue;
+            }
+            for (EsquemaTurno otro : esquemaTurnoRepository.findByStaffMedicoId(staff.getId())) {
+                if (otro.getId() != null && otro.getId().equals(esquemaNuevo.getId())) {
+                    continue;
+                }
+                if (otro.getHorarios() == null) {
+                    continue;
+                }
+                for (EsquemaTurnoDTO.DiaHorarioDTO nuevo : nuevosHorarios) {
+                    for (EsquemaTurno.Horario existente : otro.getHorarios()) {
+                        if (nuevo.getDia() == null || existente.getDia() == null
+                                || !nuevo.getDia().equalsIgnoreCase(existente.getDia())) {
+                            continue;
+                        }
+                        if (intervalosSeSolapan(nuevo.getHoraInicio(), nuevo.getHoraFin(),
+                                existente.getHoraInicio(), existente.getHoraFin())) {
+                            String centro = otro.getCentroAtencion() != null
+                                    ? otro.getCentroAtencion().getNombre()
+                                    : "otro centro";
+                            avisos.add(String.format(
+                                    "solapamiento con %s el %s de %s a %s",
+                                    centro, existente.getDia(), existente.getHoraInicio(), existente.getHoraFin()));
+                        }
+                    }
+                }
+            }
+        }
+
+        if (avisos.isEmpty()) {
+            return null;
+        }
+        return "Advertencia de solapamiento con otro centro: " + String.join("; ", avisos);
+    }
+
+    /**
+     * PUT con un solo campo: completa el resto desde el esquema guardado.
+     */
+    private void completarActualizacionParcial(EsquemaTurnoDTO dto) {
+        if (dto.getId() == null || dto.getId() == 0) {
+            return;
+        }
+        Optional<EsquemaTurno> existenteOpt = esquemaTurnoRepository.findById(dto.getId());
+        if (existenteOpt.isEmpty()) {
+            return;
+        }
+        EsquemaTurno existente = existenteOpt.get();
+        if (dto.getStaffMedicoId() == null && existente.getStaffMedico() != null) {
+            dto.setStaffMedicoId(existente.getStaffMedico().getId());
+        }
+        if (dto.getConsultorioId() == null && existente.getConsultorio() != null) {
+            dto.setConsultorioId(existente.getConsultorio().getId());
+        }
+        if (dto.getCentroId() == null && existente.getCentroAtencion() != null) {
+            dto.setCentroId(existente.getCentroAtencion().getId());
+        }
+        if (dto.getDisponibilidadMedicoId() == null && existente.getDisponibilidadMedico() != null) {
+            dto.setDisponibilidadMedicoId(existente.getDisponibilidadMedico().getId());
+        }
+        if (dto.getIntervalo() <= 0 && existente.getIntervalo() > 0) {
+            dto.setIntervalo(existente.getIntervalo());
+        }
+        if ((dto.getHorarios() == null || dto.getHorarios().isEmpty()) && existente.getHorarios() != null) {
+            dto.setHorarios(existente.getHorarios().stream().map(horario -> {
+                EsquemaTurnoDTO.DiaHorarioDTO copia = new EsquemaTurnoDTO.DiaHorarioDTO();
+                copia.setDia(horario.getDia());
+                copia.setHoraInicio(horario.getHoraInicio());
+                copia.setHoraFin(horario.getHoraFin());
+                return copia;
+            }).collect(Collectors.toList()));
+        }
     }
 
     /**

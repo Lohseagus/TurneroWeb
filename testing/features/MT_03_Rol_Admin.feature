@@ -80,9 +80,7 @@ Característica: Permisos y Acceso del ADMINISTRADOR (Tenant-Bound)
     Entonces recibo status_code 200
     Y veo la lista de médicos del sistema
 
-  # POST /medicos/create-by-admin persiste el médico pero no crea el StaffMedico
-  # del centro del administrador. El escenario espera esa asociación automática.
-  @centro1 @medicos @create @known-bug
+  @centro1 @medicos @create
   Escenario: ADMIN Centro 1 puede crear médicos y asociarlos a su centro
     Dado que me autentico como "admin.santamaria@turnero.com" con password "password"
     Cuando creo un médico usando el endpoint /medicos/create-by-admin con:

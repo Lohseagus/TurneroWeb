@@ -109,9 +109,7 @@ Característica: Permisos y Acceso del SUPERADMIN
     Entonces recibo status_code 200
     Y puedo ver todos los médicos sin restricción de centro
 
-  # POST /medicos exige un centro en el usuario que crea y al menos una
-  # especialidad. El SUPERADMIN no tiene centro, así que el alta responde 400.
-  @medicos @create @known-bug
+  @medicos @create
   Escenario: SUPERADMIN puede crear médicos
     Cuando creo un médico con:
       | campo      | valor                 |

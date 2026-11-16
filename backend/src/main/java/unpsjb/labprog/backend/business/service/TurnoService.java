@@ -1,6 +1,7 @@
 package unpsjb.labprog.backend.business.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.business.repository.OperadorRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.exception.TenantAccessException;
 
 @Service
 public class TurnoService {
@@ -172,6 +174,9 @@ public class TurnoService {
     @Transactional
     public TurnoDTO save(TurnoDTO dto, String performedBy, String currentUserEmail) {
         try {
+            if (dto.getId() != null && dto.getId() != 0) {
+                repository.findById(dto.getId()).ifPresent(this::validarAccesoCentroTurno);
+            }
             // Lógica para multi-rol: si no hay pacienteId pero hay usuario actual,
             // buscar/crear paciente
             if (dto.getPacienteId() == null && currentUserEmail != null && !currentUserEmail.equals("UNKNOWN")) {
@@ -419,6 +424,14 @@ public class TurnoService {
         }
 
         Turno turno = turnoOpt.get();
+        validarAccesoCentroTurno(turno);
+        if (turno.getEstado() == EstadoTurno.CANCELADO) {
+            TurnoDTO respuesta = toDTO(turno);
+            LocalDateTime ahora = LocalDateTime.now();
+            respuesta.setFechaCancelacion(ahora);
+            respuesta.setUpdatedAt(ahora);
+            return respuesta;
+        }
         EstadoTurno previousStatus = turno.getEstado();
 
         // Validar que el usuario tenga permisos para cancelar
@@ -482,7 +495,31 @@ public class TurnoService {
             // No re-lanzar para no romper la cancelación
         }
 
-        return toDTO(savedTurno);
+        TurnoDTO respuesta = toDTO(savedTurno);
+        LocalDateTime ahora = LocalDateTime.now();
+        respuesta.setFechaCancelacion(ahora);
+        respuesta.setUpdatedAt(ahora);
+        return respuesta;
+    }
+
+    /**
+     * Un operador o administrador solo puede modificar turnos de su centro.
+     * SUPERADMIN y PACIENTE (centro filtrado nulo) no quedan restringidos.
+     */
+    private void validarAccesoCentroTurno(Turno turno) {
+        Integer centroUsuario = TenantContext.getFilteredCentroId();
+        if (centroUsuario == null || turno == null) {
+            return;
+        }
+        Integer centroTurno = null;
+        if (turno.getCentroAtencion() != null) {
+            centroTurno = turno.getCentroAtencion().getId();
+        } else if (turno.getConsultorio() != null && turno.getConsultorio().getCentroAtencion() != null) {
+            centroTurno = turno.getConsultorio().getCentroAtencion().getId();
+        }
+        if (centroTurno == null || !centroUsuario.equals(centroTurno)) {
+            throw new TenantAccessException("No tiene permiso para operar turnos de otro centro");
+        }
     }
 
     /**
@@ -756,19 +793,14 @@ public class TurnoService {
         // Validar que el turno pueda ser modificado
         validarMarcadoAsistencia(turno);
 
-        // ============ OPCIÓN 2: LÓGICA SEPARADA ============
-        // Actualizar solo el campo de asistencia
         turno.setAsistio(asistio);
 
-        // El estado NO cambia automáticamente
-        // Solo sincronizamos el estado AUSENTE para mantener compatibilidad
-        if (!asistio && (turno.getEstado() == EstadoTurno.CONFIRMADO ||
+        if (asistio && turno.getEstado() == EstadoTurno.PROGRAMADO) {
+            turno.setEstado(EstadoTurno.CONFIRMADO);
+        } else if (!asistio && (turno.getEstado() == EstadoTurno.CONFIRMADO ||
                 turno.getEstado() == EstadoTurno.PROGRAMADO)) {
-            // Si marca como no asistido, cambiar a AUSENTE (backward compatibility)
             turno.setEstado(EstadoTurno.AUSENTE);
         }
-        // Si asistió, el médico debe marcarlo como COMPLETO manualmente después
-        // NO lo marcamos automáticamente como COMPLETO aquí
 
         // Guardar cambios
         Turno savedTurno = repository.save(turno);
@@ -788,7 +820,9 @@ public class TurnoService {
             System.err.println("Error al registrar auditoría de asistencia: " + e.getMessage());
         }
 
-        return toDTO(savedTurno);
+        TurnoDTO respuesta = toDTO(savedTurno);
+        respuesta.setUpdatedAt(LocalDateTime.now());
+        return respuesta;
     }
 
     private void validarMarcadoAsistencia(Turno turno) {
@@ -802,15 +836,7 @@ public class TurnoService {
             throw new IllegalStateException("No se puede marcar asistencia en un turno reagendado");
         }
 
-        // Validar que sea un turno del día actual o pasado
-        LocalDate today = LocalDate.now();
-        if (turno.getFecha().isAfter(today)) {
-            throw new IllegalStateException(
-                    "No se puede marcar asistencia para un turno futuro. Fecha del turno: " +
-                            turno.getFecha());
-        }
-
-        // OPCIÓN 2: Permitir marcar asistencia en estados relevantes
+        // Permitir marcar asistencia en estados relevantes
         // Incluimos AUSENTE y COMPLETO porque pueden necesitar corrección
         if (turno.getEstado() != EstadoTurno.CONFIRMADO &&
                 turno.getEstado() != EstadoTurno.PROGRAMADO &&

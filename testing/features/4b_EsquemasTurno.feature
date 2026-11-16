@@ -174,10 +174,7 @@ Ejemplos: Actualizaciones de esquemas de turno
   | esquema_id | campo          | anterior | nuevo | status_code | status_text                              |
   | 999        | intervalo      | 15       | 30    | 404         | No se encontró el esquema de turno         |
 
-  # PUT /esquema-turno/{id} no fusiona el cuerpo con el esquema existente:
-  # exige staffMedicoId, consultorioId y horarios aunque solo cambie un campo.
-  @known-bug
-  Ejemplos: Actualización parcial rechazada por el API
+  Ejemplos: Actualización parcial de un esquema de turno
     | esquema_id | campo          | anterior | nuevo | status_code | status_text                              |
     | 1          | intervalo      | 15       | 30    | 200         | Esquema de turno actualizado correctamente |
     | 1          | consultorioId  | 1        | 2     | 200         | Esquema de turno actualizado correctamente |
