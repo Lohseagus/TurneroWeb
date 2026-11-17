@@ -1,5 +1,5 @@
 import { Role, ROLE_HIERARCHY } from '../inicio-sesion/auth.service';
-import { filterItemsByPrimaryRole, getMenuSectionsForUser } from './menu.config';
+import { filterItemsByPrimaryRole, getMenuSectionsForUser, homeRouteForRole, personalizeMenuItem } from './menu.config';
 import {
   clearAllMenuSectionState,
   menuSectionStateKey,
@@ -81,14 +81,13 @@ describe('paneles abiertos por defecto', () => {
       'paciente',
       'operador',
       'administrador',
-      'superadmin',
-      'gestion'
+      'superadmin'
     ]);
     expect(defaultOpenSectionIds(sections, '/')).toEqual(['superadmin']);
     expect(defaultOpenSectionIds(sections, '/saas')).toEqual(['superadmin']);
   });
 
-  it('ADMINISTRADOR abre solo Panel de Administración y no muestra Médico ni Gestión General', () => {
+  it('ADMINISTRADOR abre solo Panel de Administración y no muestra el Panel de Médico', () => {
     const sections = visibleSections(
       [Role.ADMINISTRADOR, Role.OPERADOR, Role.MEDICO, Role.PACIENTE],
       Role.ADMINISTRADOR
@@ -115,11 +114,12 @@ describe('paneles abiertos por defecto', () => {
     expect(defaultOpenSectionIds(sections, '/')).toEqual(['paciente']);
   });
 
-  it('OPERADOR abre Panel de Operador y Gestión General, que comparten ese rol', () => {
+  it('OPERADOR abre solo su panel', () => {
     const sections = visibleSections([Role.OPERADOR, Role.PACIENTE], Role.OPERADOR);
 
-    expect(defaultOpenSectionIds(sections, '/operador-dashboard')).toEqual(['operador', 'gestion']);
-    expect(defaultOpenSectionIds(sections, '/')).toEqual(['operador', 'gestion']);
+    expect(sections.map(section => section.id)).toEqual(['paciente', 'operador']);
+    expect(defaultOpenSectionIds(sections, '/operador-dashboard')).toEqual(['operador']);
+    expect(defaultOpenSectionIds(sections, '/')).toEqual(['operador']);
   });
 });
 
@@ -139,11 +139,12 @@ describe('apertura por ruta activa', () => {
     expect(defaultOpenSectionIds(admin, '/pacientes')).toEqual(['operador', 'administrador']);
   });
 
-  it('no trata Inicio como parte de un panel', () => {
-    const sections = visibleSections([Role.PACIENTE], Role.PACIENTE);
+  it('no trata la página de inicio como parte de un panel', () => {
+    const sections = visibleSections(ALL_ROLES, Role.SUPERADMIN);
     expect(routeMatches('/paciente-dashboard', '/')).toBe(false);
     expect(routeMatches('/', '/')).toBe(true);
-    expect(defaultOpenSectionIds(sections, '/')).toEqual(['paciente']);
+    expect(sections.some(section => section.items.some(item => item.route === '/'))).toBe(false);
+    expect(defaultOpenSectionIds(visibleSections([Role.PACIENTE], Role.PACIENTE), '/')).toEqual(['paciente']);
   });
 
   it('vuelve a abrir un panel cerrado a mano cuando la ruta activa está adentro', () => {
@@ -161,8 +162,7 @@ describe('apertura por ruta activa', () => {
       paciente: true,
       operador: false,
       administrador: false,
-      superadmin: false,
-      gestion: false
+      superadmin: false
     };
 
     expect(resolveOpenSectionIds(sections, '/', stored)).toEqual(['paciente']);
@@ -196,5 +196,47 @@ describe('sessionStorage de paneles por usuario', () => {
   it('sin preferencia guardada vuelve al panel del rol más alto', () => {
     const sections = visibleSections([Role.MEDICO, Role.PACIENTE], Role.MEDICO);
     expect(resolveOpenSectionIds(sections, '/medico-horarios', null)).toEqual(['medico']);
+  });
+});
+
+describe('Mi Centro e Inicio', () => {
+  it('deja Mi Centro en el panel del operador y no lo duplica para SUPERADMIN', () => {
+    const operador = visibleSections([Role.OPERADOR, Role.PACIENTE], Role.OPERADOR);
+    const miCentro = operador.find(section => section.id === 'operador')?.items.find(item => item.route === '/mi-centro');
+    expect(miCentro?.label).toBe('Mi Centro');
+    expect(personalizeMenuItem(miCentro!, Role.OPERADOR, 12).route).toBe('/centrosAtencion/12');
+
+    const superadmin = visibleSections(ALL_ROLES, Role.SUPERADMIN);
+    expect(superadmin.map(section => section.id)).not.toContain('gestion');
+    const operadorDeSuper = superadmin.find(section => section.id === 'operador');
+    expect(operadorDeSuper?.items.some(item => item.route === '/mi-centro' || item.label === 'Mi Centro')).toBe(false);
+    expect(superadmin.find(section => section.id === 'superadmin')?.items.some(item =>
+      item.label === 'Gestión de Centros' && item.route === '/centrosAtencion'
+    )).toBe(true);
+  });
+
+  it('el administrador conserva Mi Centro en su propio panel', () => {
+    const admin = visibleSections(
+      [Role.ADMINISTRADOR, Role.OPERADOR, Role.MEDICO, Role.PACIENTE],
+      Role.ADMINISTRADOR
+    );
+    expect(admin.find(section => section.id === 'operador')?.items.some(item => item.route === '/mi-centro')).toBe(false);
+    const centros = admin.find(section => section.id === 'administrador')?.items.find(item => item.route === '/centrosAtencion');
+    const personalized = personalizeMenuItem(centros!, Role.ADMINISTRADOR, 4);
+    expect(personalized.label).toBe('Mi Centro');
+    expect(personalized.route).toBe('/centrosAtencion/4');
+  });
+
+  it('el logo apunta al inicio de cada rol y ningún panel contiene Inicio', () => {
+    expect(homeRouteForRole(Role.SUPERADMIN)).toBe('/saas');
+    expect(homeRouteForRole(Role.ADMINISTRADOR)).toBe('/admin-dashboard');
+    expect(homeRouteForRole(Role.OPERADOR)).toBe('/operador-dashboard');
+    expect(homeRouteForRole(Role.MEDICO)).toBe('/medico-dashboard');
+    expect(homeRouteForRole(Role.PACIENTE)).toBe('/paciente-dashboard');
+    expect(homeRouteForRole(null)).toBe('/');
+
+    const sections = visibleSections(ALL_ROLES, Role.SUPERADMIN);
+    expect(sections.some(section => section.label === 'General' || section.id === 'gestion')).toBe(false);
+    expect(sections.some(section => section.items.some(item => item.label === 'Inicio' || item.route === '/'))).toBe(false);
   });
 });

@@ -16,6 +16,7 @@ import { SidebarComponent } from "./components/sidebar.component";
 import { MenuService } from "./services/menu.service";
 import { ToastComponent } from "./components/toast/toast.component";
 import { SuscripcionBannerComponent } from "./saas/suscripcion-banner.component";
+import { homeRouteForRole } from "./config/menu.config";
 
 @Component({
   selector: "app-root",
@@ -213,6 +214,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   goToLogin(): void {
     this.router.navigate(["/ingresar"]);
+  }
+
+  homeRoute(): string {
+    const context = this.userContextService.getCurrentContext();
+    if (!context?.isAuthenticated) {
+      return '/';
+    }
+    return homeRouteForRole(context.primaryRole);
   }
 
   logout(): void {

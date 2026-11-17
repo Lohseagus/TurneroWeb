@@ -4,10 +4,9 @@ import { map } from 'rxjs/operators';
 import { UserContextService } from './user-context.service';
 import { 
   MenuSection, 
-  MenuItem, 
-  SHARED_MENU_ITEMS,
   getMenuSectionsForUser,
-  filterItemsByPrimaryRole
+  filterItemsByPrimaryRole,
+  personalizeMenuItem
 } from '../config/menu.config';
 
 /**
@@ -47,9 +46,6 @@ export class MenuService {
 
   // Secciones de menú visibles según roles del usuario
   public menuSections$: Observable<MenuSection[]>;
-  
-  // Items compartidos (visibles para todos)
-  public sharedItems$: Observable<MenuItem[]>;
 
   constructor(private userContextService: UserContextService) {
     
@@ -63,11 +59,6 @@ export class MenuService {
         // ADMINISTRADOR no ve Panel de Médico ni Gestión General: lo resuelve getMenuSectionsForUser.
         return getMenuSectionsForUser(context.allRoles, context.primaryRole);
       })
-    );
-
-    // Items compartidos (siempre visibles cuando está autenticado)
-    this.sharedItems$ = this.userContextService.userContext$.pipe(
-      map(context => context.isAuthenticated ? SHARED_MENU_ITEMS : [])
     );
 
     // Detectar tamaño de pantalla
@@ -141,8 +132,6 @@ export class MenuService {
   getMenuSectionsWithBadges(): Observable<MenuSection[]> {
     return combineLatest([this.menuSections$, this.badges$, this.userContextService.userContext$]).pipe(
       map(([sections, badges, userContext]) => {
-        const isSuperAdmin = userContext.primaryRole?.toUpperCase() === 'SUPERADMIN';
-        const isAdmin = userContext.primaryRole?.toUpperCase() === 'ADMINISTRADOR';
         const visibleSections = filterItemsByPrimaryRole(sections, userContext?.primaryRole);
         
         return visibleSections.map(section => ({
@@ -150,27 +139,14 @@ export class MenuService {
           items: section.items
             .map(item => {
               const badgeCount = item.route ? badges.get(item.route) : undefined;
-              
-              // Personalizar label y route según rol para "Centros de Atención"
-              let label = item.label;
-              let route = item.route;
-              
-              if (item.route === '/centrosAtencion') {
-                if (isSuperAdmin) {
-                  label = 'Gestión de Centros';
-                  route = '/centrosAtencion'; // Lista de todos los centros
-                  console.log('🔧 MenuService: SUPERADMIN - Route:', route);
-                } else if (isAdmin) {
-                  label = 'Mi Centro';
-                  const tenantId = userContext.centroAtencionId;
-                  route = tenantId ? `/centrosAtencion/${tenantId}` : '/centrosAtencion';
-                }
-              }
+              const personalized = personalizeMenuItem(
+                item,
+                userContext?.primaryRole,
+                userContext?.centroAtencionId
+              );
               
               return {
-                ...item,
-                label: label,
-                route: route,
+                ...personalized,
                 badge: badgeCount && badgeCount > 0 ? {
                   value: badgeCount,
                   color: item.badge?.color || 'danger'

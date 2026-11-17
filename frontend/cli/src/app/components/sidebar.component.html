@@ -27,43 +27,19 @@
   >
   <!-- Header del Sidebar -->
   <div class="sidebar__header">
-    <div class="sidebar__brand">
+    <a
+      class="sidebar__brand"
+      [routerLink]="homeRoute"
+      title="Ir al inicio"
+      aria-label="Ir al inicio de CheTurno"
+      >
       <span class="material-symbols-outlined sidebar__brand-icon">event_available</span>
       <span class="sidebar__brand-text">CheTurno</span>
-    </div>
+    </a>
   </div>
 
   <!-- Navigation Menu -->
   <nav class="sidebar__nav">
-    <!-- Items Compartidos -->
-    @if ((menuService.sharedItems$ | async)?.length) {
-      <div
-        class="sidebar__section"
-        >
-        <div class="sidebar__section-header">
-          <span class="material-symbols-outlined sidebar__section-icon">home</span>
-          <span class="sidebar__section-title">General</span>
-        </div>
-        <ul class="sidebar__menu">
-          @for (item of menuService.sharedItems$ | async; track item) {
-            <li
-              class="sidebar__menu-item"
-              [class.sidebar__menu-item--active]="isActiveRoute(item.route)"
-              >
-              <a
-                [routerLink]="item.route"
-                class="sidebar__menu-link"
-                [attr.title]="item.description"
-                >
-                <span class="material-symbols-outlined sidebar__menu-icon">{{ item.icon }}</span>
-                <span class="sidebar__menu-label">{{ item.label }}</span>
-              </a>
-            </li>
-          }
-        </ul>
-      </div>
-    }
-
     <!-- Secciones por Rol: cada panel es un grupo colapsable -->
     @for (section of menuSectionsWithBadges$ | async; track section.id) {
       <div

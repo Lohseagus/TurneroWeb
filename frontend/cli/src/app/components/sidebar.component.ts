@@ -15,6 +15,7 @@ import {
   resolveOpenSectionIds,
   routeMatches
 } from '../config/menu-section-state';
+import { homeRouteForRole } from '../config/menu.config';
 
 /**
  * Componente del menú lateral (sidebar) dinámico basado en roles.
@@ -49,6 +50,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private ignoreClickUntil = 0;
 
   openSectionIds = new Set<string>();
+  homeRoute = '/';
 
   constructor(
     public menuService: MenuService,
@@ -181,6 +183,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   private syncUserPreference(context: UserContext | null): void {
+    this.homeRoute = context?.isAuthenticated ? homeRouteForRole(context.primaryRole) : '/';
     const nextKey = context?.isAuthenticated ? this.userStorageKey(context) : null;
     if (!nextKey) {
       this.userKey = null;
