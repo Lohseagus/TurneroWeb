@@ -6,8 +6,45 @@ set -euo pipefail
 
 cd /home/ubuntu/cheturno
 
+REQUIRED_ENV=(DB_USERNAME DB_PASSWORD JWT_SECRET)
+# SHA-256 de la clave JWT de ejemplo que estuvo publicada en el repo. El backend no arranca con ella.
+PUBLISHED_JWT_SHA256="3354cfcf65c7b2e6840ea6f880aede239750cb1d063950c4e8fd9fbf9ec73a32"
+
 if [[ ! -f .env ]]; then
-  echo "Falta /home/ubuntu/cheturno/.env con DB_USERNAME, DB_PASSWORD y JWT_SECRET."
+  echo "Falta /home/ubuntu/cheturno/.env con: ${REQUIRED_ENV[*]}."
+  exit 1
+fi
+
+# Lee una variable del .env sin ejecutarlo ni imprimirla.
+env_value() {
+  local line
+  line="$(grep -E "^[[:space:]]*(export[[:space:]]+)?$1=" .env | tail -n 1 || true)"
+  line="${line#*=}"
+  line="${line%$'\r'}"
+  line="${line%"${line##*[![:space:]]}"}"
+  if [[ "$line" =~ ^\"(.*)\"$ || "$line" =~ ^\'(.*)\'$ ]]; then
+    line="${BASH_REMATCH[1]}"
+  fi
+  printf '%s' "$line"
+}
+
+# Se revisa antes de bajar imágenes o recrear contenedores: si falta algo, el sitio
+# sigue con la versión que ya estaba corriendo.
+missing=()
+for var in "${REQUIRED_ENV[@]}"; do
+  if [[ -z "$(env_value "$var")" ]]; then
+    missing+=("$var")
+  fi
+done
+if (( ${#missing[@]} > 0 )); then
+  echo "En /home/ubuntu/cheturno/.env faltan o están vacías: ${missing[*]}."
+  echo "No se tocó ningún contenedor. Completalas (ver deploy/.env.example) y volvé a correr el deploy."
+  exit 1
+fi
+
+if [[ "$(env_value JWT_SECRET | sha256sum | cut -d' ' -f1)" == "$PUBLISHED_JWT_SHA256" ]]; then
+  echo "JWT_SECRET del .env es la clave de ejemplo que estuvo publicada en el repositorio."
+  echo "No se tocó ningún contenedor. Generá una propia con 'openssl rand -base64 48', guardala en .env y volvé a correr el deploy."
   exit 1
 fi
 
