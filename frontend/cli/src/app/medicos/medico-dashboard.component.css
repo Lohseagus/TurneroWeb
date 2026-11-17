@@ -1016,3 +1016,100 @@ input:disabled + .slider {
   flex-wrap: wrap;
   margin-top: var(--space-md);
 }
+
+/* =========================
+   7. MI SEMANA
+   ========================= */
+
+.semana {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  gap: var(--space-sm);
+  overflow-x: auto;
+}
+
+.semana__dia {
+  display: flex;
+  flex-direction: column;
+  min-height: 160px;
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.semana__dia.is-hoy {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.semana__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.semana__nombre {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.semana__numero {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-main);
+}
+
+.semana__dia.is-hoy .semana__nombre,
+.semana__dia.is-hoy .semana__numero {
+  color: var(--color-accent);
+}
+
+.semana__turnos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 320px;
+  padding: var(--space-sm);
+  overflow-y: auto;
+}
+
+.semana__turno {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--border-radius-sm);
+}
+
+.semana__turno.is-cancelado {
+  border-left-color: var(--color-danger);
+  opacity: 0.6;
+}
+
+.semana__turno.is-cancelado .semana__paciente {
+  text-decoration: line-through;
+}
+
+.semana__hora {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+.semana__paciente {
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+  color: var(--text-main);
+}
+
+.semana__vacio {
+  padding: var(--space-md) 0;
+  text-align: center;
+  color: var(--text-secondary);
+}
