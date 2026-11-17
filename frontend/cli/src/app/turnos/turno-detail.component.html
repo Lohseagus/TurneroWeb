@@ -258,6 +258,15 @@
                     <span class="material-symbols-outlined label-icon" aria-hidden="true">medical_services</span>
                     Staff Médico
                   </label>
+                  @if (cargandoStaff) {
+                    <p class="text-muted">Cargando…</p>
+                  }
+                  @if (errorStaff) {
+                    <div class="alert alert-warning" role="alert">
+                      <p class="mb-2">{{ errorStaff }}</p>
+                      <button type="button" class="btn btn-primary" (click)="reintentarStaff()">Reintentar</button>
+                    </div>
+                  }
                   <select
                     id="staffMedicoId"
                     [(ngModel)]="turno.staffMedicoId"

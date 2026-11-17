@@ -9,6 +9,7 @@ import { MedicoService } from './medico.service';
 import { Medico } from './medico';
 import { Especialidad } from '../especialidades/especialidad';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
+import { MedicoSesionService, comoMedico, mensajeMedico, staffComoLista } from './medico-sesion.service';
 
 @Component({
   selector: 'app-medico-horarios',
@@ -51,6 +52,7 @@ export class MedicoHorariosComponent implements OnInit {
 
   // Nuevas propiedades para especialidades
   medicoActual: Medico | null = null;
+  private medicoIdResuelto: number | null = null;
   especialidades: Especialidad[] = [];
   especialidadSeleccionada: number | null = null;
   disponibilidadesPorEspecialidad: { [especialidadId: number]: DisponibilidadMedico[] } = {};
@@ -80,12 +82,16 @@ export class MedicoHorariosComponent implements OnInit {
     private disponibilidadService: DisponibilidadMedicoService,
     private medicoService: MedicoService,
     private staffMedicoService: StaffMedicoService,
+    private medicoSesion: MedicoSesionService,
   ) {
     this.initializeParticles();
   }
 
   // Helper method to get medico ID from localStorage
   private getMedicoIdFromLocalStorage(): number | null {
+    if (this.medicoIdResuelto && this.medicoIdResuelto > 0) {
+      return this.medicoIdResuelto;
+    }
     console.log('=== DEBUG: getMedicoIdFromLocalStorage ===');
     
     // Try to get medico ID from different possible localStorage keys
@@ -189,28 +195,40 @@ export class MedicoHorariosComponent implements OnInit {
   }
 
   ngOnInit() {
-    console.log('=== INICIANDO COMPONENTE MEDICO-HORARIOS ===');
-    this.verificarConfiguracionSesion();
-    
-    // Validar y corregir localStorage
-    this.validarYCorregirLocalStorage();
-    
-    // Pequeña pausa para que se vean los logs antes de continuar
-    setTimeout(() => {
-      this.cargarMedicoYEspecialidades();
-    }, 100);
+    this.cargarSesion();
   }
 
-  // Método para reintentar la carga cuando hay errores
   reintentar() {
-    console.log('Reintentando carga de datos...');
     this.errorCarga = null;
     this.cargando = true;
     this.cargandoCentros = false;
     this.cambiandoCentro = false;
-    
-    // Reiniciar el proceso de carga
-    this.cargarMedicoYEspecialidades();
+    this.medicoSesion.invalidar();
+    this.cargarSesion();
+  }
+
+  private cargarSesion(): void {
+    this.cargando = true;
+    this.errorCarga = null;
+    this.medicoSesion.resolver(true).subscribe({
+      next: sesion => {
+        this.medicoIdResuelto = sesion.id;
+        this.medicoActual = comoMedico(sesion);
+        this.especialidades = sesion.especialidades || [];
+        this.staffMedicos = staffComoLista(sesion);
+        this.cargando = false;
+        if (!this.staffMedicos.length) {
+          this.errorCarga = 'No hay un staff médico vinculado a tu usuario en un centro. Pedile a un administrador que te asocie.';
+          return;
+        }
+        this.seleccionarStaffMedicoActual();
+        this.cargarDisponibilidades();
+      },
+      error: err => {
+        this.cargando = false;
+        this.errorCarga = mensajeMedico(err);
+      }
+    });
   }
 
   /**
@@ -296,8 +314,8 @@ export class MedicoHorariosComponent implements OnInit {
     const medicoId = this.getMedicoIdFromLocalStorage();
 
     if (!medicoId) {
-      console.error('Error: No se pudo obtener el ID del médico');
-      this.router.navigate(['/login']);
+      this.cargando = false;
+      this.errorCarga = 'No se pudo obtener el ID del médico. Reintentá.';
       return;
     }
 
@@ -333,8 +351,7 @@ Posible problema de configuración. Verifique:
           // Solo limpiar localStorage si el usuario lo confirma
           const shouldLogout = confirm('¿Desea cerrar sesión e ir al login?');
           if (shouldLogout) {
-            localStorage.clear();
-            this.router.navigate(['/login']);
+            this.router.navigate(['/ingresar']);
           }
         } else {
           alert(`Error al cargar información del médico: ${error.error?.message || error.message}`);
@@ -633,7 +650,7 @@ Posible problema de configuración. Verifique:
     if (!medicoId) {
       console.error('Error: No se pudo obtener el ID del médico para cargar disponibilidades');
       this.cargandoDisponibilidades = false;
-      this.router.navigate(['/login']);
+      this.errorCarga = 'No se pudo obtener el ID del médico. Reintentá.';
       return;
     }
 
@@ -1052,7 +1069,7 @@ Posible problema de configuración. Verifique:
       if (!staffMedicoIdNum) {
         alert('Error: No se pudo obtener el ID del médico en el centro. Por favor, verifique su sesión o contacte al administrador.');
         this.guardando = false;
-        this.router.navigate(['/login']);
+        this.errorCarga = 'No se pudo obtener el ID del médico en el centro. Reintentá o pedile a un administrador que te asocie.';
         return;
       }
 
@@ -1102,10 +1119,7 @@ Posible problema de configuración. Verifique:
                   console.error('StaffMedico no encontrado con ID corregido:', staffMedicoIdCorregido);
                   
                   // Limpiar localStorage y redirigir al login
-                  localStorage.clear();
-                  setTimeout(() => {
-                    this.router.navigate(['/login']);
-                  }, 3000);
+                  this.errorCarga = errorMessage;
                 } else {
                   errorMessage = `Error de validación: ${error.error?.status_text || error.error?.message || 'Datos inválidos'}`;
                 }
@@ -1167,11 +1181,7 @@ Posible problema de configuración. Verifique:
               errorMessage = `Error: El médico con ID ${staffMedicoIdNum} no existe en el sistema. Por favor, contacte al administrador o inicie sesión nuevamente.`;
               console.error('StaffMedico no encontrado con ID:', staffMedicoIdNum);
               
-              // Limpiar localStorage y redirigir al login
-              localStorage.clear();
-              setTimeout(() => {
-                this.router.navigate(['/login']);
-              }, 3000);
+              this.errorCarga = errorMessage;
             } else {
               errorMessage = `Error de validación: ${error.error?.status_text || error.error?.message || 'Datos inválidos'}`;
             }

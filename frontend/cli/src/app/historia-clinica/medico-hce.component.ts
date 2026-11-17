@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { TimeoutError, timeout } from 'rxjs';
 import { HceService } from './hce.service';
 import {
   GRUPOS_SANGUINEOS,
@@ -31,7 +32,12 @@ export class MedicoHceComponent implements OnInit {
   grupos = GRUPOS_SANGUINEOS;
   filtros = { tipo: '', centroId: null as number | null, medicoId: null as number | null, especialidadId: null as number | null };
 
-  constructor(private hce: HceService, private route: ActivatedRoute, private router: Router) {}
+  constructor(
+    private hce: HceService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
@@ -48,13 +54,23 @@ export class MedicoHceComponent implements OnInit {
 
   cargarLista(): void {
     this.cargando = true;
-    this.hce.misPacientes().subscribe({
+    this.error = '';
+    this.hce.misPacientes().pipe(timeout(20000)).subscribe({
       next: res => {
         this.pacientes = res.data || [];
         this.cargando = false;
+        this.cdr.detectChanges();
       },
       error: err => this.fallo(err)
     });
+  }
+
+  reintentar(): void {
+    if (this.pacienteId) {
+      this.cargarPaciente();
+    } else {
+      this.cargarLista();
+    }
   }
 
   cargarPaciente(): void {
@@ -64,6 +80,7 @@ export class MedicoHceComponent implements OnInit {
       next: res => {
         this.perfil = this.normalizarPerfil(res.data);
         this.cargando = false;
+        this.cdr.detectChanges();
         this.buscarTimeline();
       },
       error: err => this.fallo(err)
@@ -148,9 +165,18 @@ export class MedicoHceComponent implements OnInit {
     return perfil;
   }
 
-  private fallo(err: HttpErrorResponse): void {
+  private fallo(err: unknown): void {
     this.cargando = false;
     this.guardando = false;
-    this.error = err.error?.status_text || 'No se pudo completar la operación';
+    if (err instanceof TimeoutError) {
+      this.error = 'La consulta tardó demasiado. Reintentá.';
+      return;
+    }
+    const http = err as HttpErrorResponse;
+    const texto = http?.error?.status_text;
+    this.error = typeof texto === 'string' && texto.trim()
+      ? texto
+      : 'No se pudo completar la operación';
+    this.cdr.detectChanges();
   }
 }

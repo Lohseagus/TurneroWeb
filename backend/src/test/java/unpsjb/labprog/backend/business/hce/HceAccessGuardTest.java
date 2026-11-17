@@ -20,6 +20,7 @@ import unpsjb.labprog.backend.business.repository.MedicoRepository;
 import unpsjb.labprog.backend.business.repository.PerfilClinicoRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
+import unpsjb.labprog.backend.exception.MedicoSinFichaException;
 import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.Paciente;
@@ -66,7 +67,7 @@ class HceAccessGuardTest {
     @Test
     void medicoDelMismoCentroLeeYElDeOtroCentroNo() {
         autenticar(Role.MEDICO, "medico@turnero.com");
-        when(medicoRepository.findByEmail("medico@turnero.com")).thenReturn(Optional.of(medico()));
+        when(medicoRepository.findByEmailIgnoreCase("medico@turnero.com")).thenReturn(Optional.of(medico()));
         when(staffMedicoRepository.existsByMedicoIdAndCentroId(7, 1)).thenReturn(true);
         guard().assertLeeConsulta(consultaCentro(1));
 
@@ -78,13 +79,22 @@ class HceAccessGuardTest {
     @Test
     void consentimientoHabilitaLaLecturaCruzada() {
         autenticar(Role.MEDICO, "medico@turnero.com");
-        when(medicoRepository.findByEmail("medico@turnero.com")).thenReturn(Optional.of(medico()));
+        when(medicoRepository.findByEmailIgnoreCase("medico@turnero.com")).thenReturn(Optional.of(medico()));
         when(staffMedicoRepository.existsByMedicoIdAndCentroId(7, 2)).thenReturn(false);
         PerfilClinico perfil = new PerfilClinico();
         perfil.setComparteEntreCentros(true);
         when(perfilRepository.findByPaciente_Id(10)).thenReturn(Optional.of(perfil));
 
         guard().assertLeeConsulta(consultaCentro(2));
+    }
+
+    @Test
+    void medicoSinFichaNoEntraALaHistoria() {
+        autenticar(Role.MEDICO, "sin.ficha@turnero.com");
+        when(medicoRepository.findByEmailIgnoreCase("sin.ficha@turnero.com")).thenReturn(Optional.empty());
+        HceNotFoundException error = assertThrows(HceNotFoundException.class,
+                () -> guard().exigirMedico(guard().usuarioActual()));
+        assertEquals(MedicoSinFichaException.MENSAJE, error.getMessage());
     }
 
     @Test

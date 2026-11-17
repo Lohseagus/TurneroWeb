@@ -12,6 +12,16 @@
     </div>
   </div>
 
+  @if (cargando) {
+    <p>Cargando…</p>
+  }
+  @if (errorCarga) {
+    <div class="alert alert-warning" role="alert">
+      <p class="mb-2">{{ errorCarga }}</p>
+      <button type="button" class="btn btn-primary" (click)="reintentar()">Reintentar</button>
+    </div>
+  }
+
   <!-- Período Selector -->
   <div class="row mb-4">
     <div class="col-12">

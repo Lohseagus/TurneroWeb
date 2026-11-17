@@ -6,6 +6,7 @@ import { MedicoService } from './medico.service';
 import { Medico } from './medico';
 import { AuthService, ChangePasswordRequest } from '../inicio-sesion/auth.service';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
+import { MedicoSesionService, comoMedico, mensajeMedico } from './medico-sesion.service';
 
 interface ConfiguracionNotificaciones {
   emailTurnos: boolean;
@@ -31,6 +32,8 @@ interface CambioPassword {
 export class MedicoPerfilComponent implements OnInit {
   medicoActual: Medico | null = null;
   cargando = true;
+  errorCarga = '';
+  private medicoIdResuelto = 0;
   
   // Profile editing properties
   editandoPerfil = false;
@@ -60,41 +63,38 @@ export class MedicoPerfilComponent implements OnInit {
     private medicoService: MedicoService,
     private formBuilder: FormBuilder,
     private authService: AuthService,
-    private staffMedicoService: StaffMedicoService
+    private staffMedicoService: StaffMedicoService,
+    private medicoSesion: MedicoSesionService
   ) {
     this.initializeParticles();
     this.passwordForm = this.initializePasswordForm();
     this.perfilForm = this.initializePerfilForm();
   }
 
-  async ngOnInit() {
-    // Asegurar que staffMedicoId esté disponible en localStorage
-    await this.getOrFetchStaffMedicoId();
-    this.cargarDatosMedico();
+  ngOnInit() {
+    this.cargarSesion();
     this.cargarConfiguracionNotificaciones();
   }
 
-  private cargarDatosMedico() {
-    const medicoId = this.getMedicoIdFromSession();
-    
-    if (!medicoId || medicoId === 0) {
-      console.error('No se pudo obtener el ID del médico');
-      this.router.navigate(['/login']);
-      return;
-    }
-    
-    this.medicoService.findById(medicoId).subscribe({
-      next: (medico) => {
-        this.medicoActual = medico;
+  reintentar(): void {
+    this.medicoSesion.invalidar();
+    this.cargarSesion();
+  }
+
+  private cargarSesion(): void {
+    this.cargando = true;
+    this.errorCarga = '';
+    this.medicoSesion.resolver(true).subscribe({
+      next: sesion => {
+        this.medicoIdResuelto = sesion.id;
+        this.medicoActual = comoMedico(sesion);
         this.cargando = false;
       },
-      error: (error) => {
-        console.error('Error al cargar datos del médico:', error);
+      error: err => {
         this.cargando = false;
-        if (error.status === 404) {
-          alert('No se encontraron los datos del médico. Verifique su sesión.');
-          this.router.navigate(['/login']);
-        }
+        this.medicoActual = null;
+        this.medicoIdResuelto = 0;
+        this.errorCarga = mensajeMedico(err);
       }
     });
   }
@@ -240,69 +240,9 @@ export class MedicoPerfilComponent implements OnInit {
   }
 
   private getMedicoIdFromSession(): number {
-    console.log('=== DEBUG getMedicoIdFromSession (Perfil) ===');
-    
-    // Recopilar datos del localStorage
-    const datos = {
-      staffMedicoId: localStorage.getItem('staffMedicoId'),
-      medicoId: localStorage.getItem('medicoId'),
-      userId: localStorage.getItem('userId'),
-      id: localStorage.getItem('id'),
-      currentUser: localStorage.getItem('currentUser')
-    };
-    
-    console.log('Datos en localStorage:', datos);
-    
-    // Intentar obtener ID desde diferentes fuentes
-    let id = 0;
-    
-    // ⚠️ IMPORTANTE: PRIMERO medicoId, NUNCA staffMedicoId para autenticación
-    
-    // 1. Intentar desde medicoId directo (CORRECTO)
-    if (datos.medicoId && datos.medicoId !== 'null') {
-      id = parseInt(datos.medicoId, 10);
-      console.log('✅ ID obtenido desde medicoId:', id);
-    }
-    
-    // 2. Intentar parsear currentUser JSON
-    else if (datos.currentUser && datos.currentUser !== 'null') {
-      try {
-        const currentUser = JSON.parse(datos.currentUser);
-        if (currentUser && currentUser.medicoId) {
-          id = parseInt(currentUser.medicoId, 10);
-          console.log('✅ ID obtenido desde currentUser.medicoId:', id);
-        } else if (currentUser && currentUser.id && currentUser.id !== parseInt(datos.staffMedicoId || '0', 10)) {
-          id = parseInt(currentUser.id, 10);
-          console.log('✅ ID obtenido desde currentUser.id:', id);
-        }
-      } catch (e) {
-        console.error('Error al parsear currentUser:', e);
-      }
-    }
-    
-    // 3. Como ÚLTIMO recurso, otros campos (PERO NO staffMedicoId para auth)
-    else if (datos.userId && datos.userId !== 'null') {
-      id = parseInt(datos.userId, 10);
-      console.log('⚠️ ID obtenido desde userId (fallback):', id);
-    }
-    
-    // NUNCA usar staffMedicoId para autenticación de médico
-    if (id === parseInt(datos.staffMedicoId || '0', 10) && id !== 0) {
-      console.error('🚨 ALERTA: Se detectó que medicoId === staffMedicoId. Esto puede causar errores!');
-      console.error('MedicoId:', id, 'StaffMedicoId:', datos.staffMedicoId);
-    }
-    
-    // Validar que el ID sea válido
-    if (!id || isNaN(id) || id <= 0) {
-      console.error('No se pudo obtener un ID válido del médico');
-      return 0;
-    }
-    
-    console.log('ID final obtenido:', id);
-    console.log('=== FIN DEBUG ===');
-    
-    return id;
+    return this.medicoIdResuelto;
   }
+
 
   // Helper method to get or fetch staffMedicoId and store it in localStorage
   private getOrFetchStaffMedicoId(): Promise<number | null> {

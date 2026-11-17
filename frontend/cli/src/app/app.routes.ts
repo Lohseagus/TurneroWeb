@@ -142,7 +142,10 @@ export const routes: Routes = [
     canActivate: [AdminGuard],
   },
 
-  // rutas de autenticación
+  // rutas de autenticación. login y registro quedaron como alias: el router
+  // no tiene esas rutas y NG04002 dejaba la pantalla colgada.
+  { path: "login", redirectTo: "ingresar", pathMatch: "full" },
+  { path: "registro", redirectTo: "registro-usuario", pathMatch: "full" },
   { path: "ingresar", component: InicioSesionComponent },
   { path: "registro-usuario", component: RegistroUsuarioComponent },
   { path: "recuperar-contrasena", component: RecuperarContrasenaComponent },

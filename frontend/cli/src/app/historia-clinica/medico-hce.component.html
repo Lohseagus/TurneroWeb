@@ -11,11 +11,14 @@
     </div>
   </div>
 
-  <div class="hce-error" *ngIf="error">{{ error }}</div>
+  <div class="hce-error" *ngIf="error">
+    <p>{{ error }}</p>
+    <button type="button" class="btn btn-secondary" (click)="reintentar()">Reintentar</button>
+  </div>
   <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
-  <p *ngIf="cargando">Cargando…</p>
+  <p *ngIf="cargando && !error">Cargando…</p>
 
-  <section class="hce-panel" *ngIf="!pacienteId && !cargando">
+  <section class="hce-panel" *ngIf="!pacienteId && !cargando && !error">
     <div class="hce-list" *ngIf="pacientes.length; else vacio">
       <a class="hce-card hce-list-item" *ngFor="let paciente of pacientes" [routerLink]="['/medico-hce', paciente.id]">
         <div>
@@ -26,7 +29,7 @@
       </a>
     </div>
     <ng-template #vacio>
-      <p>Todavía no hay pacientes atendidos. Iniciá una consulta desde un turno.</p>
+      <p>Todavía no atendiste pacientes</p>
     </ng-template>
   </section>
 

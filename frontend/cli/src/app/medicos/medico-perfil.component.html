@@ -36,8 +36,15 @@
     </div>
   }
 
+  @if (!cargando && errorCarga) {
+    <div class="loading-container">
+      <p>{{ errorCarga }}</p>
+      <button type="button" class="btn btn-primary" (click)="reintentar()">Reintentar</button>
+    </div>
+  }
+
   <!-- Main Content -->
-  @if (!cargando) {
+  @if (!cargando && !errorCarga) {
     <div class="perfil-content">
       <!-- Información Personal -->
       <div class="perfil-section">

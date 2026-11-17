@@ -12,6 +12,8 @@ import { Paciente } from "../pacientes/paciente";
 import { StaffMedico } from "../staffMedicos/staffMedico";
 import { Consultorio } from "../consultorios/consultorio";
 import { ModalService } from "../modal/modal.service";
+import { AuthService } from "../inicio-sesion/auth.service";
+import { MedicoSesionService, mensajeMedico, staffComoLista } from "../medicos/medico-sesion.service";
 
 @Component({
   selector: "app-turno-detail",
@@ -39,6 +41,8 @@ export class TurnoDetailComponent {
   pacientes: Paciente[] = [];
   staffMedicos: StaffMedico[] = [];
   consultorios: Consultorio[] = [];
+  errorStaff = "";
+  cargandoStaff = false;
 
   // Advertencias de solapamiento
   advertenciaSolapamiento = false;
@@ -57,7 +61,9 @@ export class TurnoDetailComponent {
     private pacienteService: PacienteService,
     private staffMedicoService: StaffMedicoService,
     private consultorioService: ConsultorioService,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private authService: AuthService,
+    private medicoSesion: MedicoSesionService
   ) { }
 
   // Importar lazymente el componente de modal con tabla (evita problemas de bundling)
@@ -122,12 +128,7 @@ export class TurnoDetailComponent {
         this.pacientes = dataPackage.data || [];
       });
 
-    // Cargar staff médicos
-    this.staffMedicoService
-      .all()
-      .subscribe((dataPackage: DataPackage<StaffMedico[]>) => {
-        this.staffMedicos = dataPackage.data || [];
-      });
+    this.cargarStaff();
 
     // Cargar consultorios
     this.consultorioService
@@ -135,6 +136,55 @@ export class TurnoDetailComponent {
       .subscribe((dataPackage: DataPackage<Consultorio[]>) => {
         this.consultorios = dataPackage.data || [];
       });
+  }
+
+  reintentarStaff(): void {
+    this.medicoSesion.invalidar();
+    this.cargarStaff();
+  }
+
+  private cargarStaff(): void {
+    this.cargandoStaff = true;
+    this.errorStaff = "";
+    const esMedico = (this.authService.getUserRole() || "").toUpperCase() === "MEDICO";
+    this.staffMedicoService.all().subscribe({
+      next: (dataPackage: DataPackage<StaffMedico[]>) => {
+        this.staffMedicos = dataPackage.data || [];
+        this.completarStaffDelMedico(esMedico);
+      },
+      error: () => {
+        this.staffMedicos = [];
+        this.completarStaffDelMedico(true);
+      }
+    });
+  }
+
+  private completarStaffDelMedico(usarSesion: boolean): void {
+    if (!usarSesion) {
+      this.cargandoStaff = false;
+      return;
+    }
+    this.medicoSesion.resolver().subscribe({
+      next: sesion => {
+        const propios = staffComoLista(sesion) as unknown as StaffMedico[];
+        if (this.staffMedicos.length === 0) {
+          this.staffMedicos = propios;
+        }
+        if (this.esSobreturno && !this.turno.staffMedicoId && sesion.staffMedicoId) {
+          this.turno.staffMedicoId = sesion.staffMedicoId;
+        }
+        this.cargandoStaff = false;
+        if (!this.staffMedicos.length) {
+          this.errorStaff = "No hay un staff médico vinculado a tu usuario en un centro. Pedile a un administrador que te asocie.";
+        }
+      },
+      error: err => {
+        this.cargandoStaff = false;
+        if (!this.staffMedicos.length) {
+          this.errorStaff = mensajeMedico(err);
+        }
+      }
+    });
   }
 
   save(): void {

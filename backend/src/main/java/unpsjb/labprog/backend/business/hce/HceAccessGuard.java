@@ -3,6 +3,8 @@ package unpsjb.labprog.backend.business.hce;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import unpsjb.labprog.backend.business.repository.ConsultaRepository;
@@ -11,6 +13,7 @@ import unpsjb.labprog.backend.business.repository.PerfilClinicoRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
 import unpsjb.labprog.backend.config.AuditContext;
+import unpsjb.labprog.backend.exception.MedicoSinFichaException;
 import unpsjb.labprog.backend.model.EstadoTurno;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.Paciente;
@@ -22,6 +25,8 @@ import unpsjb.labprog.backend.model.hce.Consulta;
 
 @Service
 public class HceAccessGuard {
+
+    private static final Logger log = LoggerFactory.getLogger(HceAccessGuard.class);
 
     private final MedicoRepository medicoRepository;
     private final StaffMedicoRepository staffMedicoRepository;
@@ -60,8 +65,12 @@ public class HceAccessGuard {
         if (user.getRole() != Role.MEDICO) {
             throw new HceAccessDeniedException("Solo el médico que atiende puede modificar la historia clínica");
         }
-        return medicoRepository.findByEmail(user.getEmail())
-                .orElseThrow(() -> new HceAccessDeniedException("No hay un profesional asociado a este usuario"));
+        String email = user.getEmail() == null ? "" : user.getEmail().trim();
+        return medicoRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> {
+                    log.warn("Usuario {} tiene rol MEDICO y no tiene una ficha Medico vinculada por email", email);
+                    return new HceNotFoundException(MedicoSinFichaException.MENSAJE);
+                });
     }
 
     public boolean puedeLeerConsulta(Consulta consulta) {
@@ -73,7 +82,8 @@ public class HceAccessGuard {
         if (user.getRole() == Role.PACIENTE) {
             return true;
         }
-        Medico medico = medicoRepository.findByEmail(user.getEmail()).orElse(null);
+        String email = user.getEmail() == null ? "" : user.getEmail().trim();
+        Medico medico = email.isEmpty() ? null : medicoRepository.findByEmailIgnoreCase(email).orElse(null);
         if (medico == null) {
             return false;
         }

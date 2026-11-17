@@ -5,6 +5,7 @@ import { TurnoService } from '../turnos/turno.service';
 import { MedicoService } from './medico.service';
 import { AuditService } from '../audit/audit.service';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
+import { MedicoSesionService, comoMedico, mensajeMedico } from './medico-sesion.service';
 
 interface EstadisticasPeriodo {
   periodo: string;
@@ -32,6 +33,9 @@ interface EstadisticasEspecialidad {
 export class MedicoEstadisticasComponent implements OnInit {
   periodoSeleccionado = 'mes_actual';
   medicoData: any = null;
+  cargando = false;
+  errorCarga = '';
+  private staffMedicoIdResuelto: number | null = null;
   especialidadMedico: string = '';
   
   estadisticasActuales: EstadisticasPeriodo = {
@@ -67,13 +71,40 @@ export class MedicoEstadisticasComponent implements OnInit {
     private turnoService: TurnoService,
     private medicoService: MedicoService,
     private auditService: AuditService,
-    private staffMedicoService: StaffMedicoService
+    private staffMedicoService: StaffMedicoService,
+    private medicoSesion: MedicoSesionService
   ) {}
 
-  async ngOnInit() {
-    // Asegurar que staffMedicoId esté disponible en localStorage
-    await this.getOrFetchStaffMedicoId();
-    this.cargarDatosMedico();
+  ngOnInit() {
+    this.cargarSesion();
+  }
+
+  reintentar(): void {
+    this.medicoSesion.invalidar();
+    this.cargarSesion();
+  }
+
+  private cargarSesion(): void {
+    this.cargando = true;
+    this.errorCarga = '';
+    this.medicoSesion.resolver(true).subscribe({
+      next: sesion => {
+        this.medicoData = comoMedico(sesion);
+        this.especialidadMedico = sesion.especialidades?.[0]?.nombre || '';
+        this.staffMedicoIdResuelto = sesion.staffMedicoId;
+        this.cargando = false;
+        if (!sesion.staffMedicoId) {
+          this.errorCarga = 'No hay un staff médico vinculado a tu usuario en un centro. Pedile a un administrador que te asocie.';
+          return;
+        }
+        this.inicializarEspecialidades();
+        this.cargarEstadisticas();
+      },
+      error: err => {
+        this.cargando = false;
+        this.errorCarga = mensajeMedico(err);
+      }
+    });
   }
 
   cargarDatosMedico() {
@@ -111,52 +142,11 @@ export class MedicoEstadisticasComponent implements OnInit {
   }
 
   private obtenerStaffMedicoIdCorrect() {
-    // Primero intentar obtener staffMedicoId desde localStorage
-    const staffMedicoIdFromStorage = localStorage.getItem('staffMedicoId');
-    
-    if (staffMedicoIdFromStorage && staffMedicoIdFromStorage !== 'null' && staffMedicoIdFromStorage !== '0') {
-      const parsedStaffId = parseInt(staffMedicoIdFromStorage, 10);
-      if (parsedStaffId > 0) {
-        console.log('📋 Usando staffMedicoId desde localStorage:', parsedStaffId);
-        this.cargarEstadisticasTurnos(parsedStaffId);
-        return;
-      }
+    if (this.staffMedicoIdResuelto && this.staffMedicoIdResuelto > 0) {
+      this.cargarEstadisticasTurnos(this.staffMedicoIdResuelto);
+      return;
     }
-    
-    // Si no está en localStorage, buscar por medicoId
-    const medicoId = this.getMedicoIdFromSession();
-    console.log('🔍 Buscando StaffMedico por medicoId:', medicoId);
-    
-    this.staffMedicoService.all().subscribe({
-      next: (response: any) => {
-        const staffMedicos = response?.data || [];
-        
-        // Buscar TODOS los StaffMedico que corresponden al médico en sesión
-        const staffMedicosDelMedico = staffMedicos.filter((sm: any) => sm.medico && sm.medico.id === medicoId);
-        
-        if (staffMedicosDelMedico.length > 0) {
-          console.log(`✅ Encontrados ${staffMedicosDelMedico.length} registros de StaffMedico para el médico:`, staffMedicosDelMedico);
-          
-          // Guardar el staffMedicoId en localStorage para próximos usos
-          const staffMedicoId = staffMedicosDelMedico[0].id;
-          localStorage.setItem('staffMedicoId', staffMedicoId.toString());
-          
-          this.cargarEstadisticasTurnos(staffMedicoId);
-        } else {
-          console.error('❌ No se encontraron registros de StaffMedico para medicoId:', medicoId);
-          // Como fallback, intentar usar directamente el medicoId
-          this.cargarEstadisticasTurnos(medicoId);
-        }
-      },
-      error: (error: any) => {
-        console.error('❌ Error al obtener StaffMedicos:', error);
-        // Como fallback, intentar usar directamente el medicoId
-        this.cargarEstadisticasTurnos(this.getMedicoIdFromSession());
-      }
-    });
-
-    // Inicializar especialidades mientras se cargan los datos
-    this.inicializarEspecialidades();
+    this.errorCarga = 'No hay un staff médico vinculado a tu usuario en un centro. Pedile a un administrador que te asocie.';
   }
 
   /**
@@ -300,7 +290,7 @@ export class MedicoEstadisticasComponent implements OnInit {
       return this.medicoData.id;
     }
     
-    return parsedId > 0 ? parsedId : 1; // Fallback a 1 si todo falla
+    return parsedId > 0 ? parsedId : 0;
   }
 
   /**

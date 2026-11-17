@@ -766,18 +766,25 @@ export class AuthService {
    * Cierra la sesión del usuario
    */
   logout(): void {
-    // Primero cerrar la sesión de Google (si existe)
-    this.socialAuthService.signOut().then(() => {
-      // Esta lógica se ejecuta DESPUÉS de que Google ha cerrado la sesión.
-      this.clearSession();
-      this.router.navigate(['/ingresar']);
-      console.log('Sesión de Google y local cerradas correctamente.');
-    }).catch(error => {
-      // Incluso si hay un error al cerrar la sesión de Google, forzamos el logout local.
-      console.error('Error al cerrar la sesión de Google, forzando logout local:', error);
+    // Google rechaza signOut con "Not logged in" si la sesión fue por contraseña.
+    // Eso no es un fallo: la sesión local se cierra igual, sin tirar el error.
+    this.cerrarSesionGoogle().finally(() => {
       this.clearSession();
       this.router.navigate(['/ingresar']);
     });
+  }
+
+  private cerrarSesionGoogle(): Promise<void> {
+    return Promise.resolve()
+      .then(() => this.socialAuthService.signOut())
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        const texto = typeof error === 'string' ? error : (error as { message?: string })?.message || '';
+        if (texto.toLowerCase().includes('not logged in')) {
+          return;
+        }
+        console.warn('No se pudo cerrar la sesión de Google. La sesión local se cierra igual.', texto);
+      });
   }
 
   /**
@@ -1426,9 +1433,7 @@ export class AuthService {
    */
   private forceLogout(): void {
     // Intentar cerrar sesión de Google también
-    this.socialAuthService.signOut().catch(error => {
-      console.error('Error al cerrar sesión de Google en forceLogout:', error);
-    });
+    this.cerrarSesionGoogle();
 
     if (this.tokenRefreshTimer) {
       clearTimeout(this.tokenRefreshTimer);

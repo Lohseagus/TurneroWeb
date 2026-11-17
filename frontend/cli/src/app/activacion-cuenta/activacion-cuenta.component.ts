@@ -88,6 +88,6 @@ export class ActivacionCuentaComponent implements OnInit {
   resendActivationEmail(): void {
     // Aquí podrías implementar la lógica para reenviar el email
     // Por ahora, redirigimos al registro o login
-    this.router.navigate(['/registro']);
+    this.router.navigate(['/registro-usuario']);
   }
 }
