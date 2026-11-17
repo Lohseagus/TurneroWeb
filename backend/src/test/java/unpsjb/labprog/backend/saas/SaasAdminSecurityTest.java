@@ -41,7 +41,9 @@ import unpsjb.labprog.backend.saas.pasarela.PasarelaPago;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * security.dev.mode=false, igual que producción. El token lo firma
+ * No fija security.dev.mode a propósito: corre con el valor por defecto, que tiene
+ * que ser el modo cerrado de producción. Si alguien vuelve a abrir el default,
+ * los casos de anónimo y de otros roles fallan. El token lo firma
  * JwtTokenProvider y el filtro arma las authorities desde User.getAuthorities()
  * (ROLE_ + el nombre del enum, más los roles heredados).
  */
@@ -55,7 +57,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenProvider.class})
 @ImportAutoConfiguration(SecurityFilterAutoConfiguration.class)
 @TestPropertySource(properties = {
-        "security.dev.mode=false",
         "jwt.secret=BIKxlr6HZ0lJtDo0GAAWww+bJF7cyNHwj1XrLGjdgQg=",
         "jwt.access-token-expiration=900000",
         "app.allowed.origins=http://localhost:4200",

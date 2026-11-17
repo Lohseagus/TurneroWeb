@@ -24,6 +24,8 @@ services:
     container_name: backend
     environment:
       HCE_STORAGE_PATH: /var/cheturno/hce
+      # Stack de desarrollo: endpoints abiertos. El backend arranca cerrado si esto falta.
+      SECURITY_DEV_MODE: "true"
     volumes:
       - ./backend:/app
       - ../common/backend/m2:/root/.m2
