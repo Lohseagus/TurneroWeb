@@ -64,9 +64,6 @@ export class MedicoHorariosComponent implements OnInit {
 
   horariosForm: { dia: string, horaInicio: string, horaFin: string }[] = [];
 
-  // Particles for background animation
-  particles: Array<{x: number, y: number}> = [];
-
   diasSemana = [
     { nombre: 'Lunes', valor: 'LUNES' },
     { nombre: 'Martes', valor: 'MARTES' },
@@ -84,7 +81,6 @@ export class MedicoHorariosComponent implements OnInit {
     private staffMedicoService: StaffMedicoService,
     private medicoSesion: MedicoSesionService,
   ) {
-    this.initializeParticles();
   }
 
   // Helper method to get medico ID from localStorage
@@ -1269,16 +1265,6 @@ Posible problema de configuración. Verifique:
 
   volverAlDashboard() {
     this.router.navigate(['/medico-dashboard']);
-  }
-
-  private initializeParticles() {
-    this.particles = [];
-    for (let i = 0; i < 50; i++) {
-      this.particles.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight
-      });
-    }
   }
 
   getTotalHorarios(): number {

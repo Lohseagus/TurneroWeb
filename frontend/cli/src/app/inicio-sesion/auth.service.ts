@@ -14,6 +14,7 @@ import { DataPackage } from "../data.package";
 import { PacienteService } from "../pacientes/paciente.service";
 import { ModalService } from "../modal/modal.service";
 import { UserContextService } from "../services/user-context.service";
+import { clearAllMenuSectionState } from "../config/menu-section-storage";
 
 /**
  * Interfaz para los datos de login compatibles con InicioSesionComponent
@@ -219,6 +220,7 @@ export class AuthService {
       .pipe(
         tap((response) => {
           if (response.data) {
+            this.resetSidebarSectionPreferences();
             this.storeTokens(response.data, loginData.rememberMe);
             this.authStateSubject.next(true);
             this.updateSessionTimestamp();
@@ -272,6 +274,7 @@ export class AuthService {
           if (response.data) {
             // Reutilizar la misma lógica que el login normal
             // Por defecto, mantener la sesión activa (rememberMe = true)
+            this.resetSidebarSectionPreferences();
             this.storeTokens(response.data, true);
             this.authStateSubject.next(true);
             this.updateSessionTimestamp();
@@ -372,6 +375,7 @@ export class AuthService {
     loginResponse: LoginResponse,
     rememberMe: boolean = false
   ): void {
+    this.resetSidebarSectionPreferences();
     this.storeTokens(loginResponse, rememberMe);
     this.authStateSubject.next(true);
     
@@ -431,6 +435,7 @@ export class AuthService {
    */
   private handleTokenExpired(message: string): void {
     console.log('🚨 Manejo de expiración de tokens:', message);
+    this.resetSidebarSectionPreferences();
     
     // Cancelar cualquier timer de refresh activo
     if (this.tokenRefreshTimer) {
@@ -454,6 +459,20 @@ export class AuthService {
     setTimeout(() => {
       this.router.navigate(["/ingresar"]);
     }, 100);
+  }
+
+  /**
+   * Borra qué paneles del sidebar quedaron abiertos.
+   * Login y logout empiezan con el panel del rol más alto, no con la sesión anterior.
+   * El refresh de token no pasa por acá: esa preferencia sigue en sessionStorage.
+   */
+  private resetSidebarSectionPreferences(): void {
+    if (typeof localStorage !== 'undefined') {
+      clearAllMenuSectionState(localStorage);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      clearAllMenuSectionState(sessionStorage);
+    }
   }
 
   /**
@@ -791,6 +810,8 @@ export class AuthService {
    * Limpia la sesión local (método privado)
    */
   private clearSession(): void {
+    this.resetSidebarSectionPreferences();
+
     // Cancelar el timer de refresh si existe
     if (this.tokenRefreshTimer) {
       clearTimeout(this.tokenRefreshTimer);
@@ -1432,6 +1453,8 @@ export class AuthService {
    * Fuerza el cierre de sesión sin notificar a otras pestañas
    */
   private forceLogout(): void {
+    this.resetSidebarSectionPreferences();
+
     // Intentar cerrar sesión de Google también
     this.cerrarSesionGoogle();
 
@@ -1493,6 +1516,7 @@ export class AuthService {
     sessionKeys.forEach((key) => {
       sessionStorage.removeItem(key);
     });
+    clearAllMenuSectionState(sessionStorage);
     
     this.authStateSubject.next(false);
     

@@ -43,6 +43,10 @@ function prepararTurnoYMedicoAjeno() {
 
 function limpiarHistoria() {
   runSql(`
+    DELETE FROM hce_receta_item;
+    DELETE FROM hce_receta;
+    DELETE FROM hce_orden_estudio_item;
+    DELETE FROM hce_orden_estudio;
     DELETE FROM hce_enmienda;
     DELETE FROM hce_diagnostico;
     DELETE FROM hce_adjunto;

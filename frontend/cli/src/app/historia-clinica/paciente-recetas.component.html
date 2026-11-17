@@ -1,0 +1,46 @@
+<div class="hce-page">
+  <div class="hce-header">
+    <div>
+      <h1>Mis recetas</h1>
+      <p>Recetas y órdenes emitidas en tus consultas. Podés descargar el PDF.</p>
+    </div>
+  </div>
+  <div class="hce-error" *ngIf="error">{{ error }}</div>
+  <p *ngIf="cargando">Cargando…</p>
+
+  <section class="hce-panel">
+    <h2>Recetas</h2>
+    <article class="hce-card" *ngFor="let receta of recetas">
+      <div class="hce-header">
+        <div>
+          <strong>{{ receta.fechaEmision || 'Borrador' }}</strong>
+          <p>{{ receta.items[0]?.nombreGenerico }}<span *ngIf="receta.items.length > 1"> y {{ receta.items.length - 1 }} más</span></p>
+          <p class="hce-muted">{{ receta.prescriptorApellido }}, {{ receta.prescriptorNombre }} · {{ receta.centroNombre }}</p>
+        </div>
+        <span class="hce-badge">{{ receta.estado }}</span>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="pdfReceta(receta)">
+        <span class="material-symbols-outlined" aria-hidden="true">download</span> Descargar PDF
+      </button>
+    </article>
+    <p class="hce-muted" *ngIf="!cargando && !recetas.length">Todavía no tenés recetas.</p>
+  </section>
+
+  <section class="hce-panel">
+    <h2>Órdenes de estudio</h2>
+    <article class="hce-card" *ngFor="let orden of ordenes">
+      <div class="hce-header">
+        <div>
+          <strong>{{ orden.fechaEmision || 'Borrador' }}</strong>
+          <p>{{ orden.items[0]?.nombrePractica }}</p>
+          <p class="hce-muted">{{ orden.centroNombre }}</p>
+        </div>
+        <span class="hce-badge">{{ orden.estado }}</span>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="pdfOrden(orden)">
+        <span class="material-symbols-outlined" aria-hidden="true">download</span> Descargar PDF
+      </button>
+    </article>
+    <p class="hce-muted" *ngIf="!cargando && !ordenes.length">Todavía no tenés órdenes.</p>
+  </section>
+</div>

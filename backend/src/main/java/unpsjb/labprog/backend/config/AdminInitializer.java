@@ -1,5 +1,10 @@
 package unpsjb.labprog.backend.config;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,14 +26,20 @@ import unpsjb.labprog.backend.model.User;
 public class AdminInitializer implements CommandLineRunner {
     
     private static final Logger logger = LoggerFactory.getLogger(AdminInitializer.class);
+
+    static final int MIN_PASSWORD_LENGTH = 12;
+
+    // SHA-256 de la contraseña del seed que estuvo publicada en este repositorio.
+    private static final String PASSWORD_PUBLICADA_SHA256 =
+            "e9aaf686e6b2039b0b777c5c763f0c0b5b7fd37c354296b6e98fd9531dcd9c26";
     
-    @Value("${admin.seed.enabled:true}")
+    @Value("${admin.seed.enabled:false}")
     private Boolean adminSeedEnabled;
     
     @Value("${admin.seed.email:admin@turneroweb.com}")
     private String adminEmail;
     
-    @Value("${admin.seed.password:AdminTurnero2025}")
+    @Value("${admin.seed.password:}")
     private String adminPassword;
     
     @Value("${admin.seed.nombre:Administrador}")
@@ -56,6 +67,12 @@ public class AdminInitializer implements CommandLineRunner {
             return;
         }
         
+        String motivo = motivoDeRechazo(adminPassword);
+        if (motivo != null) {
+            logger.error("❌ No se crea el SUPERADMIN inicial: {}", motivo);
+            return;
+        }
+
         try {
             logger.info("🚀 Verificando SUPERADMIN inicial...");
             
@@ -99,6 +116,32 @@ public class AdminInitializer implements CommandLineRunner {
         }
     }
     
+    /**
+     * Devuelve por qué la contraseña configurada no sirve para el seed, o null si sirve.
+     * Nunca incluye la contraseña en el mensaje.
+     */
+    static String motivoDeRechazo(String password) {
+        if (password == null || password.isBlank()) {
+            return "admin.seed.enabled=true pero falta ADMIN_SEED_PASSWORD.";
+        }
+        if (password.length() < MIN_PASSWORD_LENGTH) {
+            return "ADMIN_SEED_PASSWORD tiene que tener al menos " + MIN_PASSWORD_LENGTH + " caracteres.";
+        }
+        if (PASSWORD_PUBLICADA_SHA256.equals(sha256Hex(password))) {
+            return "ADMIN_SEED_PASSWORD es la contraseña que estuvo publicada en el repositorio. Elegí otra.";
+        }
+        return null;
+    }
+
+    private static String sha256Hex(String valor) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(valor.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 no está disponible en esta JVM", e);
+        }
+    }
+
     /**
      * Información sobre la configuración del administrador inicial
      */

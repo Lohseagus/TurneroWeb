@@ -60,6 +60,15 @@ cd TurneroWeb
 ### Configurar Variables de Entorno:
 Crea un archivo `.env` en la raíz con las credenciales de base de datos y claves de API (Google OAuth, SMTP).
 
+El repo no trae secretos por defecto. Variables del backend que conviene conocer:
+
+| Variable | Si falta |
+|----------|----------|
+| `SECURITY_DEV_MODE` | Vale `false`: se aplica el control de roles. `docker-compose.yml` (desarrollo) la pone en `true`, que deja todos los endpoints públicos. |
+| `JWT_SECRET` | Con `SECURITY_DEV_MODE=true` el backend genera una clave temporal y los tokens se invalidan en cada reinicio. Con `false` no arranca. Generala con `openssl rand -base64 48`. |
+| `MAIL_PASSWORD` | El backend arranca, pero no puede enviar mails por un SMTP con autenticación. |
+| `ADMIN_SEED_ENABLED`, `ADMIN_SEED_PASSWORD` | No se crea ningún SUPERADMIN al arrancar. Para crearlo: `ADMIN_SEED_ENABLED=true` y una contraseña de 12 caracteres o más. En desarrollo alcanza con las cuentas de `staging/userinit.sql`. |
+
 
 ### Acceder a la Aplicación:
 - **Frontend**: http://localhost:4200

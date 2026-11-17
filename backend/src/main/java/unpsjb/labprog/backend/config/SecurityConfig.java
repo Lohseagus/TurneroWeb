@@ -1,5 +1,7 @@
 package unpsjb.labprog.backend.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -42,26 +44,24 @@ import java.util.Arrays;
  * 
  * MODO DE DESARROLLO vs PRODUCCIÓN:
  * ================================
- * Para alternar entre modos usar cualquiera de estas opciones:
+ * Por defecto se aplica el control de roles. El modo desarrollo se pide de forma
+ * explícita, y solo en una máquina local o en la suite e2e:
  * 
  * 1. Variable de entorno:
- * export SECURITY_DEV_MODE=false
+ * export SECURITY_DEV_MODE=true
  * 
  * 2. Parámetro JVM al ejecutar:
- * java -Dsecurity.dev.mode=false -jar app.jar
+ * java -Dsecurity.dev.mode=true -jar app.jar
  * 
- * 3. En application.properties:
- * security.dev.mode=false
- * 
- * 4. Modificar directamente la anotación @Value en esta clase
- * 
+ * - devMode=false (por defecto): PRODUCCIÓN - Control de roles aplicado
  * - devMode=true: DESARROLLO - Todos los endpoints públicos
- * - devMode=false: PRODUCCIÓN - Control de roles aplicado
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true) // Habilita @PreAuthorize en controladores
 public class SecurityConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Autowired
     private UserService userService;
@@ -139,15 +139,14 @@ public class SecurityConfig {
 
     /**
      * Variable para controlar el modo de seguridad
+     * - false (por defecto): Modo producción (control de roles aplicado)
      * - true: Modo desarrollo (todos los endpoints públicos)
-     * - false: Modo producción (control de roles aplicado)
      * 
-     * Para cambiar el modo:
-     * 1. Variable de entorno: SECURITY_DEV_MODE=false
-     * 2. Parámetro JVM: -Dsecurity.dev.mode=false
-     * 3. Modificar application.properties: security.dev.mode=false
+     * Si la variable falta, el backend arranca cerrado. Para abrirlo en desarrollo:
+     * 1. Variable de entorno: SECURITY_DEV_MODE=true
+     * 2. Parámetro JVM: -Dsecurity.dev.mode=true
      */
-    @Value("${security.dev.mode:true}")
+    @Value("${security.dev.mode:false}")
     private boolean devMode;
 
     /**
@@ -201,6 +200,10 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        if (devMode) {
+            logger.warn("security.dev.mode=true: TODOS los endpoints quedan públicos, sin control de roles. "
+                    + "Usalo solo en desarrollo local o en la suite e2e, nunca con datos reales.");
+        }
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Habilitar CORS con configuración
@@ -293,6 +296,11 @@ public class SecurityConfig {
                                 // centro, consentimiento y titularidad: la jerarquía hace que
                                 // ADMINISTRADOR y SUPERADMIN hereden ROLE_MEDICO.
                                 .requestMatchers("/api/hce/**").authenticated()
+                                // Verificación de farmacia o laboratorio, sin sesión.
+                                // El código es un token largo; el servicio no devuelve la historia.
+                                .requestMatchers(HttpMethod.GET, "/api/recetas/verificar/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/ordenes-estudio/verificar/**").permitAll()
+                                .requestMatchers("/api/recetas/**", "/api/ordenes-estudio/**").authenticated()
 
                                 .anyRequest().authenticated();
                     }

@@ -28,7 +28,6 @@ services:
       MAIL_PORT: "1025"
       MAIL_USERNAME: test@localhost
       MAIL_PASSWORD: test
-      ADMIN_SEED_ENABLED: "true"
     ports:
       - "8080:8080"
     depends_on:

@@ -77,7 +77,7 @@ jobs:
 
       - name: Tests unitarios
         working-directory: frontend/cli
-        run: npm test
+        run: npm test -- --no-watch
 
       - name: Build de producción
         working-directory: frontend/cli

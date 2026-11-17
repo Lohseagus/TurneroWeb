@@ -43,7 +43,7 @@ import unpsjb.labprog.backend.model.User;
 @ImportAutoConfiguration(SecurityFilterAutoConfiguration.class)
 @TestPropertySource(properties = {
         "security.dev.mode=false",
-        "jwt.secret=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970",
+        "jwt.secret=BIKxlr6HZ0lJtDo0GAAWww+bJF7cyNHwj1XrLGjdgQg=",
         "jwt.access-token-expiration=900000",
         "app.allowed.origins=http://localhost:4200",
         "DB_URL=jdbc:h2:mem:medicome",

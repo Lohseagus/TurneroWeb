@@ -6,8 +6,8 @@
     "start": "ng serve",
     "prebuild": "node scripts/check-material-symbols.mjs",
     "build": "ng build",
-    "test": "ng test --watch=false",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
   },
   "private": true,
   "dependencies": {
@@ -42,8 +42,8 @@
     "@angular-devkit/build-angular": "^22.2.7",
     "@angular/cli": "^22.2.7",
     "@angular/compiler-cli": "^22.2.6",
-    "jsdom": "^31.0.1",
+    "jsdom": "^27.4.0",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.0"
   }
 }

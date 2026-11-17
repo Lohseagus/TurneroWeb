@@ -13,6 +13,9 @@
 /* SISTEMA DE COLORES GLOBAL POR ENTIDAD */
 @import './entity-colors.css';
 
+/* TOKENS FALTANTES Y PIEZAS COMPARTIDAS (contenedor, encabezado, botones, cards...) */
+@import './ct-ui.css';
+
 /* ============================================
    1. GUÍA DE ESTILOS - VARIABLES GLOBALES (:root)
 ============================================ */
@@ -173,7 +176,7 @@ a:hover {
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
-  src: url("/fonts/material-symbols-outlined-918DEA80.woff2") format("woff2");
+  src: url("/fonts/material-symbols-outlined-33BFB371.woff2") format("woff2");
 }
 
 .material-symbols-outlined {

@@ -1,6 +1,7 @@
 const { When, Then, After } = require('@cucumber/cucumber');
 const assert = require('assert');
 const { GET, POST, PUT, login } = require('./MT_Helpers');
+const { SUPERADMIN } = require('../../support/auth');
 
 const PRECIOS = {
   PROFESIONAL: { precioBaseMensual: 25000, precioPorProfesional: 0, precioPorSedeExtra: null, sedesIncluidas: 1 },
@@ -18,10 +19,7 @@ function planDe(catalogo, codigo) {
 }
 
 function loginSuperadmin() {
-  let sesion = login('superadmin@turnero.com', 'password');
-  if (!sesion.success) {
-    sesion = login('admin@turneroweb.com', 'AdminTurnero2025');
-  }
+  const sesion = login(SUPERADMIN.email, SUPERADMIN.password);
   assert.ok(sesion.success, `No pude ingresar como superadministrador: ${JSON.stringify(sesion.response)}`);
   return sesion.accessToken;
 }

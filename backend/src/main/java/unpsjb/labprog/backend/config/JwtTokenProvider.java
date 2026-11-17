@@ -1,12 +1,20 @@
 package unpsjb.labprog.backend.config;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,11 +34,27 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Maneja la creación, validación y extracción de datos de tokens JWT
  */
 @Component
-public class JwtTokenProvider {
+public class JwtTokenProvider implements InitializingBean {
 
-    // Clave secreta para firmar los tokens (debe ser segura en producción)
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
+
+    // HS256 necesita una clave de 256 bits como mínimo.
+    private static final int MIN_KEY_BYTES = 32;
+
+    // SHA-256 de la clave de ejemplo que estuvo publicada en este repositorio.
+    // Cualquiera puede firmar tokens con ella, así que no se acepta en ningún ambiente.
+    private static final String CLAVE_PUBLICADA_SHA256 =
+            "3354cfcf65c7b2e6840ea6f880aede239750cb1d063950c4e8fd9fbf9ec73a32";
+
+    // Clave en Base64 para firmar los tokens. Sin valor por defecto: viene de JWT_SECRET.
+    @Value("${jwt.secret:}")
     private String secretKey;
+
+    // Solo con security.dev.mode=true se permite arrancar sin JWT_SECRET.
+    @Value("${security.dev.mode:false}")
+    private boolean devMode;
+
+    private SecretKey signKey;
 
     // Tiempo de expiración del access token (15 minutos)
     @Value("${jwt.access-token-expiration:900000}")
@@ -206,7 +230,59 @@ public class JwtTokenProvider {
      * Obtiene la clave de firma para los tokens
      */
     private SecretKey getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signKey;
+    }
+
+    /**
+     * Valida la clave de firma al arrancar. Sin una clave propia y suficientemente larga
+     * la aplicación no levanta: es preferible a firmar tokens con una clave conocida.
+     */
+    @Override
+    public void afterPropertiesSet() {
+        String configurada = secretKey == null ? "" : secretKey.trim();
+
+        if (configurada.isEmpty()) {
+            if (!devMode) {
+                throw new IllegalStateException(
+                        "Falta JWT_SECRET. Definí una clave propia en Base64 de al menos 32 bytes "
+                                + "(por ejemplo con: openssl rand -base64 48).");
+            }
+            byte[] efimera = new byte[48];
+            new SecureRandom().nextBytes(efimera);
+            signKey = Keys.hmacShaKeyFor(efimera);
+            logger.warn("JWT_SECRET no está definido y security.dev.mode=true: se generó una clave "
+                    + "temporal. Los tokens dejan de valer cuando se reinicia el backend. "
+                    + "Definí JWT_SECRET para conservarlos.");
+            return;
+        }
+
+        if (CLAVE_PUBLICADA_SHA256.equals(sha256Hex(configurada))) {
+            throw new IllegalStateException(
+                    "JWT_SECRET es la clave de ejemplo que estuvo publicada en el repositorio. "
+                            + "Generá una propia (por ejemplo con: openssl rand -base64 48).");
+        }
+
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(configurada);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException(
+                    "JWT_SECRET no es Base64 válido. Generá una clave con: openssl rand -base64 48.");
+        }
+        if (keyBytes.length < MIN_KEY_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET es demasiado corta: decodificada tiene " + keyBytes.length
+                            + " bytes y hacen falta al menos " + MIN_KEY_BYTES + ".");
+        }
+        signKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private static String sha256Hex(String valor) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(valor.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 no está disponible en esta JVM", e);
+        }
     }
 }
