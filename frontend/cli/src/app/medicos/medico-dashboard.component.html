@@ -54,6 +54,60 @@
   </section>
 }
 
+<!-- Mi semana -->
+<section class="ct-section">
+  <div class="ct-section__header">
+    <div>
+      <h2 class="ct-section__title">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Mi semana
+      </h2>
+      <p class="ct-section__description">{{ semanaRango }} · {{ semanaTotal }} {{ semanaTotal === 1 ? 'turno' : 'turnos' }}</p>
+    </div>
+    <div class="ct-btn-group">
+      <button type="button" class="btn btn-secondary btn-sm" (click)="cambiarSemana(-1)" aria-label="Semana anterior">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="cambiarSemana(0)" [disabled]="semanaOffset === 0">Hoy</button>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="cambiarSemana(1)" aria-label="Semana siguiente">
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+    </div>
+  </div>
+
+  @if (isLoadingTurnos) {
+    <div class="ct-loading">
+      <span class="material-symbols-outlined ct-spin">sync</span>
+      <p>Cargando turnos...</p>
+    </div>
+  } @else {
+    <div class="semana">
+      @for (dia of semana; track dia.fecha) {
+        <div class="semana__dia" [class.is-hoy]="dia.esHoy">
+          <div class="semana__cabecera">
+            <span class="semana__nombre">{{ dia.nombre }}</span>
+            <span class="semana__numero">{{ dia.numero }}</span>
+          </div>
+          <div class="semana__turnos">
+            @for (turno of dia.turnos; track turno.id) {
+              <div
+                class="semana__turno"
+                [class.is-cancelado]="turno.estado === 'CANCELADO'"
+                [title]="(turno.nombreCentro || '') + ' · ' + (turno.consultorioNombre || '') + ' · ' + getStatusText(turno.estado)"
+                >
+                <span class="semana__hora">{{ turno.horaInicio | slice : 0 : 5 }}</span>
+                <span class="semana__paciente">{{ turno.nombrePaciente }} {{ turno.apellidoPaciente }}</span>
+              </div>
+            } @empty {
+              <div class="semana__vacio">—</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>
+
 <!-- Sección Estadísticas -->
 <section class="stats-section card">
   <h2>

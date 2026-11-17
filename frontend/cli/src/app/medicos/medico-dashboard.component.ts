@@ -51,6 +51,10 @@ export class MedicoDashboardComponent implements OnInit {
   // === NUEVA FUNCIONALIDAD: GESTIÓN COMPLETA DE TURNOS ===
   allTurnos: any[] = [];          // Todos los turnos del médico
   filteredTurnos: any[] = [];     // Turnos filtrados según el tab activo
+  semana: { nombre: string; fecha: string; numero: number; esHoy: boolean; turnos: any[] }[] = [];
+  semanaOffset = 0;
+  semanaRango = '';
+  semanaTotal = 0;
   currentFilter = 'upcoming';     // 'upcoming', 'past', 'all'
   isLoadingTurnos = false;        // Estado de carga
 
@@ -598,6 +602,7 @@ Posible problema de configuración. Verifique:
         }));
 
         this.applyTurnosFilter();
+        this.actualizarSemana();
         console.log('🎯 NUEVA SECCIÓN: Todos los turnos cargados para gestión completa:', this.allTurnos.length);
 
         // Log detallado de turnos de hoy
@@ -798,6 +803,40 @@ Posible problema de configuración. Verifique:
       default:
         return 'No hay turnos para mostrar.';
     }
+  }
+
+  cambiarSemana(delta: number): void {
+    this.semanaOffset = delta === 0 ? 0 : this.semanaOffset + delta;
+    this.actualizarSemana();
+  }
+
+  private fechaLocal(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  private actualizarSemana(): void {
+    const nombres = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+    const hoy = new Date();
+    const lunes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7) + this.semanaOffset * 7);
+    const hoyStr = this.fechaLocal(hoy);
+    this.semana = nombres.map((nombre, i) => {
+      const d = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + i);
+      const fecha = this.fechaLocal(d);
+      return {
+        nombre,
+        fecha,
+        numero: d.getDate(),
+        esHoy: fecha === hoyStr,
+        turnos: this.allTurnos
+          .filter(t => t.fecha === fecha)
+          .sort((a, b) => (a.horaInicio || '').localeCompare(b.horaInicio || ''))
+      };
+    });
+    const domingo = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6);
+    const f = (d: Date) => `${d.getDate()} ${this.formatMonth(this.fechaLocal(d)).toLowerCase()}`;
+    this.semanaRango = `${f(lunes)} – ${f(domingo)} ${domingo.getFullYear()}`;
+    this.semanaTotal = this.semana.reduce((n, dia) => n + dia.turnos.length, 0);
   }
 
   // Métodos de formato para las fechas
