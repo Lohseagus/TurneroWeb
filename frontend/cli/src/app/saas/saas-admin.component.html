@@ -119,11 +119,16 @@
 
     @if (cargando && !suscripciones.length) {
       <p class="text-muted" role="status">Cargando suscripciones…</p>
-    } @else if (!suscripciones.length) {
+    } @else if (!error && !suscripciones.length) {
       <div class="empty-state">
         <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
-        <h3>No hay suscripciones</h3>
-        <p class="text-muted">Probá con otros filtros.</p>
+        @if (hayFiltroSuscripciones) {
+          <h3>Ninguna suscripción coincide</h3>
+          <p class="text-muted">Probá con otros filtros.</p>
+        } @else {
+          <h3>Todavía no hay suscripciones</h3>
+          <p class="text-muted">Los centros que ya operaban quedan con una suscripción activa heredada. Si no aparece ninguna, no hay centros cargados.</p>
+        }
       </div>
     } @else {
       <div class="table-responsive">
@@ -298,7 +303,7 @@
     </div>
     @if (cargando && !pagos.length) {
       <p class="text-muted" role="status">Cargando pagos…</p>
-    } @else if (!pagosFiltrados.length) {
+    } @else if (!error && !pagosFiltrados.length) {
       <div class="empty-state">
         <span class="material-symbols-outlined" aria-hidden="true">payments</span>
         <h3>{{ pagos.length ? 'Ningún pago coincide' : 'Todavía no hay pagos' }}</h3>

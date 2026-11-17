@@ -3,7 +3,11 @@
 ============================================ */
 @import "../node_modules/angular-calendar/css/angular-calendar.css";
 @import 'bootstrap/dist/css/bootstrap.min.css';
-@import '@fortawesome/fontawesome-free/css/all.min.css';
+/* Solid + regular. Sin brands ni el CSS de Font Awesome 4 del CDN (duplicaba la familia). */
+@import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+@import '@fortawesome/fontawesome-free/css/solid.min.css';
+@import '@fortawesome/fontawesome-free/css/regular.min.css';
+@import '@fortawesome/fontawesome-free/css/v4-shims.min.css';
 @import 'leaflet/dist/leaflet.css';
 
 /* SISTEMA DE COLORES GLOBAL POR ENTIDAD */
@@ -158,17 +162,36 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Font Awesome Icons */
-.fas,
-.fa {
-  font-family: "Font Awesome 5 Free";
-  font-weight: 900;
+/*
+  Material Symbols Outlined, self-hosted. El @font-face también está inline en
+  index.html para que el primer paint no espere al CSS diferido. font-display:block
+  oculta el nombre del icono hasta que la ligadura está lista. FILL y wght siguen
+  siendo variables; GRAD y opsz quedaron fijos en 0 y 24, que es lo que usa la UI.
+*/
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("/fonts/material-symbols-outlined-918DEA80.woff2") format("woff2");
 }
 
-/* Google Material Symbols */
 .material-symbols-outlined {
-  vertical-align: middle;
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
   font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga", "rlig";
+  -webkit-font-feature-settings: "liga", "rlig";
 }
 
 /* Modal Backdrop con blur */
