@@ -1,361 +1,281 @@
-<div class="container-fluid">
-  <!-- Header -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <h1 class="h3 mb-0">Mis Estadísticas</h1>
-        <button class="btn btn-outline-secondary" (click)="volverAlDashboard()">
-          <i class="fas fa-arrow-left me-2"></i>
-          Volver al Dashboard
-        </button>
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">bar_chart</span>
+      <div>
+        <h1 class="ct-page-header__title">Mis Estadísticas</h1>
+        <p class="ct-page-header__subtitle">Actividad y rendimiento de tus consultas</p>
       </div>
     </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-secondary" (click)="volverAlDashboard()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver al Dashboard
+      </button>
+    </div>
+  </header>
+
+  <!-- Resumen del período -->
+  <section class="ct-section">
+    <div class="ct-section__header">
+      <div>
+        <h2 class="ct-section__title">
+          <span class="material-symbols-outlined">insights</span>
+          Resumen del período
+        </h2>
+        <p class="ct-section__description">{{ getPeriodoNombre() }}</p>
+      </div>
+      <div class="ct-btn-group" role="group" aria-label="Seleccionar período">
+        @for (periodo of periodosDisponibles; track periodo) {
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="periodoSeleccionado === periodo.valor"
+            [class.btn-secondary]="periodoSeleccionado !== periodo.valor"
+            (click)="seleccionarPeriodo(periodo.valor)"
+            >
+            {{ periodo.nombre }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="ct-grid">
+      <div class="ct-stat">
+        <span class="material-symbols-outlined ct-icon-chip">check_circle</span>
+        <div>
+          <div class="ct-stat__value">{{ estadisticasActuales.turnosRealizados }}</div>
+          <div class="ct-stat__label">Turnos Realizados</div>
+        </div>
+      </div>
+      <div class="ct-stat">
+        <span class="material-symbols-outlined ct-icon-chip">groups</span>
+        <div>
+          <div class="ct-stat__value">{{ estadisticasActuales.pacientesAtendidos }}</div>
+          <div class="ct-stat__label">Pacientes Únicos</div>
+        </div>
+      </div>
+      <div class="ct-stat">
+        <span class="material-symbols-outlined ct-icon-chip">schedule</span>
+        <div>
+          <div class="ct-stat__value">{{ estadisticasActuales.horasTrabajadas }}h</div>
+          <div class="ct-stat__label">Horas Trabajadas</div>
+        </div>
+      </div>
+      <div class="ct-stat">
+        <span class="material-symbols-outlined ct-icon-chip">cancel</span>
+        <div>
+          <div class="ct-stat__value">{{ calcularTasaCancelacion() }}%</div>
+          <div class="ct-stat__label">Tasa Cancelación</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="estadisticas-row estadisticas-row--charts">
+    <!-- Evolución temporal -->
+    <section class="ct-section">
+      <h2 class="ct-section__title">
+        <span class="material-symbols-outlined">monitoring</span>
+        Evolución de Turnos
+      </h2>
+      <p class="ct-section__description">{{ getPeriodoNombre() }}</p>
+      <div class="chart">
+        @for (stat of evolutionData; track stat) {
+          <div
+            class="chart__bar"
+            [style.height.%]="(stat.turnosRealizados / getMaxTurnos()) * 100"
+            >
+            <div class="chart__value">{{ stat.turnosRealizados }}</div>
+            <div class="chart__label">{{ stat.periodo }}</div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Distribución por especialidad -->
+    <section class="ct-section">
+      <h2 class="ct-section__title">
+        <span class="material-symbols-outlined">pie_chart</span>
+        Por Especialidad
+      </h2>
+      <p class="ct-section__description">Distribución de turnos</p>
+      <div class="especialidades">
+        @for (esp of especialidadesStats; track esp) {
+          <div class="especialidades__item">
+            <div class="especialidades__row">
+              <span>{{ esp.especialidad }}</span>
+              <strong>{{ esp.porcentaje }}%</strong>
+            </div>
+            <div class="progreso" role="progressbar" [attr.aria-valuenow]="esp.porcentaje" aria-valuemin="0" aria-valuemax="100">
+              <div class="progreso__barra" [style.width.%]="esp.porcentaje"></div>
+            </div>
+          </div>
+        } @empty {
+          <p class="ct-section__description">Sin turnos en este período.</p>
+        }
+      </div>
+    </section>
   </div>
 
-  <!-- Período Selector -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-calendar-alt me-2"></i>
-            Seleccionar Período
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="btn-group" role="group">
-            @for (periodo of periodosDisponibles; track periodo) {
-              <button
-                type="button"
-                class="btn"
-                [class.btn-primary]="periodoSeleccionado === periodo.valor"
-              [class.btn-outline-primary]="
-                periodoSeleccionado !== periodo.valor
-              "
-                (click)="seleccionarPeriodo(periodo.valor)"
-                >
-                {{ periodo.nombre }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- KPI Cards -->
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="card bg-primary text-white stats-card">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h3 class="mb-1">{{ estadisticasActuales.turnosRealizados }}</h3>
-              <p class="mb-0">Turnos Realizados</p>
-            </div>
-            <i class="fas fa-check-circle fa-3x opacity-50"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-success text-white stats-card">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h3 class="mb-1">
-                {{ estadisticasActuales.pacientesAtendidos }}
-              </h3>
-              <p class="mb-0">Pacientes Únicos</p>
-            </div>
-            <i class="fas fa-users fa-3x opacity-50"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-info text-white stats-card">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h3 class="mb-1">{{ estadisticasActuales.horasTrabajadas }}h</h3>
-              <p class="mb-0">Horas Trabajadas</p>
-            </div>
-            <i class="fas fa-clock fa-3x opacity-50"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-warning text-white stats-card">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h3 class="mb-1">{{ calcularTasaCancelacion() }}%</h3>
-              <p class="mb-0">Tasa Cancelación</p>
-            </div>
-            <i class="fas fa-times-circle fa-3x opacity-50"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Charts Row -->
-  <div class="row mb-4">
-    <!-- Evolución Temporal -->
-    <div class="col-md-8">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-chart-line me-2"></i>
-            Evolución de Turnos - {{ getPeriodoNombre() }}
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="chart-container">
-            <!-- Simulación de gráfico de líneas -->
-            <div class="chart-placeholder">
-              <div class="chart-bars">
-                @for (stat of evolutionData; track stat) {
-                  <div
-                    class="chart-bar"
-                  [style.height.%]="
-                    (stat.turnosRealizados / getMaxTurnos()) * 100
-                  "
+  <div class="estadisticas-row estadisticas-row--detail">
+    <!-- Rendimiento mensual -->
+    <section class="ct-section">
+      <h2 class="ct-section__title">
+        <span class="material-symbols-outlined">event_available</span>
+        Rendimiento Mensual
+      </h2>
+      <p class="ct-section__description">Turnos, pacientes y horas por mes</p>
+      <div class="ct-table-wrap">
+        <table class="ct-table">
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Turnos</th>
+              <th>Pacientes</th>
+              <th>Horas</th>
+              <th>Tasa Éxito</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (stat of rendimientoMensual; track stat) {
+              <tr>
+                <td>{{ stat.periodo }}</td>
+                <td><span class="ct-badge ct-badge--accent">{{ stat.turnosRealizados }}</span></td>
+                <td>{{ stat.pacientesAtendidos }}</td>
+                <td>{{ stat.horasTrabajadas }}h</td>
+                <td>
+                  <span
+                    class="ct-badge"
+                    [class.ct-badge--success]="calcularTasaExito(stat) >= 90"
+                    [class.ct-badge--warning]="calcularTasaExito(stat) >= 70 && calcularTasaExito(stat) < 90"
+                    [class.ct-badge--danger]="calcularTasaExito(stat) < 70"
                     >
-                    <div class="bar-value">{{ stat.turnosRealizados }}</div>
-                    <div class="bar-label">{{ stat.periodo }}</div>
-                  </div>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Distribución por Especialidades -->
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-pie-chart me-2"></i>
-            Por Especialidad
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="specialty-stats">
-            @for (esp of especialidadesStats; track esp) {
-              <div class="specialty-item">
-                <div
-                  class="d-flex justify-content-between align-items-center mb-2"
-                  >
-                  <span class="specialty-name">{{ esp.especialidad }}</span>
-                  <span class="specialty-percentage">{{ esp.porcentaje }}%</span>
-                </div>
-                <div class="progress mb-3">
-                  <div
-                    class="progress-bar bg-primary"
-                    [style.width.%]="esp.porcentaje"
-                    role="progressbar"
-                  ></div>
-                </div>
-              </div>
+                    {{ calcularTasaExito(stat) }}%
+                  </span>
+                </td>
+              </tr>
             }
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
-    </div>
-  </div>
-
-  <!-- Detailed Stats -->
-  <div class="row mb-4">
-    <!-- Rendimiento Mensual -->
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-calendar-check me-2"></i>
-            Rendimiento Mensual
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>Mes</th>
-                  <th>Turnos</th>
-                  <th>Pacientes</th>
-                  <th>Horas</th>
-                  <th>Tasa Éxito</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (stat of rendimientoMensual; track stat) {
-                  <tr>
-                    <td>{{ stat.periodo }}</td>
-                    <td>
-                      <span class="badge bg-primary">{{
-                        stat.turnosRealizados
-                      }}</span>
-                    </td>
-                    <td>{{ stat.pacientesAtendidos }}</td>
-                    <td>{{ stat.horasTrabajadas }}h</td>
-                    <td>
-                      <span
-                        class="badge"
-                        [class.bg-success]="calcularTasaExito(stat) >= 90"
-                      [class.bg-warning]="
-                        calcularTasaExito(stat) >= 70 &&
-                        calcularTasaExito(stat) < 90
-                      "
-                        [class.bg-danger]="calcularTasaExito(stat) < 70"
-                        >
-                        {{ calcularTasaExito(stat) }}%
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
 
     <!-- Comparativa -->
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-balance-scale me-2"></i>
-            Comparativa vs Período Anterior
-          </h6>
+    <section class="ct-section">
+      <h2 class="ct-section__title">
+        <span class="material-symbols-outlined">swap_vert</span>
+        Comparativa vs Período Anterior
+      </h2>
+      <p class="ct-section__description">Variación respecto del período previo</p>
+      <div class="comparativa">
+        <div class="comparativa__item">
+          <div class="comparativa__label">Turnos Realizados</div>
+          <div class="comparativa__values">
+            <span class="comparativa__valor">{{ estadisticasActuales.turnosRealizados }}</span>
+            <span
+              class="comparativa__delta"
+              [class.is-good]="comparativas.turnosRealizados > 0"
+              [class.is-bad]="comparativas.turnosRealizados < 0"
+              >
+              @if (comparativas.turnosRealizados > 0) {
+                <span class="material-symbols-outlined">arrow_upward</span>
+              }
+              @if (comparativas.turnosRealizados < 0) {
+                <span class="material-symbols-outlined">arrow_downward</span>
+              }
+              {{ Math.abs(comparativas.turnosRealizados) }}%
+            </span>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="comparison-stats">
-            <div class="comparison-item">
-              <div class="comparison-label">Turnos Realizados</div>
-              <div class="comparison-values">
-                <span class="current-value">{{
-                  estadisticasActuales.turnosRealizados
-                }}</span>
-                <span
-                  class="comparison-arrow"
-                  [class.text-success]="comparativas.turnosRealizados > 0"
-                  [class.text-danger]="comparativas.turnosRealizados < 0"
-                  >
-                  <i
-                    class="fas"
-                    [class.fa-arrow-up]="comparativas.turnosRealizados > 0"
-                    [class.fa-arrow-down]="comparativas.turnosRealizados < 0"
-                  ></i>
-                  {{ Math.abs(comparativas.turnosRealizados) }}%
-                </span>
-              </div>
-            </div>
 
-            <div class="comparison-item">
-              <div class="comparison-label">Pacientes Atendidos</div>
-              <div class="comparison-values">
-                <span class="current-value">{{
-                  estadisticasActuales.pacientesAtendidos
-                }}</span>
-                <span
-                  class="comparison-arrow"
-                  [class.text-success]="comparativas.pacientesAtendidos > 0"
-                  [class.text-danger]="comparativas.pacientesAtendidos < 0"
-                  >
-                  <i
-                    class="fas"
-                    [class.fa-arrow-up]="comparativas.pacientesAtendidos > 0"
-                    [class.fa-arrow-down]="comparativas.pacientesAtendidos < 0"
-                  ></i>
-                  {{ Math.abs(comparativas.pacientesAtendidos) }}%
-                </span>
-              </div>
-            </div>
+        <div class="comparativa__item">
+          <div class="comparativa__label">Pacientes Atendidos</div>
+          <div class="comparativa__values">
+            <span class="comparativa__valor">{{ estadisticasActuales.pacientesAtendidos }}</span>
+            <span
+              class="comparativa__delta"
+              [class.is-good]="comparativas.pacientesAtendidos > 0"
+              [class.is-bad]="comparativas.pacientesAtendidos < 0"
+              >
+              @if (comparativas.pacientesAtendidos > 0) {
+                <span class="material-symbols-outlined">arrow_upward</span>
+              }
+              @if (comparativas.pacientesAtendidos < 0) {
+                <span class="material-symbols-outlined">arrow_downward</span>
+              }
+              {{ Math.abs(comparativas.pacientesAtendidos) }}%
+            </span>
+          </div>
+        </div>
 
-            <div class="comparison-item">
-              <div class="comparison-label">Horas Trabajadas</div>
-              <div class="comparison-values">
-                <span class="current-value"
-                  >{{ estadisticasActuales.horasTrabajadas }}h</span
-                  >
-                  <span
-                    class="comparison-arrow"
-                    [class.text-success]="comparativas.horasTrabajadas > 0"
-                    [class.text-danger]="comparativas.horasTrabajadas < 0"
-                    >
-                    <i
-                      class="fas"
-                      [class.fa-arrow-up]="comparativas.horasTrabajadas > 0"
-                      [class.fa-arrow-down]="comparativas.horasTrabajadas < 0"
-                    ></i>
-                    {{ Math.abs(comparativas.horasTrabajadas) }}%
-                  </span>
-                </div>
-              </div>
+        <div class="comparativa__item">
+          <div class="comparativa__label">Horas Trabajadas</div>
+          <div class="comparativa__values">
+            <span class="comparativa__valor">{{ estadisticasActuales.horasTrabajadas }}h</span>
+            <span
+              class="comparativa__delta"
+              [class.is-good]="comparativas.horasTrabajadas > 0"
+              [class.is-bad]="comparativas.horasTrabajadas < 0"
+              >
+              @if (comparativas.horasTrabajadas > 0) {
+                <span class="material-symbols-outlined">arrow_upward</span>
+              }
+              @if (comparativas.horasTrabajadas < 0) {
+                <span class="material-symbols-outlined">arrow_downward</span>
+              }
+              {{ Math.abs(comparativas.horasTrabajadas) }}%
+            </span>
+          </div>
+        </div>
 
-              <div class="comparison-item">
-                <div class="comparison-label">Tasa de Cancelación</div>
-                <div class="comparison-values">
-                  <span class="current-value"
-                    >{{ calcularTasaCancelacion() }}%</span
-                    >
-                    <span
-                      class="comparison-arrow"
-                      [class.text-danger]="comparativas.tasaCancelacion > 0"
-                      [class.text-success]="comparativas.tasaCancelacion < 0"
-                      >
-                      <i
-                        class="fas"
-                        [class.fa-arrow-up]="comparativas.tasaCancelacion > 0"
-                        [class.fa-arrow-down]="comparativas.tasaCancelacion < 0"
-                      ></i>
-                      {{ Math.abs(comparativas.tasaCancelacion) }}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div class="comparativa__item">
+          <div class="comparativa__label">Tasa de Cancelación</div>
+          <div class="comparativa__values">
+            <span class="comparativa__valor">{{ calcularTasaCancelacion() }}%</span>
+            <span
+              class="comparativa__delta"
+              [class.is-bad]="comparativas.tasaCancelacion > 0"
+              [class.is-good]="comparativas.tasaCancelacion < 0"
+              >
+              @if (comparativas.tasaCancelacion > 0) {
+                <span class="material-symbols-outlined">arrow_upward</span>
+              }
+              @if (comparativas.tasaCancelacion < 0) {
+                <span class="material-symbols-outlined">arrow_downward</span>
+              }
+              {{ Math.abs(comparativas.tasaCancelacion) }}%
+            </span>
           </div>
         </div>
       </div>
+    </section>
+  </div>
 
-      <!-- Export Actions -->
-      <div class="row">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header">
-              <h6 class="mb-0">
-                <i class="fas fa-download me-2"></i>
-                Exportar Estadísticas
-              </h6>
-            </div>
-            <div class="card-body">
-              <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-outline-success" (click)="exportarExcel()">
-                  <i class="fas fa-file-excel me-2"></i>
-                  Exportar Excel
-                </button>
-                <button class="btn btn-outline-danger" (click)="exportarPDF()">
-                  <i class="fas fa-file-pdf me-2"></i>
-                  Reporte PDF
-                </button>
-                <button class="btn btn-outline-primary" (click)="enviarPorEmail()">
-                  <i class="fas fa-envelope me-2"></i>
-                  Enviar por Email
-                </button>
-                <button class="btn btn-outline-info" (click)="programarReporte()">
-                  <i class="fas fa-clock me-2"></i>
-                  Programar Reporte
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- Exportar -->
+  <section class="ct-section">
+    <h2 class="ct-section__title">
+      <span class="material-symbols-outlined">download</span>
+      Exportar Estadísticas
+    </h2>
+    <p class="ct-section__description">Descargá o compartí el reporte del período seleccionado</p>
+    <div class="ct-btn-group">
+      <button type="button" class="btn btn-secondary" (click)="exportarExcel()">
+        <span class="material-symbols-outlined">description</span>
+        Exportar Excel
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="exportarPDF()">
+        <span class="material-symbols-outlined">picture_as_pdf</span>
+        Reporte PDF
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="enviarPorEmail()">
+        <span class="material-symbols-outlined">mail</span>
+        Enviar por Email
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="programarReporte()">
+        <span class="material-symbols-outlined">update</span>
+        Programar Reporte
+      </button>
     </div>
+  </section>
+</div>

@@ -1,716 +1,488 @@
-<div class="perfil-container">
-  <!-- Floating Particles Background -->
-  <div class="particles-bg">
-    @for (p of particles; track p; let i = $index) {
-      <div
-        class="particle"
-        [style.left.px]="p.x"
-        [style.top.px]="p.y"
-        [style.animation-delay.s]="i * 0.3"
-      ></div>
-    }
-  </div>
-
-  <!-- Header -->
-  <div class="perfil-header">
-    <div class="header-title">
-      <div class="title-icon">
-        <i class="fas fa-user-cog"></i>
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">manage_accounts</span>
+      <div>
+        <h1 class="ct-page-header__title">Configuración de Perfil</h1>
+        <p class="ct-page-header__subtitle">Gestiona tu información personal y configuración de seguridad</p>
       </div>
-      <div class="title-content">
-        <h1>Configuración de Perfil</h1>
-        <p>Gestiona tu información personal y configuración de seguridad</p>
-      </div>
-      <button class="btn-back" (click)="volver()">
-        <i class="fas fa-arrow-left"></i>
-        <span>Volver al Dashboard</span>
+    </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-secondary" (click)="volver()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver al Dashboard
       </button>
     </div>
-  </div>
+  </header>
 
-  <!-- Loading State -->
   @if (cargando) {
-    <div class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Cargando información del perfil...</p>
-    </div>
+    <section class="ct-section">
+      <div class="ct-loading">
+        <span class="material-symbols-outlined ct-spin">sync</span>
+        <p>Cargando información del perfil...</p>
+      </div>
+    </section>
   }
 
-  <!-- Main Content -->
   @if (!cargando) {
-    <div class="perfil-content">
-      <!-- Información Personal -->
-      <div class="perfil-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-user"></i>
-          </div>
-          <div class="section-title">
-            <h2>Información Personal</h2>
-            <p>Datos básicos de tu perfil médico</p>
+    <!-- Información Personal -->
+    <section class="ct-section">
+      <div class="ct-section__header">
+        <div class="ct-section__heading">
+          <span class="material-symbols-outlined ct-icon-chip">person</span>
+          <div>
+            <h2 class="ct-section__title">Información Personal</h2>
+            <p class="ct-section__description">Datos básicos de tu perfil médico</p>
           </div>
         </div>
-        <div class="section-content">
-          <!-- Vista de Solo Lectura -->
-          @if (!editandoPerfil) {
-            <div class="info-grid">
-              <div class="info-card">
-                <label>Nombre Completo</label>
-                <div class="info-value">
-                  <i class="fas fa-user me-2"></i>
-                  {{ medicoActual?.nombre || "No disponible" }}
-                  {{ medicoActual?.apellido || "" }}
+        @if (!editandoPerfil) {
+          <button type="button" class="btn btn-secondary" (click)="editarPerfil()">
+            <span class="material-symbols-outlined">edit</span>
+            Editar Información
+          </button>
+        }
+      </div>
+
+      <!-- Vista de solo lectura -->
+      @if (!editandoPerfil) {
+        <div class="ct-grid">
+          <div class="ct-field">
+            <span class="ct-field__label">Nombre Completo</span>
+            <span class="ct-field__value">
+              <span class="material-symbols-outlined">person</span>
+              {{ medicoActual?.nombre || "No disponible" }}
+              {{ medicoActual?.apellido || "" }}
+            </span>
+          </div>
+          <div class="ct-field">
+            <span class="ct-field__label">Matrícula Profesional</span>
+            <span class="ct-field__value">
+              <span class="material-symbols-outlined">badge</span>
+              {{ medicoActual?.matricula || "No disponible" }}
+            </span>
+          </div>
+          <div class="ct-field">
+            <span class="ct-field__label">REFEPS</span>
+            <span class="ct-field__value">
+              <span class="material-symbols-outlined">medical_information</span>
+              {{ medicoActual?.refepsId || "Sin identificador" }}
+            </span>
+          </div>
+          <div class="ct-field">
+            <span class="ct-field__label">Especialidad(es)</span>
+            <span class="ct-field__value">
+              <span class="material-symbols-outlined">stethoscope</span>
+              @if (tieneEspecialidades()) {
+                <span>
+                  @for (esp of getEspecialidades(); track esp; let last = $last) {
+                    <span>{{ esp.nombre }}@if (!last) {<span>, </span>}</span>
+                  }
+                </span>
+              } @else {
+                {{ medicoActual?.especialidad?.nombre || "No especificada" }}
+              }
+            </span>
+          </div>
+          <div class="ct-field">
+            <span class="ct-field__label">DNI</span>
+            <span class="ct-field__value">
+              <span class="material-symbols-outlined">badge</span>
+              {{ medicoActual?.dni || "No disponible" }}
+            </span>
+          </div>
+          <div class="ct-field">
+            <span class="ct-field__label">Información de Contacto</span>
+            <span class="ct-field__value">
+              <span class="material-symbols-outlined">info</span>
+              Disponible en el sistema administrativo
+            </span>
+          </div>
+        </div>
+      }
+
+      <!-- Formulario de edición -->
+      @if (editandoPerfil) {
+        <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()">
+          <div class="ct-form-grid">
+            <div>
+              <label class="form-label" for="nombre">Nombre <span class="requerido">*</span></label>
+              <input
+                type="text"
+                id="nombre"
+                class="form-control"
+                formControlName="nombre"
+                placeholder="Ingrese su nombre"
+                [class.is-invalid]="perfilForm.get('nombre')?.touched && perfilForm.get('nombre')?.invalid"
+                />
+              @if (perfilForm.get('nombre')?.touched && perfilForm.get('nombre')?.invalid) {
+                <div class="invalid-feedback">
+                  @if (perfilForm.get('nombre')?.errors?.['required']) {
+                    <small>El nombre es obligatorio</small>
+                  }
+                  @if (perfilForm.get('nombre')?.errors?.['minlength']) {
+                    <small>Mínimo 2 caracteres</small>
+                  }
+                  @if (perfilForm.get('nombre')?.errors?.['maxlength']) {
+                    <small>Máximo 50 caracteres</small>
+                  }
                 </div>
-              </div>
-              <div class="info-card">
-                <label>Matrícula Profesional</label>
-                <div class="info-value">
-                  <i class="fas fa-id-badge me-2"></i>
-                  {{ medicoActual?.matricula || "No disponible" }}
-                </div>
-              </div>
-              <div class="info-card">
-                <label>REFEPS</label>
-                <div class="info-value">
-                  <i class="fas fa-id-card me-2"></i>
-                  {{ medicoActual?.refepsId || "Sin identificador" }}
-                </div>
-              </div>
-              <div class="info-card">
-                <label>Especialidad(es)</label>
-                <div class="info-value">
-                  <i class="fas fa-stethoscope me-2"></i>
-                  @if (tieneEspecialidades()) {
-                    <span>
-                      @for (esp of getEspecialidades(); track esp; let last = $last) {
-                        <span>
-                          {{ esp.nombre }}@if (!last) {
-                          <span>, </span>
-                        }
-                      </span>
-                    }
-                  </span>
-                } @else {
-                  {{ medicoActual?.especialidad?.nombre || "No especificada" }}
-                }
-              </div>
+              }
             </div>
-            <div class="info-card">
-              <label>DNI</label>
-              <div class="info-value">
-                <i class="fas fa-id-card me-2"></i>
-                {{ medicoActual?.dni || "No disponible" }}
-              </div>
+            <div>
+              <label class="form-label" for="apellido">Apellido <span class="requerido">*</span></label>
+              <input
+                type="text"
+                id="apellido"
+                class="form-control"
+                formControlName="apellido"
+                placeholder="Ingrese su apellido"
+                [class.is-invalid]="perfilForm.get('apellido')?.touched && perfilForm.get('apellido')?.invalid"
+                />
+              @if (perfilForm.get('apellido')?.touched && perfilForm.get('apellido')?.invalid) {
+                <div class="invalid-feedback">
+                  @if (perfilForm.get('apellido')?.errors?.['required']) {
+                    <small>El apellido es obligatorio</small>
+                  }
+                  @if (perfilForm.get('apellido')?.errors?.['minlength']) {
+                    <small>Mínimo 2 caracteres</small>
+                  }
+                  @if (perfilForm.get('apellido')?.errors?.['maxlength']) {
+                    <small>Máximo 50 caracteres</small>
+                  }
+                </div>
+              }
             </div>
-            <div class="info-card">
-              <label>Información de Contacto</label>
-              <div class="info-value">
-                <i class="fas fa-info-circle me-2"></i>
-                Disponible en el sistema administrativo
-              </div>
+            <div>
+              <label class="form-label" for="dni">DNI <span class="requerido">*</span></label>
+              <input
+                type="text"
+                id="dni"
+                class="form-control"
+                formControlName="dni"
+                [class.is-invalid]="perfilForm.get('dni')?.touched && perfilForm.get('dni')?.invalid"
+                />
+              @if (perfilForm.get('dni')?.touched && perfilForm.get('dni')?.invalid) {
+                <div class="invalid-feedback">
+                  @if (perfilForm.get('dni')?.errors?.['required']) {
+                    <small>El DNI es obligatorio</small>
+                  }
+                  @if (perfilForm.get('dni')?.errors?.['pattern']) {
+                    <small>Formato inválido (7-9 dígitos)</small>
+                  }
+                </div>
+              }
+            </div>
+            <div>
+              <label class="form-label" for="refepsId">REFEPS</label>
+              <input
+                type="text"
+                id="refepsId"
+                class="form-control"
+                formControlName="refepsId"
+                placeholder="Identificador nacional, opcional"
+                />
+            </div>
+            <div>
+              <label class="form-label" for="matricula">Matrícula <span class="requerido">*</span></label>
+              <input
+                type="text"
+                id="matricula"
+                class="form-control"
+                formControlName="matricula"
+                [class.is-invalid]="perfilForm.get('matricula')?.touched && perfilForm.get('matricula')?.invalid"
+                />
+              @if (perfilForm.get('matricula')?.touched && perfilForm.get('matricula')?.invalid) {
+                <div class="invalid-feedback">
+                  @if (perfilForm.get('matricula')?.errors?.['required']) {
+                    <small>La matrícula es obligatoria</small>
+                  }
+                  @if (perfilForm.get('matricula')?.errors?.['minlength']) {
+                    <small>Mínimo 3 caracteres</small>
+                  }
+                </div>
+              }
+            </div>
+            <div>
+              <label class="form-label" for="email">Email <span class="requerido">*</span></label>
+              <input
+                type="email"
+                id="email"
+                class="form-control"
+                formControlName="email"
+                placeholder="ejemplo@correo.com"
+                [class.is-invalid]="perfilForm.get('email')?.touched && perfilForm.get('email')?.invalid"
+                />
+              @if (perfilForm.get('email')?.touched && perfilForm.get('email')?.invalid) {
+                <div class="invalid-feedback">
+                  @if (perfilForm.get('email')?.errors?.['required']) {
+                    <small>El email es obligatorio</small>
+                  }
+                  @if (perfilForm.get('email')?.errors?.['email']) {
+                    <small>Email inválido</small>
+                  }
+                </div>
+              }
+            </div>
+            <div>
+              <label class="form-label" for="telefono">Teléfono <span class="requerido">*</span></label>
+              <input
+                type="text"
+                id="telefono"
+                class="form-control"
+                formControlName="telefono"
+                placeholder="+54 9 11 1234-5678"
+                [class.is-invalid]="perfilForm.get('telefono')?.touched && perfilForm.get('telefono')?.invalid"
+                />
+              @if (perfilForm.get('telefono')?.touched && perfilForm.get('telefono')?.invalid) {
+                <div class="invalid-feedback">
+                  @if (perfilForm.get('telefono')?.errors?.['required']) {
+                    <small>El teléfono es obligatorio</small>
+                  }
+                  @if (perfilForm.get('telefono')?.errors?.['pattern']) {
+                    <small>Formato inválido</small>
+                  }
+                </div>
+              }
             </div>
           </div>
-        }
-        <!-- Formulario de Edición -->
-        @if (editandoPerfil) {
-          <div class="edit-form">
-            <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="nombre"
-                    >Nombre <span class="required">*</span></label
-                    >
-                    <input
-                      type="text"
-                      id="nombre"
-                      class="form-control"
-                      formControlName="nombre"
-                      placeholder="Ingrese su nombre"
-                  [class.is-invalid]="
-                    perfilForm.get('nombre')?.touched &&
-                    perfilForm.get('nombre')?.invalid
-                  "
-                      />
-                    @if (
-                      perfilForm.get('nombre')?.touched &&
-                      perfilForm.get('nombre')?.invalid
-                      ) {
-                      <div
-                        class="invalid-feedback"
-                        >
-                        @if (perfilForm.get('nombre')?.errors?.['required']) {
-                          <small
-                            >El nombre es obligatorio</small
-                            >
-                          }
-                          @if (perfilForm.get('nombre')?.errors?.['minlength']) {
-                            <small
-                              >Mínimo 2 caracteres</small
-                              >
-                            }
-                            @if (perfilForm.get('nombre')?.errors?.['maxlength']) {
-                              <small
-                                >Máximo 50 caracteres</small
-                                >
-                              }
-                            </div>
-                          }
-                        </div>
-                        <div class="form-group">
-                          <label for="apellido"
-                            >Apellido <span class="required">*</span></label
-                            >
-                            <input
-                              type="text"
-                              id="apellido"
-                              class="form-control"
-                              formControlName="apellido"
-                              placeholder="Ingrese su apellido"
-                  [class.is-invalid]="
-                    perfilForm.get('apellido')?.touched &&
-                    perfilForm.get('apellido')?.invalid
-                  "
-                              />
-                            @if (
-                              perfilForm.get('apellido')?.touched &&
-                              perfilForm.get('apellido')?.invalid
-                              ) {
-                              <div
-                                class="invalid-feedback"
-                                >
-                                @if (perfilForm.get('apellido')?.errors?.['required']) {
-                                  <small
-                                    >El apellido es obligatorio</small
-                                    >
-                                  }
-                                  @if (perfilForm.get('apellido')?.errors?.['minlength']) {
-                                    <small
-                                      >Mínimo 2 caracteres</small
-                                      >
-                                    }
-                                    @if (perfilForm.get('apellido')?.errors?.['maxlength']) {
-                                      <small
-                                        >Máximo 50 caracteres</small
-                                        >
-                                      }
-                                    </div>
-                                  }
-                                </div>
-                                <div class="form-group">
-                                  <label for="dni">DNI <span class="required">*</span></label>
-                                  <input
-                                    type="text"
-                                    id="dni"
-                                    class="form-control"
-                                    formControlName="dni"
-                  [class.is-invalid]="
-                    perfilForm.get('dni')?.touched &&
-                    perfilForm.get('dni')?.invalid
-                  "
-                                    />
-                                  @if (
-                                    perfilForm.get('dni')?.touched &&
-                                    perfilForm.get('dni')?.invalid
-                                    ) {
-                                    <div
-                                      class="invalid-feedback"
-                                      >
-                                      @if (perfilForm.get('dni')?.errors?.['required']) {
-                                        <small
-                                          >El DNI es obligatorio</small
-                                          >
-                                        }
-                                        @if (perfilForm.get('dni')?.errors?.['pattern']) {
-                                          <small
-                                            >Formato inválido (7-9 dígitos)</small
-                                            >
-                                          }
-                                        </div>
-                                      }
-                                    </div>
-                                    <div class="form-group">
-                                      <label for="refepsId">REFEPS</label>
-                                      <input
-                                        type="text"
-                                        id="refepsId"
-                                        class="form-control"
-                                        formControlName="refepsId"
-                                        placeholder="Identificador nacional, opcional"
-                                      />
-                                    </div>
-                                    <div class="form-group">
-                                      <label for="matricula"
-                                        >Matrícula <span class="required">*</span></label
-                                        >
-                                        <input
-                                          type="text"
-                                          id="matricula"
-                                          class="form-control"
-                                          formControlName="matricula"
-                  [class.is-invalid]="
-                    perfilForm.get('matricula')?.touched &&
-                    perfilForm.get('matricula')?.invalid
-                  "
-                                          />
-                                        @if (
-                                          perfilForm.get('matricula')?.touched &&
-                                          perfilForm.get('matricula')?.invalid
-                                          ) {
-                                          <div
-                                            class="invalid-feedback"
-                                            >
-                                            @if (perfilForm.get('matricula')?.errors?.['required']) {
-                                              <small
-                                                >La matrícula es obligatoria</small
-                                                >
-                                              }
-                                              @if (perfilForm.get('matricula')?.errors?.['minlength']) {
-                                                <small
-                                                  >Mínimo 3 caracteres</small
-                                                  >
-                                                }
-                                              </div>
-                                            }
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="email">Email *</label>
-                                            <input
-                                              type="email"
-                                              id="email"
-                                              class="form-control"
-                                              formControlName="email"
-                                              placeholder="ejemplo@correo.com"
-                  [class.is-invalid]="
-                    perfilForm.get('email')?.touched &&
-                    perfilForm.get('email')?.invalid
-                  "
-                                              />
-                                            @if (
-                                              perfilForm.get('email')?.touched &&
-                                              perfilForm.get('email')?.invalid
-                                              ) {
-                                              <div
-                                                class="invalid-feedback"
-                                                >
-                                                @if (perfilForm.get('email')?.errors?.['required']) {
-                                                  <small
-                                                    >El email es obligatorio</small
-                                                    >
-                                                  }
-                                                  @if (perfilForm.get('email')?.errors?.['email']) {
-                                                    <small
-                                                      >Email inválido</small
-                                                      >
-                                                    }
-                                                  </div>
-                                                }
-                                              </div>
-                                              <div class="form-group">
-                                                <label for="telefono">Teléfono *</label>
-                                                <input
-                                                  type="text"
-                                                  id="telefono"
-                                                  class="form-control"
-                                                  formControlName="telefono"
-                                                  placeholder="+54 9 11 1234-5678"
-                  [class.is-invalid]="
-                    perfilForm.get('telefono')?.touched &&
-                    perfilForm.get('telefono')?.invalid
-                  "
-                                                  />
-                                                @if (
-                                                  perfilForm.get('telefono')?.touched &&
-                                                  perfilForm.get('telefono')?.invalid
-                                                  ) {
-                                                  <div
-                                                    class="invalid-feedback"
-                                                    >
-                                                    @if (perfilForm.get('telefono')?.errors?.['required']) {
-                                                      <small
-                                                        >El teléfono es obligatorio</small
-                                                        >
-                                                      }
-                                                      @if (perfilForm.get('telefono')?.errors?.['pattern']) {
-                                                        <small
-                                                          >Formato inválido</small
-                                                          >
-                                                        }
-                                                      </div>
-                                                    }
-                                                  </div>
-                                                </div>
-                                              </form>
-                                              <div class="edit-note">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                <strong>Nota:</strong> Las especialidades se gestionan desde el
-                                                panel administrativo
-                                              </div>
-                                            </div>
-                                          }
-                                          <!-- Botones de Acción -->
-                                          <div class="section-actions">
-                                            @if (!editandoPerfil) {
-                                              <div>
-                                                <button class="btn-secondary" (click)="editarPerfil()">
-                                                  <i class="fas fa-edit me-2"></i>
-                                                  Editar Información
-                                                </button>
-                                              </div>
-                                            }
-                                            @if (editandoPerfil) {
-                                              <div class="edit-actions">
-                                                <button
-                                                  type="button"
-                                                  class="btn-primary"
-                                                  (click)="guardarPerfil()"
-                                                  [disabled]="!perfilForm.valid || cargandoGuardado"
-                                                  >
-                                                  @if (!cargandoGuardado) {
-                                                    <i class="fas fa-save me-2"></i>
-                                                  }
-                                                  @if (cargandoGuardado) {
-                                                    <i
-                                                      class="fas fa-spinner fa-spin me-2"
-                                                    ></i>
-                                                  }
-                                                  {{ cargandoGuardado ? "Guardando..." : "Guardar Cambios" }}
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  class="btn-secondary"
-                                                  (click)="cancelarEdicion()"
-                                                  [disabled]="cargandoGuardado"
-                                                  >
-                                                  <i class="fas fa-times me-2"></i>
-                                                  Cancelar
-                                                </button>
-                                              </div>
-                                            }
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div class="perfil-section">
-                                        <div class="section-header">
-                                          <div class="section-icon security">
-                                            <i class="fas fa-key"></i>
-                                          </div>
-                                          <div class="section-title">
-                                            <h2>Cambio de Contraseña</h2>
-                                            <p>Actualiza tu contraseña para mantener tu cuenta segura</p>
-                                          </div>
-                                        </div>
-                                        <div class="section-content">
-                                          <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
-                                            <div class="password-grid">
-                                              <div class="password-field">
-                                                <label for="currentPassword">Contraseña Actual</label>
-                                                <div class="password-input-container">
-                                                  <input
-                                                    id="currentPassword"
-                                                    [type]="showCurrentPassword ? 'text' : 'password'"
-                                                    formControlName="currentPassword"
-                                                    class="form-control"
-                                                    placeholder="Ingresa tu contraseña actual"
-                  [class.is-invalid]="
-                    passwordForm.get('currentPassword')?.invalid &&
-                    passwordForm.get('currentPassword')?.touched
-                  "
-                                                    />
-                                                  <button
-                                                    type="button"
-                                                    class="password-toggle"
-                                                    (click)="toggleCurrentPasswordVisibility()"
-                                                    >
-                                                    <i
-                    [class]="
-                      showCurrentPassword ? 'fas fa-eye-slash' : 'fas fa-eye'
-                    "
-                                                    ></i>
-                                                  </button>
-                                                </div>
-                                                @if (
-                                                  passwordForm.get('currentPassword')?.invalid &&
-                                                  passwordForm.get('currentPassword')?.touched
-                                                  ) {
-                                                  <div
-                                                    class="invalid-feedback"
-                                                    >
-                                                    La contraseña actual es requerida
-                                                  </div>
-                                                }
-                                              </div>
-                                              <div class="password-field">
-                                                <label for="newPassword">Nueva Contraseña</label>
-                                                <div class="password-input-container">
-                                                  <input
-                                                    id="newPassword"
-                                                    [type]="showNewPassword ? 'text' : 'password'"
-                                                    formControlName="newPassword"
-                                                    class="form-control"
-                                                    placeholder="Ingresa tu nueva contraseña"
-                  [class.is-invalid]="
-                    passwordForm.get('newPassword')?.invalid &&
-                    passwordForm.get('newPassword')?.touched
-                  "
-                                                    />
-                                                  <button
-                                                    type="button"
-                                                    class="password-toggle"
-                                                    (click)="toggleNewPasswordVisibility()"
-                                                    >
-                                                    <i
-                    [class]="
-                      showNewPassword ? 'fas fa-eye-slash' : 'fas fa-eye'
-                    "
-                                                    ></i>
-                                                  </button>
-                                                </div>
-                                                @if (passwordForm.get('newPassword')?.value) {
-                                                  <div
-                                                    class="password-strength"
-                                                    >
-                                                    <div class="strength-bar">
-                                                      <div
-                                                        class="strength-fill"
-                    [class]="
-                      'strength-' +
-                      getPasswordStrength(
-                        $safeNavigationMigration(passwordForm.get('newPassword')?.value)
-                      )
-                    "
-                                                      ></div>
-                                                    </div>
-                                                    <small
-                                                      class="strength-text"
-                  [class]="
-                    'text-' +
-                    getPasswordStrength($safeNavigationMigration(passwordForm.get('newPassword')?.value))
-                  "
-                                                      >
-                                                      Fortaleza:
-                                                      {{
-                                                      getPasswordStrengthText(
-                                                      $safeNavigationMigration(passwordForm.get("newPassword")?.value)
-                                                      )
-                                                      }}
-                                                    </small>
-                                                  </div>
-                                                }
-                                                @if (
-                                                  passwordForm.get('newPassword')?.invalid &&
-                                                  passwordForm.get('newPassword')?.touched
-                                                  ) {
-                                                  <div
-                                                    class="invalid-feedback"
-                                                    >
-                                                    @if (passwordForm.get('newPassword')?.hasError('required')) {
-                                                      <div
-                                                        >
-                                                        La nueva contraseña es requerida
-                                                      </div>
-                                                    }
-                                                    @if (passwordForm.get('newPassword')?.hasError('minlength')) {
-                                                      <div
-                                                        >
-                                                        La contraseña debe tener al menos 8 caracteres
-                                                      </div>
-                                                    }
-                                                    @if (passwordForm.get('newPassword')?.hasError('pattern')) {
-                                                      <div
-                                                        >
-                                                        La contraseña debe contener al menos una mayúscula, una
-                                                        minúscula y un número
-                                                      </div>
-                                                    }
-                                                  </div>
-                                                }
-                                              </div>
-                                              <div class="password-field">
-                                                <label for="confirmPassword">Confirmar Nueva Contraseña</label>
-                                                <div class="password-input-container">
-                                                  <input
-                                                    id="confirmPassword"
-                                                    [type]="showConfirmPassword ? 'text' : 'password'"
-                                                    formControlName="confirmPassword"
-                                                    class="form-control"
-                                                    placeholder="Confirma tu nueva contraseña"
-                  [class.is-invalid]="
-                    passwordForm.get('confirmPassword')?.invalid &&
-                    passwordForm.get('confirmPassword')?.touched
-                  "
-                                                    />
-                                                  <button
-                                                    type="button"
-                                                    class="password-toggle"
-                                                    (click)="toggleConfirmPasswordVisibility()"
-                                                    >
-                                                    <i
-                    [class]="
-                      showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'
-                    "
-                                                    ></i>
-                                                  </button>
-                                                </div>
-                                                @if (
-                                                  passwordForm.get('confirmPassword')?.invalid &&
-                                                  passwordForm.get('confirmPassword')?.touched
-                                                  ) {
-                                                  <div
-                                                    class="invalid-feedback"
-                                                    >
-                                                    @if (
-                                                      passwordForm.get('confirmPassword')?.hasError('required')
-                                                      ) {
-                                                      <div
-                                                        >
-                                                        Debes confirmar tu nueva contraseña
-                                                      </div>
-                                                    }
-                                                    @if (
-                                                      passwordForm.hasError('passwordMismatch') &&
-                                                      !passwordForm.get('confirmPassword')?.hasError('required')
-                                                      ) {
-                                                      <div
-                                                        >
-                                                        Las contraseñas no coinciden
-                                                      </div>
-                                                    }
-                                                  </div>
-                                                }
-                                              </div>
-                                            </div>
-                                            <div class="form-actions">
-                                              <button
-                                                type="button"
-                                                class="btn-secondary"
-                                                (click)="resetPasswordForm()"
-                                                >
-                                                <i class="fas fa-undo me-2"></i>
-                                                Limpiar
-                                              </button>
-                                              <button
-                                                type="submit"
-                                                class="btn-primary"
-                                                [disabled]="passwordForm.invalid || cargandoCambioPassword"
-                                                >
-                                                <i class="fas fa-key me-2"></i>
-                                                @if (!cargandoCambioPassword) {
-                                                  <span>Cambiar Contraseña</span>
-                                                }
-                                                @if (cargandoCambioPassword) {
-                                                  <span>Cambiando...</span>
-                                                }
-                                              </button>
-                                            </div>
-                                          </form>
-                                        </div>
-                                      </div>
-                                      <!-- Configuración de Notificaciones -->
-                                      <div class="perfil-section">
-                                        <div class="section-header">
-                                          <div class="section-icon notifications">
-                                            <i class="fas fa-bell"></i>
-                                          </div>
-                                          <div class="section-title">
-                                            <h2>Notificaciones</h2>
-                                            <p>Configura cómo quieres recibir las notificaciones</p>
-                                          </div>
-                                        </div>
-                                        <div class="section-content">
-                                          <div class="notifications-grid">
-                                            <div class="notification-card">
-                                              <div class="notification-info">
-                                                <div class="notification-icon">
-                                                  <i class="fas fa-calendar-check"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                  <h4>Nuevos Turnos</h4>
-                                                  <p>Notificaciones cuando se asignen nuevos turnos</p>
-                                                </div>
-                                              </div>
-                                              <div class="notification-toggle">
-                                                <label class="switch">
-                                                  <input
-                                                    type="checkbox"
-                                                    [(ngModel)]="configuracionNotificaciones.emailTurnos"
-                                                    />
-                                                  <span class="slider"></span>
-                                                </label>
-                                              </div>
-                                            </div>
-                                            <div class="notification-card">
-                                              <div class="notification-info">
-                                                <div class="notification-icon">
-                                                  <i class="fas fa-times-circle"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                  <h4>Cancelaciones</h4>
-                                                  <p>Avisos cuando se cancelen turnos programados</p>
-                                                </div>
-                                              </div>
-                                              <div class="notification-toggle">
-                                                <label class="switch">
-                                                  <input
-                                                    type="checkbox"
-                                                    [(ngModel)]="configuracionNotificaciones.emailCancelaciones"
-                                                    />
-                                                  <span class="slider"></span>
-                                                </label>
-                                              </div>
-                                            </div>
-                                            <div class="notification-card">
-                                              <div class="notification-info">
-                                                <div class="notification-icon">
-                                                  <i class="fas fa-clock"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                  <h4>Recordatorios</h4>
-                                                  <p>Recordatorios de turnos próximos</p>
-                                                </div>
-                                              </div>
-                                              <div class="notification-toggle">
-                                                <label class="switch">
-                                                  <input
-                                                    type="checkbox"
-                                                    [(ngModel)]="configuracionNotificaciones.emailRecordatorios"
-                                                    />
-                                                  <span class="slider"></span>
-                                                </label>
-                                              </div>
-                                            </div>
-                                            <div class="notification-card">
-                                              <div class="notification-info">
-                                                <div class="notification-icon">
-                                                  <i class="fas fa-sms"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                  <h4>SMS</h4>
-                                                  <p>Notificaciones por mensaje de texto</p>
-                                                </div>
-                                              </div>
-                                              <div class="notification-toggle">
-                                                <label class="switch">
-                                                  <input
-                                                    type="checkbox"
-                                                    [(ngModel)]="configuracionNotificaciones.smsNotificaciones"
-                                                    />
-                                                  <span class="slider"></span>
-                                                </label>
-                                              </div>
-                                            </div>
-                                          </div>
-                                          <div class="section-actions">
-                                            <button
-                                              class="btn-primary"
-                                              (click)="guardarConfiguracionNotificaciones()"
-                                              >
-                                              <i class="fas fa-save me-2"></i>
-                                              Guardar Configuración
-                                            </button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <!-- Cambio de Contraseña -->
-                                    </div>
-                                  }
-                                </div>
+        </form>
+        <div class="ct-alert perfil-nota">
+          <span class="material-symbols-outlined">info</span>
+          <span><strong>Nota:</strong> Las especialidades se gestionan desde el panel administrativo</span>
+        </div>
+        <div class="ct-form-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="cancelarEdicion()"
+            [disabled]="cargandoGuardado"
+            >
+            <span class="material-symbols-outlined">close</span>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="guardarPerfil()"
+            [disabled]="!perfilForm.valid || cargandoGuardado"
+            >
+            @if (!cargandoGuardado) {
+              <span class="material-symbols-outlined">save</span>
+            }
+            @if (cargandoGuardado) {
+              <span class="material-symbols-outlined ct-spin">sync</span>
+            }
+            {{ cargandoGuardado ? "Guardando..." : "Guardar Cambios" }}
+          </button>
+        </div>
+      }
+    </section>
+
+    <!-- Cambio de Contraseña -->
+    <section class="ct-section">
+      <div class="ct-section__header">
+        <div class="ct-section__heading">
+          <span class="material-symbols-outlined ct-icon-chip">lock</span>
+          <div>
+            <h2 class="ct-section__title">Cambio de Contraseña</h2>
+            <p class="ct-section__description">Actualiza tu contraseña para mantener tu cuenta segura</p>
+          </div>
+        </div>
+      </div>
+      <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
+        <div class="ct-form-grid">
+          <div>
+            <label class="form-label" for="currentPassword">Contraseña Actual</label>
+            <div class="ct-input-affix">
+              <input
+                id="currentPassword"
+                [type]="showCurrentPassword ? 'text' : 'password'"
+                formControlName="currentPassword"
+                class="form-control"
+                placeholder="Ingresa tu contraseña actual"
+                [class.is-invalid]="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched"
+                />
+              <button
+                type="button"
+                class="ct-input-affix__btn"
+                (click)="toggleCurrentPasswordVisibility()"
+                aria-label="Mostrar u ocultar contraseña"
+                >
+                <span class="material-symbols-outlined">{{ showCurrentPassword ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
+              <div class="invalid-feedback">La contraseña actual es requerida</div>
+            }
+          </div>
+          <div>
+            <label class="form-label" for="newPassword">Nueva Contraseña</label>
+            <div class="ct-input-affix">
+              <input
+                id="newPassword"
+                [type]="showNewPassword ? 'text' : 'password'"
+                formControlName="newPassword"
+                class="form-control"
+                placeholder="Ingresa tu nueva contraseña"
+                [class.is-invalid]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"
+                />
+              <button
+                type="button"
+                class="ct-input-affix__btn"
+                (click)="toggleNewPasswordVisibility()"
+                aria-label="Mostrar u ocultar contraseña"
+                >
+                <span class="material-symbols-outlined">{{ showNewPassword ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            @if (passwordForm.get('newPassword')?.value) {
+              <div class="fortaleza">
+                <div class="fortaleza__barra">
+                  <div
+                    class="fortaleza__relleno"
+                    [class]="'fortaleza--' + getPasswordStrength($safeNavigationMigration(passwordForm.get('newPassword')?.value))"
+                  ></div>
+                </div>
+                <small
+                  class="fortaleza__texto"
+                  [class]="'fortaleza--' + getPasswordStrength($safeNavigationMigration(passwordForm.get('newPassword')?.value))"
+                  >
+                  Fortaleza:
+                  {{ getPasswordStrengthText($safeNavigationMigration(passwordForm.get("newPassword")?.value)) }}
+                </small>
+              </div>
+            }
+            @if (passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched) {
+              <div class="invalid-feedback">
+                @if (passwordForm.get('newPassword')?.hasError('required')) {
+                  <div>La nueva contraseña es requerida</div>
+                }
+                @if (passwordForm.get('newPassword')?.hasError('minlength')) {
+                  <div>La contraseña debe tener al menos 8 caracteres</div>
+                }
+                @if (passwordForm.get('newPassword')?.hasError('pattern')) {
+                  <div>La contraseña debe contener al menos una mayúscula, una minúscula y un número</div>
+                }
+              </div>
+            }
+          </div>
+          <div>
+            <label class="form-label" for="confirmPassword">Confirmar Nueva Contraseña</label>
+            <div class="ct-input-affix">
+              <input
+                id="confirmPassword"
+                [type]="showConfirmPassword ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                class="form-control"
+                placeholder="Confirma tu nueva contraseña"
+                [class.is-invalid]="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched"
+                />
+              <button
+                type="button"
+                class="ct-input-affix__btn"
+                (click)="toggleConfirmPasswordVisibility()"
+                aria-label="Mostrar u ocultar contraseña"
+                >
+                <span class="material-symbols-outlined">{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            @if (passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched) {
+              <div class="invalid-feedback">
+                @if (passwordForm.get('confirmPassword')?.hasError('required')) {
+                  <div>Debes confirmar tu nueva contraseña</div>
+                }
+                @if (passwordForm.hasError('passwordMismatch') && !passwordForm.get('confirmPassword')?.hasError('required')) {
+                  <div>Las contraseñas no coinciden</div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+        <div class="ct-form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetPasswordForm()">
+            <span class="material-symbols-outlined">refresh</span>
+            Limpiar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="passwordForm.invalid || cargandoCambioPassword"
+            >
+            <span class="material-symbols-outlined">lock_reset</span>
+            @if (!cargandoCambioPassword) {
+              <span>Cambiar Contraseña</span>
+            }
+            @if (cargandoCambioPassword) {
+              <span>Cambiando...</span>
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Notificaciones -->
+    <section class="ct-section">
+      <div class="ct-section__header">
+        <div class="ct-section__heading">
+          <span class="material-symbols-outlined ct-icon-chip">notifications</span>
+          <div>
+            <h2 class="ct-section__title">Notificaciones</h2>
+            <p class="ct-section__description">Configura cómo quieres recibir las notificaciones</p>
+          </div>
+        </div>
+      </div>
+      <div class="ct-grid ct-grid--2">
+        <div class="notificacion">
+          <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--sm">event_available</span>
+          <div class="notificacion__texto">
+            <div class="notificacion__titulo">Nuevos Turnos</div>
+            <div class="notificacion__detalle">Notificaciones cuando se asignen nuevos turnos</div>
+          </div>
+          <label class="ct-switch" aria-label="Nuevos turnos">
+            <input type="checkbox" [(ngModel)]="configuracionNotificaciones.emailTurnos" />
+            <span class="ct-switch__track"></span>
+          </label>
+        </div>
+        <div class="notificacion">
+          <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--sm">cancel</span>
+          <div class="notificacion__texto">
+            <div class="notificacion__titulo">Cancelaciones</div>
+            <div class="notificacion__detalle">Avisos cuando se cancelen turnos programados</div>
+          </div>
+          <label class="ct-switch" aria-label="Cancelaciones">
+            <input type="checkbox" [(ngModel)]="configuracionNotificaciones.emailCancelaciones" />
+            <span class="ct-switch__track"></span>
+          </label>
+        </div>
+        <div class="notificacion">
+          <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--sm">schedule</span>
+          <div class="notificacion__texto">
+            <div class="notificacion__titulo">Recordatorios</div>
+            <div class="notificacion__detalle">Recordatorios de turnos próximos</div>
+          </div>
+          <label class="ct-switch" aria-label="Recordatorios">
+            <input type="checkbox" [(ngModel)]="configuracionNotificaciones.emailRecordatorios" />
+            <span class="ct-switch__track"></span>
+          </label>
+        </div>
+        <div class="notificacion">
+          <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--sm">chat</span>
+          <div class="notificacion__texto">
+            <div class="notificacion__titulo">SMS</div>
+            <div class="notificacion__detalle">Notificaciones por mensaje de texto</div>
+          </div>
+          <label class="ct-switch" aria-label="SMS">
+            <input type="checkbox" [(ngModel)]="configuracionNotificaciones.smsNotificaciones" />
+            <span class="ct-switch__track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ct-form-actions">
+        <button type="button" class="btn btn-primary" (click)="guardarConfiguracionNotificaciones()">
+          <span class="material-symbols-outlined">save</span>
+          Guardar Configuración
+        </button>
+      </div>
+    </section>
+  }
+</div>

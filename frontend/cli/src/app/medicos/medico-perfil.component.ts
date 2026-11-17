@@ -52,9 +52,6 @@ export class MedicoPerfilComponent implements OnInit {
     smsNotificaciones: false
   };
   
-  // Particles for background animation
-  particles: Array<{x: number, y: number}> = [];
-
   constructor(
     private router: Router,
     private medicoService: MedicoService,
@@ -62,7 +59,6 @@ export class MedicoPerfilComponent implements OnInit {
     private authService: AuthService,
     private staffMedicoService: StaffMedicoService
   ) {
-    this.initializeParticles();
     this.passwordForm = this.initializePasswordForm();
     this.perfilForm = this.initializePerfilForm();
   }
@@ -356,16 +352,6 @@ export class MedicoPerfilComponent implements OnInit {
         }
       });
     });
-  }
-
-  private initializeParticles() {
-    this.particles = [];
-    for (let i = 0; i < 30; i++) {
-      this.particles.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight
-      });
-    }
   }
 
   // Password form initialization and validation
