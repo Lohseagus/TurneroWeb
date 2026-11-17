@@ -1,5 +1,5 @@
 # Compose de producción. El workflow lo copia a /home/ubuntu/cheturno/docker-compose.yml.
-# No incluye secretos: los lee de .env (DB_USERNAME, DB_PASSWORD, JWT_SECRET), que vive solo en el servidor.
+# No incluye secretos: los lee de .env (DB_USERNAME, DB_PASSWORD, JWT_SECRET, MAIL_PASSWORD), que vive solo en el servidor.
 # IMAGE_TAG llega en image-tag.env (el SHA publicado en GHCR). No borra volúmenes.
 
 name: cheturno
@@ -39,6 +39,10 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      # La imagen no trae credenciales SMTP. MAIL_USERNAME es opcional en .env.
+      MAIL_USERNAME: ${MAIL_USERNAME:-soporte.cheturno@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_DEBUG: "false"
       APP_URL: https://cheturno.site
       APP_ALLOWED_ORIGINS: https://cheturno.site,https://www.cheturno.site
       SECURITY_DEV_MODE: "false"

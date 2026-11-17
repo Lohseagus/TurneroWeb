@@ -6,9 +6,11 @@ set -euo pipefail
 
 cd /home/ubuntu/cheturno
 
-REQUIRED_ENV=(DB_USERNAME DB_PASSWORD JWT_SECRET)
+REQUIRED_ENV=(DB_USERNAME DB_PASSWORD JWT_SECRET MAIL_PASSWORD)
 # SHA-256 de la clave JWT de ejemplo que estuvo publicada en el repo. El backend no arranca con ella.
 PUBLISHED_JWT_SHA256="3354cfcf65c7b2e6840ea6f880aede239750cb1d063950c4e8fd9fbf9ec73a32"
+# SHA-256 (sin espacios) de la contraseña SMTP que estuvo publicada en el repo.
+PUBLISHED_MAIL_SHA256="a9796d04a783164791029eb4fbbd7b6e0e0171227bbcf1375b5da3df955e3a77"
 
 if [[ ! -f .env ]]; then
   echo "Falta /home/ubuntu/cheturno/.env con: ${REQUIRED_ENV[*]}."
@@ -46,6 +48,11 @@ if [[ "$(env_value JWT_SECRET | sha256sum | cut -d' ' -f1)" == "$PUBLISHED_JWT_S
   echo "JWT_SECRET del .env es la clave de ejemplo que estuvo publicada en el repositorio."
   echo "No se tocó ningún contenedor. Generá una propia con 'openssl rand -base64 48', guardala en .env y volvé a correr el deploy."
   exit 1
+fi
+
+if [[ "$(env_value MAIL_PASSWORD | tr -d '[:space:]' | sha256sum | cut -d' ' -f1)" == "$PUBLISHED_MAIL_SHA256" ]]; then
+  echo "AVISO: MAIL_PASSWORD del .env es la contraseña de aplicación que estuvo publicada en el repositorio."
+  echo "AVISO: cualquiera que haya leído el repo puede usar esa casilla. Revocala en la cuenta de Google, generá otra y actualizá el .env."
 fi
 
 if [[ ! "${IMAGE_TAG:-}" =~ ^[0-9a-fA-F]{40}$ ]]; then
