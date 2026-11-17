@@ -43,7 +43,6 @@ export class InicioSesionComponent implements OnInit {
   currentStep: "email" | "password" = "email";
   isLoading = false;
   showPassword = false;
-  showEmailError = false;
   showPasswordError = false;
   errorMessage = ""; // Mensaje específico de error
   userAccount: User | null = null;
@@ -169,43 +168,24 @@ export class InicioSesionComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    // El paso de email no consulta al servidor: decirle a un visitante si un email
+    // tiene cuenta, y con qué nombre y rol, permite armar un padrón de usuarios.
+    // Si la cuenta no existe, el paso de contraseña responde "Credenciales inválidas".
+    this.userAccount = {
+      email: this.loginData.email.trim(),
+      password: '',
+      name: '',
+      role: '',
+      roleClass: this.getRoleClass('')
+    };
+    this.currentStep = 'password';
 
-    // Verificar email en la base de datos
-    this.authService.checkEmail(this.loginData.email).subscribe({
-      next: (response) => {
-        if (response.status_code === 200 && response.data) {
-          // Email encontrado, crear objeto de usuario con la información
-          this.userAccount = {
-            email: response.data.email,
-            password: '', // No necesitamos la contraseña aquí
-            name: response.data.nombre,
-            role: response.data.role,
-            roleClass: this.getRoleClass(response.data.role)
-          };
-          
-          this.currentStep = 'password';
-          this.isLoading = false;
-          
-          setTimeout(() => {
-            const passwordField = document.getElementById('password');
-            if (passwordField) {
-              passwordField.focus();
-            }
-          }, 100);
-        } else {
-          // Email no encontrado
-          this.showEmailError = true;
-          this.isLoading = false;
-        }
-      },
-      error: (error) => {
-        console.error('Error verificando email:', error);
-        // Si hay error o email no encontrado, mostrar mensaje de error
-        this.showEmailError = true;
-        this.isLoading = false;
+    setTimeout(() => {
+      const passwordField = document.getElementById('password');
+      if (passwordField) {
+        passwordField.focus();
       }
-    });
+    }, 100);
   }
 
   private handlePasswordSubmit(): void {
@@ -374,8 +354,6 @@ export class InicioSesionComponent implements OnInit {
   }
 
   private validateEmailStep(): boolean {
-    this.clearEmailErrors();
-
     const email = this.loginData.email.trim();
 
     if (!email) {
@@ -437,17 +415,12 @@ export class InicioSesionComponent implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  clearEmailErrors(): void {
-    this.showEmailError = false;
-  }
-
   clearPasswordErrors(): void {
     this.showPasswordError = false;
     this.errorMessage = "";
   }
 
   private clearAllErrors(): void {
-    this.clearEmailErrors();
     this.clearPasswordErrors();
   }
 

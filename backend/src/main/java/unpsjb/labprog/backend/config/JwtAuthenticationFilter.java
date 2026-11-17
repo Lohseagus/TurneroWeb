@@ -29,12 +29,16 @@ import jakarta.servlet.http.HttpServletResponse;
  * token se acepta, hay que dejarlo ahí: si no, el filtro de autorización ve
  * un anónimo y responde 403.
  *
- * Un Bearer vencido o mal formado no se deja seguir. Si la excepción sale del
- * filtro, el dispatch de error vuelve a pasar por la cadena sin el usuario y
- * también termina en 403, que el frontend muestra como falta de permiso.
+ * Un Bearer vencido, mal formado o de otro tipo no autentica a nadie: el
+ * pedido sigue como anónimo. En una ruta pública responde igual que sin header
+ * (un token viejo en el navegador no tapa planes ni la agenda pública). En una
+ * ruta protegida, {@link RestAuthenticationEntryPoint} contesta 401.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    /** Marca el pedido cuyo Bearer se rechazó, para que el 401 diga por qué. */
+    public static final String TOKEN_RECHAZADO_ATTR = JwtAuthenticationFilter.class.getName() + ".tokenRechazado";
 
     private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
 
@@ -69,32 +73,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     context.setAuthentication(authToken);
                     SecurityContextHolder.setContext(context);
                     securityContextRepository.saveContext(context, request, response);
-                } else if (!isAuthEndpoint(request)) {
-                    unauthorized(response);
-                    return;
+                } else {
+                    request.setAttribute(TOKEN_RECHAZADO_ATTR, Boolean.TRUE);
                 }
             }
         } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
-            // /api/auth/refresh sale con el access token ya vencido en el header.
-            // Si lo cortamos acá, el cliente no puede renovar la sesión.
-            if (!isAuthEndpoint(request)) {
-                unauthorized(response);
-                return;
-            }
+            request.setAttribute(TOKEN_RECHAZADO_ATTR, Boolean.TRUE);
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private boolean isAuthEndpoint(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path != null && path.startsWith("/api/auth/");
-    }
-
-    private void unauthorized(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write(
-                "{\"status_code\":401,\"status_text\":\"Token inválido o vencido\",\"data\":null}");
     }
 }

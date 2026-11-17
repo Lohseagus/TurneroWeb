@@ -8,10 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -22,9 +22,9 @@ import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.business.service.PasswordResetService;
 import unpsjb.labprog.backend.business.service.PasswordService;
 import unpsjb.labprog.backend.business.service.RegistrationService;
+import unpsjb.labprog.backend.business.service.SesionService;
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.business.service.GoogleAuthService;
-import unpsjb.labprog.backend.config.JwtTokenProvider;
 import unpsjb.labprog.backend.dto.AccountActivationRequestDTO;
 import unpsjb.labprog.backend.dto.ActivationTokenValidationDTO;
 import unpsjb.labprog.backend.dto.ChangePasswordRequestDTO;
@@ -60,9 +60,6 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    @Autowired
     private UserService userService;
 
     @Autowired
@@ -82,6 +79,9 @@ public class AuthController {
 
     @Autowired
     private GoogleAuthService googleAuthService;
+
+    @Autowired
+    private SesionService sesionService;
 
 
     /**
@@ -108,42 +108,17 @@ public class AuthController {
             }
             
 
-            // Generar tokens
-            String accessToken = jwtTokenProvider.generateAccessToken(user);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+            return Response.response(HttpStatus.OK, "Login exitoso",
+                    loginResponse(sesionService.abrir(user), "USER"));
 
-            // Obtener lista completa de roles incluyendo heredados
-            java.util.List<String> allRoles = new java.util.ArrayList<>();
-            if (user.getRole() != null) {
-                // Agregar el rol principal
-                allRoles.add(user.getRole().getName());
-                // Agregar todos los roles heredados
-                user.getRole().getAllInheritedRoles().forEach(inheritedRole -> 
-                    allRoles.add(inheritedRole.getName())
-                );
-            }
-
-            // MULTI-TENENCIA: Extraer centroAtencionId del usuario
-            Integer centroAtencionId = user.getCentroAtencion() != null ? user.getCentroAtencion().getId() : null;
-
-            // Crear response
-            LoginResponse loginResponse = new LoginResponse(
-                accessToken, 
-                refreshToken, 
-                user.getEmail(), 
-                user.getNombre() + " " + user.getApellido(),
-                user.getRole() != null ? user.getRole().getName() : "USER",
-                allRoles,
-                centroAtencionId
-            );
-
-            return Response.response(HttpStatus.OK, "Login exitoso", loginResponse);
-
-        } catch (BadCredentialsException e) {
+        } catch (AuthenticationException e) {
+            // Cuenta inexistente, clave incorrecta, cuenta deshabilitada o bloqueada: la
+            // misma respuesta. Spring revisa el estado de la cuenta antes que la clave,
+            // así que un mensaje distinto diría que el email existe sin conocer la clave.
             return Response.response(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", null);
         } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, 
-                "Error interno del servidor: " + e.getMessage(), null);
+            logger.error("Error en login: {}", e.getMessage());
+            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", null);
         }
     }
 
@@ -154,43 +129,59 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<Object> refreshToken(@RequestBody RefreshTokenRequest request) {
         try {
-            String refreshToken = request.getRefreshToken();
-
-            // Validar refresh token
-            if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
+            // El refresh es de un solo uso: la respuesta trae uno nuevo y el cliente
+            // tiene que guardarlo en lugar del anterior.
+            Optional<SesionService.Tokens> tokens = sesionService.renovar(request.getRefreshToken());
+            if (tokens.isEmpty()) {
                 return Response.response(HttpStatus.UNAUTHORIZED, "Refresh token inválido o expirado", null);
             }
-
-            // Extraer usuario del refresh token
-            String email = jwtTokenProvider.extractUsername(refreshToken);
-            UserDetails userDetails = userService.loadUserByUsername(email);
-
-            // Generar nuevo access token
-            String newAccessToken = jwtTokenProvider.generateAccessToken(userDetails);
-
-            // MULTI-TENENCIA: Extraer centroAtencionId del usuario
-            User user = (User) userDetails;
-            Integer centroAtencionId = user.getCentroAtencion() != null ? user.getCentroAtencion().getId() : null;
-
-            // Obtener lista completa de roles
-            java.util.List<String> allRoles = new java.util.ArrayList<>();
-            if (user.getRole() != null) {
-                allRoles.add(user.getRole().getName());
-                user.getRole().getAllInheritedRoles().forEach(inheritedRole -> 
-                    allRoles.add(inheritedRole.getName())
-                );
-            }
-
-            return Response.response(HttpStatus.OK, "Token renovado exitosamente", 
-                new LoginResponse(newAccessToken, refreshToken, email, 
-                    user.getNombre() + " " + user.getApellido(),
-                    user.getRole() != null ? user.getRole().getName() : "USER",
-                    allRoles,
-                    centroAtencionId));
+            return Response.response(HttpStatus.OK, "Token renovado exitosamente",
+                    loginResponse(tokens.get(), "USER"));
 
         } catch (Exception e) {
-            return Response.response(HttpStatus.UNAUTHORIZED, "Error al renovar token: " + e.getMessage(), null);
+            logger.error("Error al renovar token: {}", e.getMessage());
+            return Response.response(HttpStatus.UNAUTHORIZED, "Refresh token inválido o expirado", null);
         }
+    }
+
+    /**
+     * Cierra la sesión: revoca el refresh token recibido y los de su misma cadena.
+     * Responde siempre lo mismo, exista o no el token.
+     * POST /api/auth/logout
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Object> logout(@RequestBody(required = false) RefreshTokenRequest request) {
+        try {
+            if (request != null) {
+                sesionService.cerrar(request.getRefreshToken());
+            }
+        } catch (Exception e) {
+            logger.warn("Error al cerrar sesión: {}", e.getMessage());
+        }
+        return Response.response(HttpStatus.OK, "Sesión cerrada", null);
+    }
+
+    private LoginResponse loginResponse(SesionService.Tokens tokens, String rolPorDefecto) {
+        User user = tokens.user();
+        java.util.List<String> allRoles = new java.util.ArrayList<>();
+        if (user.getRole() != null) {
+            allRoles.add(user.getRole().getName());
+            user.getRole().getAllInheritedRoles().forEach(inheritedRole ->
+                allRoles.add(inheritedRole.getName())
+            );
+        }
+        // MULTI-TENENCIA: centro del usuario, null para los roles de acceso global
+        Integer centroAtencionId = user.getCentroAtencion() != null ? user.getCentroAtencion().getId() : null;
+
+        return new LoginResponse(
+            tokens.accessToken(),
+            tokens.refreshToken(),
+            user.getEmail(),
+            user.getNombre() + " " + user.getApellido(),
+            user.getRole() != null ? user.getRole().getName() : rolPorDefecto,
+            allRoles,
+            centroAtencionId
+        );
     }
 
     /**
@@ -257,33 +248,19 @@ public class AuthController {
     }
 
     /**
-     * Endpoint para verificar si un email existe y obtener información básica del usuario
+     * Paso de email del login. Responde lo mismo exista o no la cuenta y no consulta
+     * la base: antes devolvía nombre y rol de cualquier email, sin autenticación, y
+     * servía para armar un padrón de usuarios. El frontend actual ya no lo llama; se
+     * conserva para las copias viejas de la SPA que sigan abiertas en un navegador.
      * POST /api/auth/check-email
      */
     @PostMapping("/check-email")
     public ResponseEntity<Object> checkEmail(@RequestBody CheckEmailRequest request) {
-        try {
-            Optional<User> userOptional = userService.findByEmail(request.getEmail());
-            
-            if (userOptional.isPresent()) {
-                User user = userOptional.get();
-                
-                // Crear response con información básica del usuario
-                CheckEmailResponse response = new CheckEmailResponse(
-                    user.getEmail(),
-                    user.getNombre() + " " + user.getApellido(),
-                    user.getRole() != null ? user.getRole().getName() : "USER"
-                );
-                
-                return Response.response(HttpStatus.OK, "Email encontrado", response);
-            } else {
-                return Response.response(HttpStatus.NOT_FOUND, "Email no encontrado", null);
-            }
-            
-        } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, 
-                "Error al verificar email: " + e.getMessage(), null);
+        if (request == null || !isValidEmail(request.getEmail())) {
+            return Response.response(HttpStatus.BAD_REQUEST, "El formato del email no es válido", null);
         }
+        return Response.response(HttpStatus.OK, "Continuar",
+                new CheckEmailResponse(request.getEmail().trim(), null, null));
     }
     
     // ===============================
@@ -486,7 +463,11 @@ public class AuthController {
                 // Obtener email para log
                 String userEmail = getCurrentUserEmail(httpRequest);
                 logger.info("Contraseña cambiada exitosamente para usuario ID: {} ({})", userId, userEmail);
-                return Response.ok(null, "Contraseña cambiada exitosamente");
+                // El cambio cortó todas las sesiones del usuario. Esta sigue con tokens nuevos.
+                LoginResponse nuevaSesion = userService.findById(userId)
+                        .map(actualizado -> loginResponse(sesionService.abrir(actualizado), "USER"))
+                        .orElse(null);
+                return Response.ok(nuevaSesion, "Contraseña cambiada exitosamente");
             } else {
                 return Response.error(null, "Error al cambiar la contraseña");
             }
@@ -649,44 +630,23 @@ public class AuthController {
     // ===============================
     
     /**
-     * Extrae el userId del JWT token del header Authorization
-     * 
-     * @param request HttpServletRequest para obtener headers
-     * @return Long userId o null si no se puede extraer
+     * Usuario autenticado por JwtAuthenticationFilter. No se vuelve a leer el header:
+     * el filtro ya verificó firma, tipo, vencimiento y que la sesión siga vigente.
      */
-    private Long getCurrentUserId(jakarta.servlet.http.HttpServletRequest request) {
-        try {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return null;
-            }
-            
-            String token = authHeader.substring(7); // Remover "Bearer "
-            return jwtTokenProvider.extractUserId(token);
-            
-        } catch (Exception e) {
-            logger.warn("Error al extraer userId del token: {}", e.getMessage());
-            return null;
+    private Optional<User> currentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof User user) {
+            return Optional.of(user);
         }
+        return Optional.empty();
     }
-    
-    /**
-     * Extrae el email del usuario del JWT token
-     */
+
+    private Long getCurrentUserId(jakarta.servlet.http.HttpServletRequest request) {
+        return currentUser().map(User::getId).orElse(null);
+    }
+
     private String getCurrentUserEmail(jakarta.servlet.http.HttpServletRequest request) {
-        try {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return null;
-            }
-            
-            String token = authHeader.substring(7);
-            return jwtTokenProvider.extractUsername(token);
-            
-        } catch (Exception e) {
-            logger.warn("Error al extraer email del token: {}", e.getMessage());
-            return null;
-        }
+        return currentUser().map(User::getEmail).orElse(null);
     }
     
     // ===============================
@@ -792,34 +752,14 @@ public class AuthController {
             // El token de Google es válido, procesamos el usuario.
             User user = userService.processGoogleUser(payload);
 
-            // Generamos los tokens JWT de nuestra aplicación para el usuario encontrado o creado.
-            String accessToken = jwtTokenProvider.generateAccessToken(user);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
-
-            // Obtener lista completa de roles incluyendo heredados
-            java.util.List<String> allRoles = new java.util.ArrayList<>();
-            if (user.getRole() != null) {
-                // Agregar el rol principal
-                allRoles.add(user.getRole().getName());
-                // Agregar todos los roles heredados
-                user.getRole().getAllInheritedRoles().forEach(inheritedRole -> 
-                    allRoles.add(inheritedRole.getName())
-                );
+            if (!user.isEnabled() || !user.isAccountNonLocked()) {
+                logger.warn("Login con Google rechazado: cuenta deshabilitada ({})", user.getEmail());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Response.error(null, "La cuenta está deshabilitada."));
             }
 
-            // MULTI-TENENCIA: Extraer centroAtencionId del usuario
-            Integer centroAtencionId = user.getCentroAtencion() != null ? user.getCentroAtencion().getId() : null;
-
-            // Creamos la respuesta que espera el frontend.
-            LoginResponse loginResponse = new LoginResponse(
-                accessToken, 
-                refreshToken, 
-                user.getEmail(), 
-                user.getNombre() + " " + user.getApellido(),
-                user.getRole() != null ? user.getRole().getName() : "PACIENTE",
-                allRoles,
-                centroAtencionId
-            );
+            // Generamos los tokens JWT de nuestra aplicación para el usuario encontrado o creado.
+            LoginResponse loginResponse = loginResponse(sesionService.abrir(user), "PACIENTE");
             
             logger.info("Login exitoso con Google para usuario: {}", user.getEmail());
             return Response.response(HttpStatus.OK, "Login con Google exitoso", loginResponse);

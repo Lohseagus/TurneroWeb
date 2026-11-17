@@ -88,7 +88,7 @@ class MedicoMeSecurityTest {
 
     @Test
     void anonimoNoEntra() throws Exception {
-        cuerpo(403, null, "/api/medicos/me");
+        cuerpo(401, null, "/api/medicos/me");
     }
 
     @Test

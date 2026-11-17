@@ -47,22 +47,6 @@ export interface RefreshTokenRequest {
 }
 
 /**
- * Interfaz para el check email request
- */
-export interface CheckEmailRequest {
-  email: string;
-}
-
-/**
- * Interfaz para el check email response
- */
-export interface CheckEmailResponse {
-  email: string;
-  nombre: string;
-  role: string;
-}
-
-/**
  * Interfaz para el request de cambio de contraseña
  */
 export interface ChangePasswordRequest {
@@ -346,24 +330,6 @@ export class AuthService {
         }
       });
     }
-  }
-
-  /**
-   * Verifica si un email existe en la base de datos
-   * @param email Email a verificar
-   * @returns Observable con la información del usuario si existe
-   */
-  checkEmail(email: string): Observable<DataPackage<CheckEmailResponse>> {
-    const checkEmailPayload: CheckEmailRequest = {
-      email: email,
-    };
-
-    return this.http
-      .post<DataPackage<CheckEmailResponse>>(
-        `${this.API_BASE_URL}/check-email`,
-        checkEmailPayload
-      )
-      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -785,12 +751,27 @@ export class AuthService {
    * Cierra la sesión del usuario
    */
   logout(): void {
+    this.revocarSesionEnElServidor();
     // Google rechaza signOut con "Not logged in" si la sesión fue por contraseña.
     // Eso no es un fallo: la sesión local se cierra igual, sin tirar el error.
     this.cerrarSesionGoogle().finally(() => {
       this.clearSession();
       this.router.navigate(['/ingresar']);
     });
+  }
+
+  /**
+   * Avisa al backend para que el refresh token deje de servir. No bloquea el cierre
+   * local: si el pedido falla, la sesión del navegador se limpia igual.
+   */
+  private revocarSesionEnElServidor(): void {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return;
+    }
+    this.http
+      .post(`${this.API_BASE_URL}/logout`, { refreshToken })
+      .subscribe({ error: () => undefined });
   }
 
   private cerrarSesionGoogle(): Promise<void> {
@@ -918,7 +899,17 @@ export class AuthService {
       .post<DataPackage<any>>(`${this.API_BASE_URL}/change-password`, request, {
         headers: new HttpHeaders({ "Content-Type": "application/json" })
       })
-      .pipe(catchError(this.handleError));
+      .pipe(
+        tap((response) => {
+          // El backend corta todas las sesiones al cambiar la contraseña y devuelve
+          // tokens nuevos para esta. Sin guardarlos, el próximo pedido da 401.
+          if (response?.data?.accessToken && response.data.refreshToken) {
+            this.updateStoredTokens(response.data);
+            this.scheduleTokenRefresh(response.data.accessToken);
+          }
+        }),
+        catchError(this.handleError)
+      );
   }
 
   /**

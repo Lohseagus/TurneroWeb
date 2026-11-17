@@ -48,6 +48,9 @@ public class PasswordResetService {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private SesionService sesionService;
     
     // Tiempo de expiración del token en minutos (por defecto 24 horas)
     @Value("${password.reset.token.expiration.minutes:1440}")
@@ -199,6 +202,8 @@ public class PasswordResetService {
             // Cambiar la contraseña del usuario
             User user = token.getUser();
             user.setHashedPassword(passwordEncoder.encode(newPassword));
+            // Quien recupera la cuenta deja afuera a cualquier sesión abierta antes.
+            sesionService.invalidarTodas(user);
             userRepository.save(user);
             
             // Marcar el token como usado

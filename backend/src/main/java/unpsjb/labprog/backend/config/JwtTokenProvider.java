@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javax.crypto.SecretKey;
@@ -37,6 +38,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class JwtTokenProvider implements InitializingBean {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
+
+    static final String CLAIM_TOKEN_TYPE = "tokenType";
+    static final String TYPE_ACCESS = "access";
+    static final String TYPE_REFRESH = "refresh";
+    static final String CLAIM_VERSION = "ver";
+
+    /** Lo que hace falta saber de un refresh token ya verificado (firma, tipo y vencimiento). */
+    public record RefreshTokenData(String email, String jti, int version) {
+    }
 
     // HS256 necesita una clave de 256 bits como mínimo.
     private static final int MIN_KEY_BYTES = 32;
@@ -137,19 +147,14 @@ public class JwtTokenProvider implements InitializingBean {
     }
 
     /**
-     * Verifica si el token ha expirado
-     */
-    private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    /**
      * Genera un access token para el usuario
      */
     public String generateAccessToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put(CLAIM_TOKEN_TYPE, TYPE_ACCESS);
         if (userDetails instanceof User) {
             User user = (User) userDetails;
+            claims.put(CLAIM_VERSION, user.getTokenVersion());
             claims.put("userId", user.getId());
             claims.put("role", user.getRole() != null ? user.getRole().getName() : "USER");
 
@@ -184,45 +189,107 @@ public class JwtTokenProvider implements InitializingBean {
     }
 
     /**
-     * Genera un refresh token para el usuario
+     * Genera un refresh token para el usuario.
+     *
+     * @param jti identificador con el que SesionService registra y rota el token
      */
-    public String generateRefreshToken(UserDetails userDetails) {
+    public String generateRefreshToken(UserDetails userDetails, String jti) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("tokenType", "refresh");
-        return createToken(claims, userDetails.getUsername(), refreshTokenExpiration);
+        claims.put(CLAIM_TOKEN_TYPE, TYPE_REFRESH);
+        if (userDetails instanceof User user) {
+            claims.put(CLAIM_VERSION, user.getTokenVersion());
+        }
+        return createToken(claims, userDetails.getUsername(), refreshTokenExpiration, jti);
+    }
+
+    public long getRefreshTokenExpirationMillis() {
+        return refreshTokenExpiration;
     }
 
     /**
      * Crea un token JWT con los claims especificados
      */
     private String createToken(Map<String, Object> claims, String subject, long expiration) {
-        return Jwts.builder()
+        return createToken(claims, subject, expiration, null);
+    }
+
+    private String createToken(Map<String, Object> claims, String subject, long expiration, String jti) {
+        var builder = Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignKey(), Jwts.SIG.HS256)
-                .compact();
+                .expiration(new Date(System.currentTimeMillis() + expiration));
+        if (jti != null) {
+            builder.id(jti);
+        }
+        return builder.signWith(getSignKey(), Jwts.SIG.HS256).compact();
     }
 
     /**
-     * Valida si el token es válido para el usuario
+     * Valida un access token para el usuario. Un refresh token no pasa: vive 7 días
+     * y solo sirve para pedir un access nuevo en /api/auth/refresh.
      */
     public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        Claims claims = extractAllClaims(token);
+        return esAccessToken(claims)
+                && userDetails.getUsername().equals(claims.getSubject())
+                && !claims.getExpiration().before(new Date())
+                && sesionVigente(versionDe(claims), userDetails);
+    }
+
+    /**
+     * Un token firmado y sin vencer igual deja de valer si la cuenta se deshabilitó o
+     * bloqueó, o si el usuario subió su versión de sesiones (cambio de contraseña).
+     */
+    public boolean sesionVigente(int versionDelToken, UserDetails userDetails) {
+        if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+            return false;
+        }
+        return !(userDetails instanceof User user) || user.getTokenVersion() == versionDelToken;
+    }
+
+    /** Los tokens anteriores al claim no lo traen: valen como versión 0. */
+    private int versionDe(Claims claims) {
+        Object version = claims.get(CLAIM_VERSION);
+        return version instanceof Number numero ? numero.intValue() : 0;
+    }
+
+    /**
+     * Los access tokens emitidos antes de agregar el claim no traen tipo. Se aceptan
+     * porque el refresh siempre llevó tokenType=refresh: un token sin tipo solo puede
+     * ser un access, y vence a los 15 minutos de emitido.
+     */
+    private boolean esAccessToken(Claims claims) {
+        String tipo = claims.get(CLAIM_TOKEN_TYPE, String.class);
+        return tipo == null || TYPE_ACCESS.equals(tipo);
     }
 
     /**
      * Valida si el refresh token es válido
      */
     public Boolean validateRefreshToken(String token) {
+        return leerRefreshToken(token).isPresent();
+    }
+
+    /**
+     * Verifica firma, tipo y vencimiento de un refresh token y devuelve sus datos.
+     * Vacío si no es un refresh token válido. No consulta la base: que la sesión
+     * siga vigente lo decide SesionService.
+     */
+    public Optional<RefreshTokenData> leerRefreshToken(String token) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
         try {
             Claims claims = extractAllClaims(token);
-            String tokenType = claims.get("tokenType", String.class);
-            return "refresh".equals(tokenType) && !isTokenExpired(token);
+            String tokenType = claims.get(CLAIM_TOKEN_TYPE, String.class);
+            if (!TYPE_REFRESH.equals(tokenType) || claims.getExpiration().before(new Date())
+                    || claims.getSubject() == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new RefreshTokenData(claims.getSubject(), claims.getId(), versionDe(claims)));
         } catch (Exception e) {
-            return false;
+            return Optional.empty();
         }
     }
 
