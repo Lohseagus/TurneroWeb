@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -24,6 +25,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import unpsjb.labprog.backend.business.service.UserService;
+
+import jakarta.servlet.DispatcherType;
 
 import java.util.Arrays;
 
@@ -72,6 +75,20 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * El filtro es un {@code @Component} para poder inyectarlo en la cadena.
+     * Boot también lo publicaría como filtro del servlet, delante o después de
+     * la cadena. OncePerRequestFilter corre una sola vez: si gana esa copia,
+     * la de la cadena se saltea y el usuario queda anónimo (403).
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
+            JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     /**
@@ -203,6 +220,9 @@ public class SecurityConfig {
                         // Los controllers viven bajo /api. Las rutas viejas sin ese prefijo
                         // ( /turnos, /pacientes, /agenda ) no matcheaban nada.
                         auth
+                                // Un error del controller no debe volver a autorizarse como anónimo:
+                                // si no, el cliente recibe 403 y el frontend dice "no tenés permiso".
+                                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                                 .requestMatchers("/", "/health", "/actuator/**").permitAll()
                                 .requestMatchers("/api/auth/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/publica", "/api/agenda/publica/**").permitAll()

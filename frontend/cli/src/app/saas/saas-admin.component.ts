@@ -187,6 +187,10 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
     return Math.max(1, Math.ceil(this.pagosFiltrados.length / this.porPagina));
   }
 
+  get hayFiltroSuscripciones(): boolean {
+    return !!(this.filtroEstado || this.filtroPlan || this.filtroTexto.trim());
+  }
+
   cargar(): void {
     if (!this.puedeOperar()) {
       this.cargando = false;
@@ -303,8 +307,12 @@ export class SaasAdminComponent implements OnInit, OnDestroy {
       error: (err) => {
         if (token !== this.listaToken || this.vista !== 'suscripciones') return;
         this.cargando = false;
+        this.suscripciones = [];
         alTerminar?.();
-        if (esFalloDeAcceso(err)) return;
+        if (esFalloDeAcceso(err)) {
+          this.error = 'No se pudo abrir el listado de suscripciones.';
+          return;
+        }
         this.error = 'No se pudo filtrar el listado.';
         this.toast.error(this.error);
       }
