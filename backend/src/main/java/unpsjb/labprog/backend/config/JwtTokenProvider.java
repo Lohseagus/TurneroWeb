@@ -38,6 +38,10 @@ public class JwtTokenProvider implements InitializingBean {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
+    static final String CLAIM_TOKEN_TYPE = "tokenType";
+    static final String TYPE_ACCESS = "access";
+    static final String TYPE_REFRESH = "refresh";
+
     // HS256 necesita una clave de 256 bits como mínimo.
     private static final int MIN_KEY_BYTES = 32;
 
@@ -137,17 +141,11 @@ public class JwtTokenProvider implements InitializingBean {
     }
 
     /**
-     * Verifica si el token ha expirado
-     */
-    private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    /**
      * Genera un access token para el usuario
      */
     public String generateAccessToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put(CLAIM_TOKEN_TYPE, TYPE_ACCESS);
         if (userDetails instanceof User) {
             User user = (User) userDetails;
             claims.put("userId", user.getId());
@@ -188,7 +186,7 @@ public class JwtTokenProvider implements InitializingBean {
      */
     public String generateRefreshToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("tokenType", "refresh");
+        claims.put(CLAIM_TOKEN_TYPE, TYPE_REFRESH);
         return createToken(claims, userDetails.getUsername(), refreshTokenExpiration);
     }
 
@@ -206,11 +204,24 @@ public class JwtTokenProvider implements InitializingBean {
     }
 
     /**
-     * Valida si el token es válido para el usuario
+     * Valida un access token para el usuario. Un refresh token no pasa: vive 7 días
+     * y solo sirve para pedir un access nuevo en /api/auth/refresh.
      */
     public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        Claims claims = extractAllClaims(token);
+        return esAccessToken(claims)
+                && userDetails.getUsername().equals(claims.getSubject())
+                && !claims.getExpiration().before(new Date());
+    }
+
+    /**
+     * Los access tokens emitidos antes de agregar el claim no traen tipo. Se aceptan
+     * porque el refresh siempre llevó tokenType=refresh: un token sin tipo solo puede
+     * ser un access, y vence a los 15 minutos de emitido.
+     */
+    private boolean esAccessToken(Claims claims) {
+        String tipo = claims.get(CLAIM_TOKEN_TYPE, String.class);
+        return tipo == null || TYPE_ACCESS.equals(tipo);
     }
 
     /**
@@ -219,8 +230,8 @@ public class JwtTokenProvider implements InitializingBean {
     public Boolean validateRefreshToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            String tokenType = claims.get("tokenType", String.class);
-            return "refresh".equals(tokenType) && !isTokenExpired(token);
+            String tokenType = claims.get(CLAIM_TOKEN_TYPE, String.class);
+            return TYPE_REFRESH.equals(tokenType) && !claims.getExpiration().before(new Date());
         } catch (Exception e) {
             return false;
         }

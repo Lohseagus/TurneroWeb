@@ -199,6 +199,17 @@ class SaasAdminSecurityTest {
                 jwtTokenProvider.generateAccessToken(user));
     }
 
+    @Test
+    void unRefreshTokenNoSirveComoBearer() throws Exception {
+        User user = usuario(Role.SUPERADMIN, "superadmin@cheturno.test");
+        String refresh = jwtTokenProvider.generateRefreshToken(user);
+
+        assertStatus(401, new Call(HttpMethod.GET, "/api/saas/admin/suscripciones", null), refresh);
+        assertStatus(401, new Call(HttpMethod.GET, "/api/admins", null), refresh);
+        assertEquals(false, jwtTokenProvider.validateRefreshToken(jwtTokenProvider.generateAccessToken(user)),
+                "un access token no puede pasar por refresh token");
+    }
+
     private String token(Role role, String email) {
         return jwtTokenProvider.generateAccessToken(usuario(role, email));
     }
