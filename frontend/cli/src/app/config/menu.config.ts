@@ -165,6 +165,13 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Panel principal del operador'
       },
       {
+        label: 'Mi Centro',
+        route: '/mi-centro',
+        icon: 'local_hospital',
+        description: 'Gestión centralizada de mi centro',
+        requiresPrimaryRole: true
+      },
+      {
         label: 'Gestión de Turnos',
         route: '/turnos',
         icon: 'event',
@@ -387,42 +394,62 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Ver panel de administrador (soporte)'
       }
     ]
-  },
-
-  // ========================================
-  // SECCIÓN: GESTIÓN GENERAL (solo para OPERADOR)
-  // ========================================
-  // Esta sección solo se muestra para usuarios con rol OPERADOR
-  // Los administradores ya tienen estas opciones en su panel principal
-  {
-    id: 'gestion',
-    label: 'Gestión General',
-    icon: 'apartment',
-    role: Role.OPERADOR, // Solo para operadores
-    order: 6, // Después del panel de operador
-    items: [
-      {
-        label: 'Mi Centro',
-        route: '/mi-centro', // Ruta dinámica que redirige a /centroAtencion/{id} basado en userContext
-        icon: 'local_hospital',
-        description: 'Gestión centralizada de mi centro'
-      }
-    ]
   }
 ];
 
 /**
- * Configuración de funcionalidades compartidas que no dependen de roles específicos
- * (se muestran a todos los usuarios autenticados)
+ * Destino del logo CheTurno. Es el mismo lugar al que llega cada rol después de entrar.
+ * Inicio ya no es un ítem del menú: repetirlo en cada panel abriría todos los grupos
+ * cuando la ruta es `/`.
  */
-export const SHARED_MENU_ITEMS: MenuItem[] = [
-  {
-    label: 'Inicio',
-    route: '/',
-    icon: 'home',
-    description: 'Página principal'
+export function homeRouteForRole(role: string | null | undefined): string {
+  switch (role?.toUpperCase()) {
+    case Role.SUPERADMIN:
+      return '/saas';
+    case Role.ADMINISTRADOR:
+      return '/admin-dashboard';
+    case Role.OPERADOR:
+      return '/operador-dashboard';
+    case Role.MEDICO:
+      return '/medico-dashboard';
+    case Role.PACIENTE:
+      return '/paciente-dashboard';
+    default:
+      return '/';
   }
-];
+}
+
+/**
+ * Ajusta el enlace de centros según el rol, sin duplicar "Mi Centro" para SUPERADMIN.
+ * ADMINISTRADOR ya lo tiene en su panel. OPERADOR entra por /mi-centro, que el guard
+ * manda a /centrosAtencion/{id}.
+ */
+export function personalizeMenuItem(
+  item: MenuItem,
+  primaryRole: string | null | undefined,
+  centroAtencionId?: number | null
+): MenuItem {
+  const role = primaryRole?.toUpperCase();
+
+  if (item.route === '/centrosAtencion') {
+    if (role === Role.SUPERADMIN) {
+      return { ...item, label: 'Gestión de Centros', route: '/centrosAtencion' };
+    }
+    if (role === Role.ADMINISTRADOR) {
+      return {
+        ...item,
+        label: 'Mi Centro',
+        route: centroAtencionId ? `/centrosAtencion/${centroAtencionId}` : '/centrosAtencion'
+      };
+    }
+  }
+
+  if (item.route === '/mi-centro' && centroAtencionId) {
+    return { ...item, route: `/centrosAtencion/${centroAtencionId}` };
+  }
+
+  return item;
+}
 
 /**
  * Helper para obtener secciones de menú para un conjunto de roles
@@ -436,13 +463,12 @@ export function getMenuSectionsForRoles(userRoles: Role[]): MenuSection[] {
 }
 
 /**
- * Secciones que el usuario ve, incluido el recorte de paneles que no corresponden
- * al rol primario ADMINISTRADOR (Médico y Gestión General).
+ * Secciones que el usuario ve. El rol primario ADMINISTRADOR no muestra el Panel de Médico.
  */
 export function getMenuSectionsForUser(userRoles: Role[], primaryRole?: string | null): MenuSection[] {
   const sections = getMenuSectionsForRoles(userRoles);
   if (primaryRole?.toUpperCase() === Role.ADMINISTRADOR) {
-    return sections.filter(section => section.id !== 'medico' && section.id !== 'gestion');
+    return sections.filter(section => section.id !== 'medico');
   }
   return sections;
 }

@@ -1,7 +1,7 @@
 {
-  "file": "material-symbols-outlined-918DEA80.woff2",
-  "sha256": "918dea80dded00d897c41ec9fa39bb4f7b5e863e84391af8d882cd290b62cdae",
-  "bytes": 53584,
+  "file": "material-symbols-outlined-33BFB371.woff2",
+  "sha256": "33bfb3710ff96c73125a92b6a67a67ea95b7ebe116b98d9987b7c56c0275b55e",
+  "bytes": 53288,
   "source": "https://fonts.gstatic.com/s/materialsymbolsoutlined/v385/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
   "axes": [
     "FILL",
@@ -89,7 +89,6 @@
     "health_and_safety",
     "help",
     "history",
-    "home",
     "hourglass_empty",
     "hourglass_top",
     "how_to_reg",
