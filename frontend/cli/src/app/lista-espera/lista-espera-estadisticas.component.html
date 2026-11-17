@@ -1,30 +1,28 @@
-<div class="container-fluid mt-lg">
-  <!-- HEADER LVE NORMALIZADO -->
-  <div class="card p-xl mb-xl mx-auto">
-    <div class="listado-header d-flex align-items-center justify-content-between mb-lg">
-      <div class="d-flex align-items-center gap-md">
-        <span class="material-symbols-outlined header-icon">bar_chart</span>
-        <div>
-          <h2 class="mb-0">Estadísticas de Lista de Espera</h2>
-          <p class="text-white mb-0 mt-sm">Análisis y métricas del sistema de lista de espera</p>
-        </div>
-      </div>
-      <div class="header-actions-group">
-        <button class="btn btn-primary" (click)="cargarEstadisticas()" [disabled]="cargando">
-          <span class="material-symbols-outlined" [class.spinning]="cargando">sync</span>
-          Actualizar
-        </button>
-        <button class="btn btn-secondary" (click)="exportarCSV()">
-          <span class="material-symbols-outlined">download</span>
-          Exportar CSV
-        </button>
-        <button class="btn btn-secondary" (click)="imprimirReporte()">
-          <span class="material-symbols-outlined">print</span>
-          Imprimir
-        </button>
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">bar_chart</span>
+      <div>
+        <h1 class="ct-page-header__title">Estadísticas de Lista de Espera</h1>
+        <p class="ct-page-header__subtitle">Análisis y métricas del sistema de lista de espera</p>
       </div>
     </div>
-
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-primary" (click)="cargarEstadisticas()" [disabled]="cargando">
+        <span class="material-symbols-outlined" [class.ct-spin]="cargando">sync</span>
+        Actualizar
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="exportarCSV()">
+        <span class="material-symbols-outlined">download</span>
+        Exportar CSV
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="imprimirReporte()">
+        <span class="material-symbols-outlined">print</span>
+        Imprimir
+      </button>
+    </div>
+  </header>
+  <div class="card p-xl mb-xl mx-auto">
     <!-- FILTROS DE BÚSQUEDA -->
     <div class="filters-section mb-lg">
       <h5 class="filters-title mb-md">

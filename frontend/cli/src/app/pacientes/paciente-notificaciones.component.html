@@ -1,33 +1,34 @@
-
-<div class="card p-xl mb-xl">
-  <!-- Encabezado -->
-  <div class="d-flex justify-content-between align-items-center mb-lg">
-    <div class="d-flex align-items-center gap-md">
-      <span class="material-symbols-outlined">notifications</span>
-      <h2 class="mb-0">Notificaciones</h2>
-      @if (contadorNoLeidas > 0) {
-        <span class="badge bg-danger ms-md">{{ contadorNoLeidas }}</span>
-      }
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">notifications</span>
+      <div>
+        <h1 class="ct-page-header__title">Notificaciones
+          @if (contadorNoLeidas > 0) {
+            <span class="ct-badge ct-badge--danger">{{ contadorNoLeidas }}</span>
+          }
+        </h1>
+        <p class="ct-page-header__subtitle">Avisos sobre tus turnos</p>
+      </div>
     </div>
-    <div class="d-flex gap-md">
+    <div class="ct-page-header__actions">
       <button
+        type="button"
         class="btn btn-secondary"
         (click)="marcarTodasComoLeidas()"
         [disabled]="contadorNoLeidas === 0"
         title="Marcar todas como leídas"
         >
-
         <span class="material-symbols-outlined">mark_email_read</span>
         Marcar todas como leídas
       </button>
-      <button class="btn btn-primary" (click)="actualizarNotificaciones()">
+      <button type="button" class="btn btn-primary" (click)="actualizarNotificaciones()">
         <span class="material-symbols-outlined">sync</span>
         Actualizar
       </button>
     </div>
-  </div>
-
-
+  </header>
+<div class="card p-xl mb-xl">
   <!-- Filtros -->
   <div class="card p-lg mb-lg">
     <div class="d-flex flex-wrap gap-lg">
@@ -214,4 +215,5 @@
       }
     </div>
   }
+</div>
 </div>

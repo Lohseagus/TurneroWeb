@@ -1,26 +1,20 @@
-<div class="container-fluid mt-4">
+<div class="ct-page">
   <!-- HEADER -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="banner-paciente-agenda">
-        <div class="header-content">
-          <div class="header-actions">
-            <button class="btn btn-secondary btn-header-glass" (click)="goBack()">
-              <span class="material-symbols-outlined">arrow_back</span>
-              Volver
-            </button>
-          </div>
-          <div class="header-icon">
-            <span class="material-symbols-outlined">event_available</span>
-          </div>
-          <div class="header-text">
-            <h1>Turnos Disponibles</h1>
-            <p>Busca y reserva turnos médicos disponibles</p>
-          </div>
-        </div>
+    <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_available</span>
+      <div>
+        <h1 class="ct-page-header__title">Turnos Disponibles</h1>
+        <p class="ct-page-header__subtitle">Busca y reserva turnos médicos disponibles</p>
       </div>
     </div>
-  </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-secondary" (click)="goBack()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver
+      </button>
+    </div>
+  </header>
 
 
   <!-- FILTROS DE TURNOS -->
@@ -286,7 +280,7 @@
         <div class="turnos-card">
           <div class="turnos-header">
             <div class="d-flex justify-content-between align-items-center">
-              <h3><i class="fas fa-calendar-alt"></i> Turnos Disponibles</h3>
+              <h3><span class="material-symbols-outlined">calendar_month</span> Turnos Disponibles</h3>
               <div class="turnos-info">
                 <span class="info-text"
                   >{{ slotsDisponibles.length }} turnos encontrados</span
@@ -306,7 +300,7 @@
         <div class="col-12">
           <div class="filtros-inicial-card">
             <div class="filtros-inicial-content">
-              <i class="fas fa-filter"></i>
+              <span class="material-symbols-outlined">filter_alt</span>
               <h4>Selecciona tus preferencias</h4>
               <p>
                 Para ver los turnos disponibles, selecciona al menos uno de los
@@ -340,7 +334,7 @@
         <!-- Loading State -->
         @if (isLoadingTurnos) {
           <div class="loading-turnos">
-            <i class="fas fa-spinner fa-spin"></i>
+            <span class="material-symbols-outlined ct-spin">sync</span>
             Cargando turnos disponibles...
           </div>
         }
@@ -578,7 +572,7 @@
         <div class="col-12">
           <div class="no-turnos-card">
             <div class="no-turnos-content">
-              <i class="fas fa-calendar-times"></i>
+              <span class="material-symbols-outlined">event_busy</span>
               <h4>No hay turnos disponibles</h4>
               <p>No se encontraron turnos con los filtros seleccionados:</p>
               <ul class="filtros-aplicados-lista">
@@ -603,7 +597,7 @@
                 class="btn btn-paciente-primary"
                 (click)="limpiarTodosFiltros()"
                 >
-                <i class="fas fa-filter"></i>
+                <span class="material-symbols-outlined">filter_alt</span>
                 Limpiar Filtros
               </button>
             </div>

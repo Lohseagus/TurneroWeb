@@ -1,26 +1,20 @@
-<div class="container-fluid mt-4">
+<div class="ct-page">
   <!-- HEADER -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="banner-operador-agenda">
-        <div class="header-content">
-          <div class="header-actions">
-            <button class="btn btn-header-glass" (click)="goBack()">
-              <i class="fas fa-arrow-left"></i>
-              Volver
-            </button>
-          </div>
-          <div class="header-icon">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="header-text">
-            <h1>Gestión de Agenda</h1>
-            <p>Administra turnos y consulta la disponibilidad médica</p>
-          </div>
-        </div>
+    <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">calendar_month</span>
+      <div>
+        <h1 class="ct-page-header__title">Gestión de Agenda</h1>
+        <p class="ct-page-header__subtitle">Administra turnos y consulta la disponibilidad médica</p>
       </div>
     </div>
-  </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-secondary" (click)="goBack()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver
+      </button>
+    </div>
+  </header>
 
   <!-- FILTROS DE TURNOS -->
   <div class="row mb-4">
@@ -54,7 +48,7 @@
             </select>
             @if (isLoadingEspecialidades) {
               <div class="loading-indicator">
-                <i class="fas fa-spinner fa-spin"></i> Cargando especialidades...
+                <span class="material-symbols-outlined ct-spin">sync</span> Cargando especialidades...
               </div>
             }
           </div>
@@ -81,7 +75,7 @@
             </select>
             @if (isLoadingStaffMedicos) {
               <div class="loading-indicator">
-                <i class="fas fa-spinner fa-spin"></i> Cargando médicos...
+                <span class="material-symbols-outlined ct-spin">sync</span> Cargando médicos...
               </div>
             }
           </div>
@@ -109,7 +103,7 @@
             </select>
             @if (isLoadingCentros) {
               <div class="loading-indicator">
-                <i class="fas fa-spinner fa-spin"></i> Cargando centros...
+                <span class="material-symbols-outlined ct-spin">sync</span> Cargando centros...
               </div>
             }
           </div>
@@ -142,21 +136,21 @@
               <div class="filter-tags">
                 @if (especialidadSeleccionada) {
                   <span class="filter-tag">
-                    <i class="fas fa-stethoscope"></i>
+                    <span class="material-symbols-outlined">stethoscope</span>
                     {{ especialidadSeleccionada }}
                     <button type="button" (click)="limpiarEspecialidad()">×</button>
                   </span>
                 }
                 @if (staffMedicoSeleccionado) {
                   <span class="filter-tag">
-                    <i class="fas fa-user-md"></i>
+                    <span class="material-symbols-outlined">medical_services</span>
                     {{ getStaffMedicoNombre(staffMedicoSeleccionado) }}
                     <button type="button" (click)="limpiarStaffMedico()">×</button>
                   </span>
                 }
                 @if (centroAtencionSeleccionado) {
                   <span class="filter-tag">
-                    <i class="fas fa-hospital"></i>
+                    <span class="material-symbols-outlined">local_hospital</span>
                     {{ getCentroAtencionNombre(centroAtencionSeleccionado) }}
                     <button type="button" (click)="limpiarCentroAtencion()">
                       ×
@@ -165,7 +159,7 @@
                 }
                 @if (estadoSeleccionado) {
                   <span class="filter-tag">
-                    <i class="fas fa-info-circle"></i>
+                    <span class="material-symbols-outlined">info</span>
                     {{ getEstadoLabel(estadoSeleccionado) }}
                     <button type="button" (click)="limpiarEstado()">×</button>
                   </span>
@@ -175,7 +169,7 @@
                   class="btn btn-clear-filters"
                   (click)="limpiarTodosFiltros()"
                   >
-                  <i class="fas fa-times"></i> Limpiar filtros
+                  <span class="material-symbols-outlined">close</span> Limpiar filtros
                 </button>
               </div>
             </div>
@@ -189,7 +183,7 @@
               (click)="aplicarFiltros()"
               [disabled]="isLoadingTurnos"
               >
-              <i class="fas fa-search"></i>
+              <span class="material-symbols-outlined">search</span>
               {{ isLoadingTurnos ? "Cargando..." : "Aplicar Filtros" }}
             </button>
 
@@ -199,7 +193,7 @@
               (click)="cargarTodosLosTurnos()"
               [disabled]="isLoadingTurnos"
               >
-              <i class="fas fa-sync-alt"></i>
+              <span class="material-symbols-outlined">sync</span>
               Actualizar Agenda
             </button>
 
@@ -209,7 +203,7 @@
               (click)="mostrarMapaCentros()"
               [disabled]="isLoadingCentros"
               >
-              <i class="fas fa-map-marked-alt"></i>
+              <span class="material-symbols-outlined">map</span>
               Ver Mapa de Centros
             </button>
           </div>
@@ -225,7 +219,7 @@
         <div class="turnos-card">
           <div class="turnos-header">
             <div class="d-flex justify-content-between align-items-center">
-              <h3><i class="fas fa-calendar-alt"></i> Agenda de Turnos</h3>
+              <h3><span class="material-symbols-outlined">calendar_month</span> Agenda de Turnos</h3>
               <div class="turnos-info">
                 <span class="info-text disponibles">
                   {{ contarTurnosPorEstado("DISPONIBLE") }} Disponibles
@@ -243,7 +237,7 @@
             <!-- Loading State -->
             @if (isLoadingTurnos) {
               <div class="loading-turnos">
-                <i class="fas fa-spinner fa-spin"></i>
+                <span class="material-symbols-outlined ct-spin">sync</span>
                 Cargando agenda...
               </div>
             }
@@ -261,7 +255,7 @@
                       >
                       <div class="fecha-info">
                         <h3 class="fecha-title">
-                          <i class="fas fa-calendar-day"></i>
+                          <span class="material-symbols-outlined">today</span>
                           {{ formatearFecha(fecha) }}
                         </h3>
                         <div class="fecha-stats">
@@ -308,7 +302,7 @@
                               <div
                                 class="medico-header"
                                 >
-                                <i class="fas fa-user-md"></i>
+                                <span class="material-symbols-outlined">medical_services</span>
                                 <span>{{ getNombreMedico(slot) }}</span>
                                 <span class="especialidad-badge">{{
                                   slot.especialidadStaffMedico
@@ -326,16 +320,16 @@
                               (click)="seleccionarSlot(slot, $event)"
                               >
                               <div class="slot-time">
-                                <i class="fas fa-clock"></i>
+                                <span class="material-symbols-outlined">schedule</span>
                                 {{ slot.horaInicio }} - {{ slot.horaFin }}
                               </div>
                               <div class="slot-location">
                                 <div class="location-line">
-                                  <i class="fas fa-door-open"></i>
+                                  <span class="material-symbols-outlined">door_open</span>
                                   {{ slot.consultorioNombre }}
                                 </div>
                                 <div class="location-line">
-                                  <i class="fas fa-map-marker-alt"></i>
+                                  <span class="material-symbols-outlined">location_on</span>
                                   {{ slot.nombreCentro }}
                                 </div>
                               </div>
@@ -345,7 +339,7 @@
                                   class="slot-paciente"
                                   >
                                   <div class="paciente-info">
-                                    <i class="fas fa-user"></i>
+                                    <span class="material-symbols-outlined">person</span>
                                     <strong
                                       >{{ slot.pacienteNombre }}
                                       {{ slot.pacienteApellido }}</strong
@@ -353,7 +347,7 @@
                                     </div>
                                     @if (slot.pacienteDni) {
                                       <div class="paciente-dni">
-                                        <i class="fas fa-id-card"></i>
+                                        <span class="material-symbols-outlined">badge</span>
                                         DNI: {{ slot.pacienteDni }}
                                       </div>
                                     }
@@ -375,7 +369,7 @@
                                     <div
                                       class="status-excepcion"
                                       >
-                                      <i class="fas fa-exclamation-triangle"></i>
+                                      <span class="material-symbols-outlined">warning</span>
                                       {{ getTipoExcepcionLabel(slot.fecha) }}
                                     </div>
                                   }
@@ -383,7 +377,7 @@
                                     <div
                                       class="status-ocupado"
                                       >
-                                      <i class="fas fa-user-check"></i>
+                                      <span class="material-symbols-outlined">how_to_reg</span>
                                       Ocupado
                                     </div>
                                   }
@@ -391,7 +385,7 @@
                                     <div
                                       class="status-disponible"
                                       >
-                                      <i class="fas fa-calendar-plus"></i>
+                                      <span class="material-symbols-outlined">calendar_add_on</span>
                                       Disponible
                                     </div>
                                   }
@@ -400,7 +394,7 @@
                                   <div
                                     class="slot-check"
                                     >
-                                    <i class="fas fa-check-circle"></i>
+                                    <span class="material-symbols-outlined">check_circle</span>
                                   </div>
                                 }
                               </div>
@@ -422,7 +416,7 @@
             <div class="col-12">
               <div class="filtros-inicial-card">
                 <div class="filtros-inicial-content">
-                  <i class="fas fa-calendar-alt"></i>
+                  <span class="material-symbols-outlined">calendar_month</span>
                   <h4>Gestión de Agenda</h4>
                   <p>Utiliza los filtros para ver y gestionar la agenda de turnos:</p>
                   <ul>
@@ -452,7 +446,7 @@
             <div class="col-12">
               <div class="no-turnos-card">
                 <div class="no-turnos-content">
-                  <i class="fas fa-calendar-times"></i>
+                  <span class="material-symbols-outlined">event_busy</span>
                   <h4>No hay turnos para mostrar</h4>
                   <p>No se encontraron turnos con los filtros seleccionados.</p>
                   <p>Intenta cambiar los filtros o cargar toda la agenda.</p>
@@ -460,7 +454,7 @@
                     class="btn btn-operador-primary"
                     (click)="limpiarTodosFiltros()"
                     >
-                    <i class="fas fa-filter"></i>
+                    <span class="material-symbols-outlined">filter_alt</span>
                     Limpiar Filtros
                   </button>
                 </div>
@@ -503,7 +497,7 @@
           <div class="modal-content operador-modal" (click)="$event.stopPropagation()">
             <div class="modal-header">
               <h4>
-                <i class="fas fa-info-circle"></i>
+                <span class="material-symbols-outlined">info</span>
                 {{
                 slotSeleccionado?.ocupado ? "Detalles del Turno" : "Slot Disponible"
                 }}
@@ -515,7 +509,7 @@
             <div class="modal-body">
               <div class="turno-details">
                 <div class="detail-section">
-                  <h5><i class="fas fa-calendar"></i> Información del Turno</h5>
+                  <h5><span class="material-symbols-outlined">calendar_today</span> Información del Turno</h5>
                   <div class="detail-item">
                     <strong>Fecha:</strong>
                     {{ formatearFecha(slotSeleccionado!.fecha) }}
@@ -547,7 +541,7 @@
                   <div
                     class="detail-section"
                     >
-                    <h5><i class="fas fa-user"></i> Información del Paciente</h5>
+                    <h5><span class="material-symbols-outlined">person</span> Información del Paciente</h5>
                     <div class="detail-item">
                       <strong>Nombre:</strong>
                       {{ slotSeleccionado?.pacienteNombre }}
@@ -574,13 +568,13 @@
                 }
                 <!-- Estado del slot -->
                 <div class="detail-section">
-                  <h5><i class="fas fa-info"></i> Estado</h5>
+                  <h5><span class="material-symbols-outlined">info</span> Estado</h5>
                   <div class="status-info">
                     @if (slotAfectadoPorExcepcion(slotSeleccionado!)) {
                       <div
                         class="status-excepcion"
                         >
-                        <i class="fas fa-exclamation-triangle"></i>
+                        <span class="material-symbols-outlined">warning</span>
                         Afectado por
                         {{ getTipoExcepcionLabel(slotSeleccionado!.fecha) }}
                         @if (getDescripcionExcepcion(slotSeleccionado!.fecha)) {
@@ -599,7 +593,7 @@
                       <div
                         class="status-ocupado"
                         >
-                        <i class="fas fa-user-check"></i>
+                        <span class="material-symbols-outlined">how_to_reg</span>
                         Turno Ocupado
                       </div>
                     }
@@ -610,7 +604,7 @@
                       <div
                         class="status-disponible"
                         >
-                        <i class="fas fa-calendar-plus"></i>
+                        <span class="material-symbols-outlined">calendar_add_on</span>
                         Slot Disponible para Asignación
                       </div>
                     }
@@ -632,7 +626,7 @@
                   class="btn btn-operador-primary"
                   (click)="gestionarTurno()"
                   >
-                  <i class="fas fa-edit"></i>
+                  <span class="material-symbols-outlined">edit</span>
                   Gestionar Turno
                 </button>
               }
@@ -645,7 +639,7 @@
                   class="btn btn-operador-success"
                   (click)="asignarTurno()"
                   >
-                  <i class="fas fa-user-plus"></i>
+                  <span class="material-symbols-outlined">person_add</span>
                   Asignar Paciente
                 </button>
               }

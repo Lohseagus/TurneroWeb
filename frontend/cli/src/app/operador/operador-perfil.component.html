@@ -1,191 +1,175 @@
-<div class="profile-container">
-  <div class="profile-header">
-    <div class="header-content">
-      <div class="back-button">
-        <button class="btn-back" (click)="goBack()">
-          <i class="fas fa-arrow-left"></i>
-          Volver
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">manage_accounts</span>
+      <div>
+        <h1 class="ct-page-header__title">Configuración de Perfil</h1>
+        <p class="ct-page-header__subtitle">Gestiona tu información personal y configuración como operador</p>
+      </div>
+    </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-secondary" (click)="goBack()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver
+      </button>
+    </div>
+  </header>
+
+  <!-- Información Personal -->
+  <section class="ct-section">
+    <div class="ct-section__header">
+      <div class="ct-section__heading">
+        <span class="material-symbols-outlined ct-icon-chip">person</span>
+        <h2 class="ct-section__title">Información Personal</h2>
+      </div>
+      @if (!editMode) {
+        <button type="button" class="btn btn-secondary" (click)="editMode = true">
+          <span class="material-symbols-outlined">edit</span>
+          Editar Datos
+        </button>
+      }
+    </div>
+    @if (!editMode) {
+      <div class="ct-grid">
+        <div class="ct-field">
+          <span class="ct-field__label">Nombre</span>
+          <span class="ct-field__value">{{ userData.nombre || "No especificado" }}</span>
+        </div>
+        <div class="ct-field">
+          <span class="ct-field__label">Apellido</span>
+          <span class="ct-field__value">{{ userData.apellido || "No especificado" }}</span>
+        </div>
+        <div class="ct-field">
+          <span class="ct-field__label">Email</span>
+          <span class="ct-field__value">{{ userData.email }}</span>
+        </div>
+        <div class="ct-field">
+          <span class="ct-field__label">Teléfono</span>
+          <span class="ct-field__value">{{ userData.telefono || "No especificado" }}</span>
+        </div>
+        <div class="ct-field">
+          <span class="ct-field__label">DNI</span>
+          <span class="ct-field__value">{{ userData.dni || "No especificado" }}</span>
+        </div>
+        <div class="ct-field">
+          <span class="ct-field__label">Rol</span>
+          <span class="ct-field__value"><span class="ct-badge ct-badge--accent">{{ getUserRole() }}</span></span>
+        </div>
+      </div>
+    } @else {
+      <div class="ct-form-grid">
+        <div>
+          <label class="form-label" for="nombre">Nombre</label>
+          <input id="nombre" class="form-control" [(ngModel)]="editUserData.nombre" name="nombre" required />
+        </div>
+        <div>
+          <label class="form-label" for="apellido">Apellido</label>
+          <input id="apellido" class="form-control" [(ngModel)]="editUserData.apellido" name="apellido" />
+        </div>
+        <div>
+          <label class="form-label" for="email">Email</label>
+          <input id="email" class="form-control" [(ngModel)]="editUserData.email" name="email" type="email" required />
+        </div>
+        <div>
+          <label class="form-label" for="telefono">Teléfono</label>
+          <input id="telefono" class="form-control" [(ngModel)]="editUserData.telefono" name="telefono" />
+        </div>
+        <div>
+          <label class="form-label" for="dni">DNI</label>
+          <input id="dni" class="form-control" [(ngModel)]="editUserData.dni" name="dni" />
+        </div>
+        <div>
+          <span class="form-label">Rol</span>
+          <span class="ct-badge ct-badge--accent">{{ getUserRole() }}</span>
+        </div>
+      </div>
+      <div class="ct-form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="savePersonalData()">
+          <span class="material-symbols-outlined">save</span>
+          Guardar
         </button>
       </div>
-      <div class="header-info">
-        <h1>Configuración de Perfil</h1>
-        <p>Gestiona tu información personal y configuración como operador</p>
-      </div>
-    </div>
-  </div>
+    }
+  </section>
 
-  <div class="profile-content">
-    <!-- Información Personal -->
-    <div class="section-card">
-      <div class="section-header">
-        <i class="fas fa-user"></i>
-        <h2>Información Personal</h2>
-      </div>
-      <div class="section-body">
-        @if (!editMode) {
-          <form>
-            <div class="info-group">
-              <label>Nombre:</label>
-              <p>{{ userData.nombre || "No especificado" }}</p>
-            </div>
-            <div class="info-group">
-              <label>Apellido:</label>
-              <p>{{ userData.apellido || "No especificado" }}</p>
-            </div>
-            <div class="info-group">
-              <label>Email:</label>
-              <p>{{ userData.email }}</p>
-            </div>
-            <div class="info-group">
-              <label>Teléfono:</label>
-              <p>{{ userData.telefono || "No especificado" }}</p>
-            </div>
-            <div class="info-group">
-              <label>DNI:</label>
-              <p>{{ userData.dni || "No especificado" }}</p>
-            </div>
-            <div class="info-group">
-              <label>Rol:</label>
-              <p class="role-badge operador">{{ getUserRole() }}</p>
-            </div>
-            <button class="btn-secondary" type="button" (click)="editMode = true">
-              <i class="fas fa-edit"></i> Editar Datos
-            </button>
-          </form>
-        } @else {
-          <div class="info-group">
-            <label>Nombre:</label>
-            <input
-              class="form-control"
-              [(ngModel)]="editUserData.nombre"
-              name="nombre"
-              required
-              />
-          </div>
-          <div class="info-group">
-            <label>Apellido:</label>
-            <input
-              class="form-control"
-              [(ngModel)]="editUserData.apellido"
-              name="apellido"
-              />
-          </div>
-          <div class="info-group">
-            <label>Email:</label>
-            <input
-              class="form-control"
-              [(ngModel)]="editUserData.email"
-              name="email"
-              type="email"
-              required
-              />
-          </div>
-          <div class="info-group">
-            <label>Teléfono:</label>
-            <input
-              class="form-control"
-              [(ngModel)]="editUserData.telefono"
-              name="telefono"
-              />
-          </div>
-          <div class="info-group">
-            <label>DNI:</label>
-            <input
-              class="form-control"
-              [(ngModel)]="editUserData.dni"
-              name="dni"
-              />
-          </div>
-          <div class="info-group">
-            <label>Rol:</label>
-            <p class="role-badge operador">{{ getUserRole() }}</p>
-          </div>
-          <button
-            class="btn-primary"
-            type="button"
-            (click)="savePersonalData()"
-            >
-            <i class="fas fa-save"></i> Guardar
-          </button>
-          <button class="btn-secondary" type="button" (click)="cancelEdit()">
-            Cancelar
-          </button>
-        }
+  <!-- Cambiar Contraseña -->
+  <section class="ct-section">
+    <div class="ct-section__header">
+      <div class="ct-section__heading">
+        <span class="material-symbols-outlined ct-icon-chip">lock</span>
+        <h2 class="ct-section__title">Seguridad</h2>
       </div>
     </div>
+    <div class="ct-form-grid">
+      <div>
+        <label class="form-label" for="currentPassword">Contraseña Actual</label>
+        <input
+          type="password"
+          id="currentPassword"
+          [(ngModel)]="changePasswordForm.currentPassword"
+          class="form-control"
+          placeholder="Ingrese su contraseña actual"
+          />
+      </div>
+      <div>
+        <label class="form-label" for="newPassword">Nueva Contraseña</label>
+        <input
+          type="password"
+          id="newPassword"
+          [(ngModel)]="changePasswordForm.newPassword"
+          class="form-control"
+          placeholder="Ingrese la nueva contraseña"
+          />
+      </div>
+      <div>
+        <label class="form-label" for="confirmPassword">Confirmar Nueva Contraseña</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          [(ngModel)]="changePasswordForm.confirmPassword"
+          class="form-control"
+          placeholder="Confirme la nueva contraseña"
+          />
+      </div>
+    </div>
+    <div class="ct-form-actions">
+      <button type="button" class="btn btn-primary" (click)="changePassword()">
+        <span class="material-symbols-outlined">lock_reset</span>
+        Cambiar Contraseña
+      </button>
+    </div>
+  </section>
 
-    <!-- Cambiar Contraseña -->
-    <div class="section-card">
-      <div class="section-header">
-        <i class="fas fa-lock"></i>
-        <h2>Seguridad</h2>
-      </div>
-      <div class="section-body">
-        <div class="form-group">
-          <label for="currentPassword">Contraseña Actual:</label>
-          <input
-            type="password"
-            id="currentPassword"
-            [(ngModel)]="changePasswordForm.currentPassword"
-            class="form-control"
-            placeholder="Ingrese su contraseña actual"
-            />
-        </div>
-        <div class="form-group">
-          <label for="newPassword">Nueva Contraseña:</label>
-          <input
-            type="password"
-            id="newPassword"
-            [(ngModel)]="changePasswordForm.newPassword"
-            class="form-control"
-            placeholder="Ingrese la nueva contraseña"
-            />
-        </div>
-        <div class="form-group">
-          <label for="confirmPassword">Confirmar Nueva Contraseña:</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            [(ngModel)]="changePasswordForm.confirmPassword"
-            class="form-control"
-            placeholder="Confirme la nueva contraseña"
-            />
-        </div>
-        <button class="btn-primary" (click)="changePassword()">
-          <i class="fas fa-save"></i>
-          Cambiar Contraseña
-        </button>
+  <!-- Configuración de Sistema -->
+  <section class="ct-section">
+    <div class="ct-section__header">
+      <div class="ct-section__heading">
+        <span class="material-symbols-outlined ct-icon-chip">settings</span>
+        <h2 class="ct-section__title">Configuración del Sistema</h2>
       </div>
     </div>
-
-    <!-- Configuración de Sistema -->
-    <div class="section-card">
-      <div class="section-header">
-        <i class="fas fa-cog"></i>
-        <h2>Configuración del Sistema</h2>
+    <div class="ct-grid ct-grid--2">
+      <div class="opcion">
+        <span class="opcion__texto">Recibir notificaciones por email</span>
+        <label class="ct-switch" aria-label="Recibir notificaciones por email">
+          <input type="checkbox" id="notifications" [(ngModel)]="systemConfig.notifications" />
+          <span class="ct-switch__track"></span>
+        </label>
       </div>
-      <div class="section-body">
-        <div class="config-option">
-          <input
-            type="checkbox"
-            id="notifications"
-            [(ngModel)]="systemConfig.notifications"
-            />
-          <label for="notifications">Recibir notificaciones por email</label>
-        </div>
-        <div class="config-option">
-          <input
-            type="checkbox"
-            id="autoRefresh"
-            [(ngModel)]="systemConfig.autoRefresh"
-            />
-          <label for="autoRefresh">Actualización automática de datos</label>
-        </div>
-        <button class="btn-secondary" (click)="saveSystemConfig()">
-          <i class="fas fa-save"></i>
-          Guardar Configuración
-        </button>
+      <div class="opcion">
+        <span class="opcion__texto">Actualización automática de datos</span>
+        <label class="ct-switch" aria-label="Actualización automática de datos">
+          <input type="checkbox" id="autoRefresh" [(ngModel)]="systemConfig.autoRefresh" />
+          <span class="ct-switch__track"></span>
+        </label>
       </div>
     </div>
-  </div>
+    <div class="ct-form-actions">
+      <button type="button" class="btn btn-primary" (click)="saveSystemConfig()">
+        <span class="material-symbols-outlined">save</span>
+        Guardar Configuración
+      </button>
+    </div>
+  </section>
 </div>

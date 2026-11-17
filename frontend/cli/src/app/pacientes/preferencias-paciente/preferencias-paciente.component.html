@@ -1,21 +1,14 @@
-<div class="container-fluid mt-4">
-  <div class="row justify-content-center">
-    <div class="col-lg-10 col-xl-8">
-      <div class="card shadow-sm mb-4">
-        <!-- Header del componente -->
-        <div class="card-header bg-primary text-white">
-          <div class="d-flex align-items-center gap-3">
-            <span class="material-symbols-outlined" style="font-size: 2rem;">schedule</span>
-            <div>
-              <h2 class="mb-0 h4">Mis Preferencias Horarias</h2>
-              <p class="mb-0 small opacity-90">
-                Configura tus horarios preferidos para la asignación de turnos
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="card-body p-4">
+<div class="ct-page ct-page--narrow">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">schedule</span>
+      <div>
+        <h1 class="ct-page-header__title">Mis Preferencias Horarias</h1>
+        <p class="ct-page-header__subtitle">Configura tus horarios preferidos para la asignación de turnos</p>
+      </div>
+    </div>
+  </header>
+  <section class="ct-section">
           <!-- Mensajes de éxito/error -->
           @if (mensaje) {
             <div class="mb-4">
@@ -163,7 +156,7 @@
                       <!-- Botón de eliminar -->
                       <button
                         type="button"
-                        class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2"
+                        class="btn btn-danger btn-sm"
                         (click)="eliminarPreferencia(pref.id!, pref.diaDeLaSemana)"
                         [disabled]="isLoading"
                         title="Eliminar preferencia">
@@ -197,8 +190,5 @@
               <li>Puedes tener múltiples preferencias para diferentes días y horarios.</li>
             </ul>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </section>
 </div>

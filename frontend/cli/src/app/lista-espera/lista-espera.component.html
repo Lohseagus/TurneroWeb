@@ -1,20 +1,20 @@
-<div class="container-fluid mt-lg">
-  <!-- HEADER LVE NORMALIZADO -->
-  <div class="card p-xl mb-xl mx-auto">
-    <div class="listado-header d-flex align-items-center justify-content-between mb-lg">
-      <div class="d-flex align-items-center gap-md">
-        <span class="material-symbols-outlined header-icon">hourglass_empty</span>
-        <div>
-          <h2 class="mb-0">Lista de Espera</h2>
-          <p class="text-white mb-0 mt-sm">Gestión de solicitudes de turnos pendientes</p>
-        </div>
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">hourglass_empty</span>
+      <div>
+        <h1 class="ct-page-header__title">Lista de Espera</h1>
+        <p class="ct-page-header__subtitle">Gestión de solicitudes de turnos pendientes</p>
       </div>
-      <button class="btn btn-primary" (click)="nuevaSolicitud()">
+    </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-primary" (click)="nuevaSolicitud()">
         <span class="material-symbols-outlined">add</span>
         Nueva Solicitud
       </button>
     </div>
-
+  </header>
+  <div class="card p-xl mb-xl mx-auto">
     <!-- INFO BADGE -->
     @if (totalElements > 0) {
       <div class="info-badge mb-lg">
