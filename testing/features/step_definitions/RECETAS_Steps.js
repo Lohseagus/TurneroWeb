@@ -23,7 +23,15 @@ After({ tags: '@recetas' }, function () {
 });
 
 Given('que el paciente de la receta tiene sexo y fecha de nacimiento', function () {
-  runSql(`UPDATE paciente SET sexo = 'F', fecha_nacimiento = DATE '1990-05-12' WHERE id = ${this.pacienteId || 1};`);
+  runSql(`
+    UPDATE paciente SET sexo = 'F', fecha_nacimiento = DATE '1990-05-12' WHERE id = ${this.pacienteId || 1};
+    INSERT INTO hce_cie10 (system_uri, code, display)
+    SELECT 'http://hl7.org/fhir/sid/icd-10', 'R51', 'Cefalea'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM hce_cie10
+      WHERE system_uri = 'http://hl7.org/fhir/sid/icd-10' AND code = 'R51'
+    );
+  `);
 });
 
 When('creo una consulta de historia clínica con diagnóstico CIE-10', function () {
