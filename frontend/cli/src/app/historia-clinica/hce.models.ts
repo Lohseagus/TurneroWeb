@@ -163,6 +163,8 @@ export interface MetadataHce {
   cantidadCerradas: number;
   cantidadAdjuntos: number;
   cantidadEnmiendas: number;
+  cantidadRecetas?: number;
+  cantidadOrdenes?: number;
   ultimaActividad?: string;
 }
 

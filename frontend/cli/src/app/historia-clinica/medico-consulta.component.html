@@ -69,6 +69,8 @@
     </div>
   </section>
 
+  <app-recetas-consulta *ngIf="consulta.id" [consulta]="consulta"></app-recetas-consulta>
+
   <section class="hce-panel" *ngIf="consulta.id">
     <h2>Estudios e imágenes</h2>
     <div class="hce-actions" *ngIf="!cargando">

@@ -171,6 +171,9 @@ textarea { min-height: 90px; resize: vertical; }
 
 .hce-sugerencias button:hover { background: var(--color-background); }
 
+.hce-preview { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-md); }
+.hce-preview .hce-card { margin-top: var(--space-sm); }
+
 @media (max-width: 720px) {
   .hce-event { grid-template-columns: 1fr; }
   .hce-page { padding: var(--space-md); }

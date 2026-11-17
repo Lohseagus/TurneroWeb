@@ -1,0 +1,30 @@
+<div class="hce-page">
+  <div class="hce-header">
+    <div>
+      <h1>{{ orden ? 'Verificación de orden' : 'Verificación de receta' }}</h1>
+      <p>Consulta pública para la farmacia o el laboratorio. No muestra la historia clínica.</p>
+    </div>
+  </div>
+  <p *ngIf="cargando">Verificando…</p>
+  <div class="hce-error" *ngIf="error">{{ error }}</div>
+
+  <section class="hce-panel" *ngIf="datos">
+    <p class="hce-badge" [class.cerrada]="datos.vigente" [class.borrador]="!datos.vigente">{{ datos.mensaje }}</p>
+    <p>Estado: <strong>{{ datos.estado }}</strong></p>
+    <p>Emisión: {{ datos.fechaEmision || '—' }} · Vencimiento: {{ datos.fechaVencimiento || '—' }}</p>
+    <p>Profesional: {{ datos.prescriptor || '—' }}</p>
+    <p>Matrícula: {{ datos.matricula || '—' }}
+      <span *ngIf="datos.matriculaProvincial"> · Provincial {{ datos.matriculaProvincial }}</span>
+    </p>
+    <p>Paciente: {{ datos.pacienteIniciales }} · DNI {{ datos.dniParcial }}</p>
+    <h2>{{ orden ? 'Prácticas' : 'Medicamentos' }}</h2>
+    <article class="hce-card" *ngFor="let item of datos.items">
+      <p><strong>{{ item.nombre }}</strong> {{ item.concentracion }} {{ item.forma }}</p>
+      <p *ngIf="item.cantidad">Cantidad: {{ item.cantidad }} <span *ngIf="item.cantidadEnLetras">({{ item.cantidadEnLetras }})</span></p>
+      <p *ngIf="item.codigo">Código: {{ item.codigo }}</p>
+      <p *ngIf="item.noSustituir">No sustituir</p>
+    </article>
+    <p class="hce-error" *ngIf="!datos.integridad">La huella del contenido no coincide.</p>
+    <p class="hce-muted">Esta pantalla no dispensa ni reemplaza la validación de una plataforma inscripta en ReNaPDiS.</p>
+  </section>
+</div>

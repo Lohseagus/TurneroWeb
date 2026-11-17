@@ -104,9 +104,11 @@ Los URI de DNI, federador y REFEPS son provisionales hasta que la Red Nacional p
 | Condition | `DiagnosticoConsulta` | `code.coding.system` + `code` (CIE-10: `http://hl7.org/fhir/sid/icd-10`). SNOMED CT AR se suma como otro system sin cambiar la tabla |
 | AllergyIntolerance | `Alergia` | `clinicalStatus` active/inactive. Código opcional con su system |
 | MedicationStatement | `MedicacionHabitual` activa | Texto y, si hay, system + code |
+| MedicationRequest | `hce_receta` emitida o en borrador, un recurso por ítem | Ver [RECETAS.md](RECETAS.md). El CUIR oficial viaja en `identifier` solo cuando la plataforma lo asigna |
+| ServiceRequest | `hce_orden_estudio`, un recurso por práctica | Indicación en `note`, urgencia en `priority` |
 | Observation | Signos de la consulta | LOINC 8480-6, 8462-4, 8867-4, 8310-5, 29463-7, 8302-2, 39156-5 |
 | DocumentReference | `AdjuntoClinico` | Tipo, título y tamaño. El binario no viaja en el JSON |
 
-`GET /api/hce/pacientes/{id}/fhir` devuelve un Bundle `collection` con esa forma. No autentica contra el bus, no resuelve el federador y no valida con el perfil nacional: es la exportación de lectura para el conector que venga después.
+`GET /api/hce/pacientes/{id}/fhir` devuelve un Bundle `collection` con esa forma. No autentica contra el bus, no resuelve el federador y no valida con el perfil nacional: es la exportación de lectura para el conector que venga después. Las recetas y las órdenes entran como MedicationRequest y ServiceRequest; el camino de cumplimiento de la Ley 27.553 está en [RECETAS.md](RECETAS.md).
 
 El catálogo CIE-10 de semilla se puede reemplazar o ampliar cargando filas en `hce_cie10` con el mismo `system_uri`. Un código que no esté en el catálogo se rechaza al guardar el diagnóstico.

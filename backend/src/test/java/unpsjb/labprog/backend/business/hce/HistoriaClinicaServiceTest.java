@@ -28,6 +28,8 @@ import unpsjb.labprog.backend.business.repository.EspecialidadRepository;
 import unpsjb.labprog.backend.business.repository.MedicacionHabitualRepository;
 import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.PerfilClinicoRepository;
+import unpsjb.labprog.backend.business.repository.OrdenEstudioRepository;
+import unpsjb.labprog.backend.business.repository.RecetaRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
 import unpsjb.labprog.backend.business.repository.VacunaRepository;
 import unpsjb.labprog.backend.dto.hce.ConsultaWriteDTO;
@@ -60,6 +62,8 @@ class HistoriaClinicaServiceTest {
     @Mock private EspecialidadRepository especialidadRepository;
     @Mock private AccesoHistoriaClinicaRepository accesoRepository;
     @Mock private AdjuntoClinicoRepository adjuntoRepository;
+    @Mock private RecetaRepository recetaRepository;
+    @Mock private OrdenEstudioRepository ordenRepository;
 
     @InjectMocks
     private HistoriaClinicaService service;

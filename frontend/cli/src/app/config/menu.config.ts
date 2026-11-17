@@ -73,6 +73,12 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Consultas, estudios y perfil clínico'
       },
       {
+        label: 'Mis recetas',
+        route: '/paciente-recetas',
+        icon: 'description',
+        description: 'Recetas y órdenes de estudio'
+      },
+      {
         label: 'Mis Notificaciones',
         route: '/paciente-notificaciones',
         icon: 'notifications',

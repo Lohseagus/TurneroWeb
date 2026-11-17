@@ -34,6 +34,18 @@ public class Paciente extends Persona {
     @Temporal(TemporalType.DATE)
     private Date fechaNacimiento;
 
+    /**
+     * F, M o X. Opcional: la receta electrónica lo pide al emitir.
+     */
+    @Column(length = 1)
+    private String sexo;
+
+    /**
+     * Número de afiliado a la obra social o prepaga. Opcional.
+     */
+    @Column(length = 40)
+    private String numeroAfiliado;
+
     @ManyToOne
         private ObraSocial obraSocial;
     

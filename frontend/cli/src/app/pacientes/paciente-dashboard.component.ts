@@ -764,6 +764,10 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(["/paciente-historia-clinica"]);
   }
 
+  viewRecetas() {
+    this.router.navigate(["/paciente-recetas"]);
+  }
+
   abrirEncuesta(turnoId: number) {
     if (!turnoId) return;
     this.router.navigate(["/paciente/encuesta", turnoId]);

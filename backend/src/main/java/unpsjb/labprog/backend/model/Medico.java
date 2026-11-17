@@ -28,6 +28,14 @@ public class Medico extends Persona {
     @Column(nullable = false)
     private String matricula;
 
+    /** Matrícula nacional, si el profesional la tiene cargada aparte de {@link #matricula}. */
+    @Column(length = 40)
+    private String matriculaNacional;
+
+    /** Matrícula provincial. */
+    @Column(length = 40)
+    private String matriculaProvincial;
+
     /**
      * Identificador REFEPS del profesional. Opcional hasta la integración nacional.
      */
