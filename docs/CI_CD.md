@@ -121,7 +121,13 @@ El directorio `/home/ubuntu/cheturno` ya existe y no es un clone de git. El work
 
    Los certificados de Caddy están en `cheturno_caddy_data` y `cheturno_caddy_config`. Esos nombres también están fijos.
 
-2. Dejar el `.env` en `/home/ubuntu/cheturno/.env` con `DB_USERNAME`, `DB_PASSWORD` y `JWT_SECRET`. El ejemplo sin valores reales está en `deploy/.env.example`. El workflow no lo toca. Esas tres alcanzan: el mail y el admin seed siguen saliendo de los defaults del JAR.
+2. Dejar el `.env` en `/home/ubuntu/cheturno/.env` con `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` y `MAIL_PASSWORD`. El ejemplo sin valores reales está en `deploy/.env.example`. El workflow no lo toca.
+
+   - `JWT_SECRET`: Base64, 32 bytes o más (`openssl rand -base64 48`). El backend no arranca si falta, si es corta o si es la clave de ejemplo que estuvo publicada en el repo. Cambiarla cierra todas las sesiones: los usuarios vuelven a iniciar sesión.
+   - `MAIL_PASSWORD`: contraseña de aplicación de la casilla que envía los mails. La imagen ya no trae ninguna. `MAIL_USERNAME` es opcional (por defecto `soporte.cheturno@gmail.com`).
+   - `ADMIN_SEED_ENABLED`, `ADMIN_SEED_EMAIL`, `ADMIN_SEED_PASSWORD`: solo para una instalación nueva sin ningún SUPERADMIN. El seed viene apagado y exige una contraseña propia de 12 caracteres o más. Después del primer login, sacalas del `.env`.
+
+   `remote-deploy.sh` revisa el `.env` antes de bajar imágenes. Si falta una de las cuatro obligatorias, o `JWT_SECRET` es la clave publicada, el deploy termina en rojo sin recrear contenedores y el sitio sigue con la versión anterior. Si `MAIL_PASSWORD` es la contraseña que estuvo publicada, deja un aviso en el log y sigue.
 
 3. La clave pública correspondiente a `SSH_PRIVATE_KEY` tiene que estar en `/home/ubuntu/.ssh/authorized_keys` del usuario `ubuntu`.
 
@@ -183,5 +189,5 @@ Mergeá eso cuando una corrida manual esté verde, y en la protección de `maste
 Quedan anotados y no se tocaron, salvo el doble `/api` del registro, que impedía que el frontend publicado pegue al backend:
 
 - `SecurityConfig` en modo producción autoriza rutas **sin** `/api` (`/turnos/**`, `/agenda/**`, `/pacientes/**`, ...). Los controllers viven en `/api/...`, así que esas reglas no matchean. Termina aplicando `anyRequest().authenticated()`. El control por rol no está donde parece.
-- `application.properties` tiene secretos por defecto en el repo: `jwt.secret`, la contraseña SMTP (`spring.mail.password`) y la clave del admin seed. En el servidor el JWT se pisa con `JWT_SECRET` del `.env`. El mail y el admin seed siguen saliendo del JAR porque el `.env` de producción no los define.
+- `application.properties` ya no trae secretos por defecto, pero la clave JWT de ejemplo, la contraseña SMTP y la clave del admin seed siguen en el historial de git. Sacarlas del archivo no las invalida: hay que revocar la contraseña de aplicación en la cuenta de Google, cambiar la contraseña de `admin@turneroweb.com` si esa cuenta existe en producción y confirmar que el `JWT_SECRET` del servidor no es la clave de ejemplo.
 - No hay tests unitarios de backend ni de Angular.

@@ -5,7 +5,7 @@ Todas las cuentas de esta página usan la contraseña `password`.
 - `staging/poblacion_demo.sql` crea todas las cuentas (las que falten) y los datos para que cada panel tenga contenido: 53 centros en todo el país, médicos con agenda, pacientes y turnos pasados y futuros.
 - `staging/userinit.sql` es el juego mínimo de la suite multi-tenant: solo crea las marcadas con ✓ en la columna "userinit".
 
-El backend además crea al arrancar un superadmin propio con las variables `ADMIN_SEED_*` (por defecto `admin@turneroweb.com`).
+El backend puede crear al arrancar un superadmin propio (`admin@turneroweb.com` salvo que se indique otro email), pero solo si se le pide con `ADMIN_SEED_ENABLED=true` y una `ADMIN_SEED_PASSWORD` de 12 caracteres o más. Por defecto no crea ninguno.
 
 ## Superadmin (acceso a todos los centros)
 
