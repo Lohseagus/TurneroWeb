@@ -47,22 +47,6 @@ export interface RefreshTokenRequest {
 }
 
 /**
- * Interfaz para el check email request
- */
-export interface CheckEmailRequest {
-  email: string;
-}
-
-/**
- * Interfaz para el check email response
- */
-export interface CheckEmailResponse {
-  email: string;
-  nombre: string;
-  role: string;
-}
-
-/**
  * Interfaz para el request de cambio de contraseña
  */
 export interface ChangePasswordRequest {
@@ -346,24 +330,6 @@ export class AuthService {
         }
       });
     }
-  }
-
-  /**
-   * Verifica si un email existe en la base de datos
-   * @param email Email a verificar
-   * @returns Observable con la información del usuario si existe
-   */
-  checkEmail(email: string): Observable<DataPackage<CheckEmailResponse>> {
-    const checkEmailPayload: CheckEmailRequest = {
-      email: email,
-    };
-
-    return this.http
-      .post<DataPackage<CheckEmailResponse>>(
-        `${this.API_BASE_URL}/check-email`,
-        checkEmailPayload
-      )
-      .pipe(catchError(this.handleError));
   }
 
   /**

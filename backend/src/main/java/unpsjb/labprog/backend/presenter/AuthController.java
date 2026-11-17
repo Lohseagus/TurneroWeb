@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -111,11 +111,14 @@ public class AuthController {
             return Response.response(HttpStatus.OK, "Login exitoso",
                     loginResponse(sesionService.abrir(user), "USER"));
 
-        } catch (BadCredentialsException e) {
+        } catch (AuthenticationException e) {
+            // Cuenta inexistente, clave incorrecta, cuenta deshabilitada o bloqueada: la
+            // misma respuesta. Spring revisa el estado de la cuenta antes que la clave,
+            // así que un mensaje distinto diría que el email existe sin conocer la clave.
             return Response.response(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", null);
         } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, 
-                "Error interno del servidor: " + e.getMessage(), null);
+            logger.error("Error en login: {}", e.getMessage());
+            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", null);
         }
     }
 
@@ -245,33 +248,19 @@ public class AuthController {
     }
 
     /**
-     * Endpoint para verificar si un email existe y obtener información básica del usuario
+     * Paso de email del login. Responde lo mismo exista o no la cuenta y no consulta
+     * la base: antes devolvía nombre y rol de cualquier email, sin autenticación, y
+     * servía para armar un padrón de usuarios. El frontend actual ya no lo llama; se
+     * conserva para las copias viejas de la SPA que sigan abiertas en un navegador.
      * POST /api/auth/check-email
      */
     @PostMapping("/check-email")
     public ResponseEntity<Object> checkEmail(@RequestBody CheckEmailRequest request) {
-        try {
-            Optional<User> userOptional = userService.findByEmail(request.getEmail());
-            
-            if (userOptional.isPresent()) {
-                User user = userOptional.get();
-                
-                // Crear response con información básica del usuario
-                CheckEmailResponse response = new CheckEmailResponse(
-                    user.getEmail(),
-                    user.getNombre() + " " + user.getApellido(),
-                    user.getRole() != null ? user.getRole().getName() : "USER"
-                );
-                
-                return Response.response(HttpStatus.OK, "Email encontrado", response);
-            } else {
-                return Response.response(HttpStatus.NOT_FOUND, "Email no encontrado", null);
-            }
-            
-        } catch (Exception e) {
-            return Response.response(HttpStatus.INTERNAL_SERVER_ERROR, 
-                "Error al verificar email: " + e.getMessage(), null);
+        if (request == null || !isValidEmail(request.getEmail())) {
+            return Response.response(HttpStatus.BAD_REQUEST, "El formato del email no es válido", null);
         }
+        return Response.response(HttpStatus.OK, "Continuar",
+                new CheckEmailResponse(request.getEmail().trim(), null, null));
     }
     
     // ===============================
