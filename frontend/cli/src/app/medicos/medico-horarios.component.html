@@ -42,9 +42,30 @@
     </div>
   }
 
-  <!-- Centro de atención -->
+  <!-- Horarios actuales: todos los centros por defecto, con filtro por centro -->
   @if (!mostrarFormulario) {
     <section class="ct-section">
+      <div class="ct-section__header">
+        <div class="ct-section__heading">
+          <span class="material-symbols-outlined ct-icon-chip">calendar_month</span>
+          <div>
+            <h2 class="ct-section__title">Mis Horarios Configurados</h2>
+            <p class="ct-section__description">Tu disponibilidad semanal en cada centro</p>
+          </div>
+        </div>
+        @if (getCentros().length > 1) {
+          <div class="centro-selector">
+            <label class="form-label" for="filtroCentro">Centro:</label>
+            <select id="filtroCentro" class="form-select" (change)="onFiltrarCentro($event)">
+              <option value="" [selected]="centroFiltro === null">Todos los centros ({{ getCentros().length }})</option>
+              @for (centro of getCentros(); track centro.id) {
+                <option [value]="centro.id" [selected]="centroFiltro === centro.id">{{ centro.nombre }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+
       @if (errorCarga) {
         <div class="ct-empty">
           <span class="material-symbols-outlined ct-empty__icon ct-empty__icon--danger">error</span>
@@ -56,123 +77,49 @@
           </button>
         </div>
       }
-      @if (cargando && !errorCarga) {
-        <div class="ct-loading">
-          <span class="material-symbols-outlined ct-spin">sync</span>
-          <p>Cargando información del médico...</p>
-        </div>
-      }
-      @if (cargandoCentros && !errorCarga) {
-        <div class="ct-loading">
-          <span class="material-symbols-outlined ct-spin">sync</span>
-          <p>Cargando centros de atención...</p>
-        </div>
-      }
-      @if (cambiandoCentro && !errorCarga) {
-        <div class="ct-loading">
-          <span class="material-symbols-outlined ct-spin">sync</span>
-          <p>Cambiando centro de atención...</p>
-        </div>
-      }
-      @if (!cargando && !cargandoCentros && !cambiandoCentro && !errorCarga) {
-        <div class="ct-section__header">
-          <div class="ct-section__heading">
-            <span class="material-symbols-outlined ct-icon-chip">local_hospital</span>
-            <h2 class="ct-section__title">{{ getNombreCentroActual() }}</h2>
-          </div>
-          @if (getTotalCentrosDisponibles() > 1) {
-            <div class="centro-selector">
-              <label class="form-label" for="cambiarCentro">Cambiar a otro centro:</label>
-              <select id="cambiarCentro" class="form-select" (change)="onCambiarCentro($event)">
-                <option value="">Seleccionar centro...</option>
-                @for (centro of getCentrosUnicos(); track centro.nombre) {
-                  <option [value]="centro.nombre">{{ centro.nombre }}</option>
-                }
-              </select>
-            </div>
-          }
-        </div>
-      }
-    </section>
-  }
-
-  <!-- Horarios actuales -->
-  @if (!mostrarFormulario) {
-    <section class="ct-section">
-      <div class="ct-section__header">
-        <div class="ct-section__heading">
-          <span class="material-symbols-outlined ct-icon-chip">calendar_month</span>
-          <div>
-            <h2 class="ct-section__title">Mis Horarios Configurados</h2>
-            <p class="ct-section__description">Gestiona tu disponibilidad semanal</p>
-          </div>
-        </div>
-        <button type="button" class="btn btn-primary" (click)="toggleFormulario()">
-          @if (disponibilidades.length === 0) {
-            <span class="material-symbols-outlined">add</span>
-          }
-          @if (disponibilidades.length > 0) {
-            <span class="material-symbols-outlined">edit</span>
-          }
-          {{ disponibilidades.length === 0 ? "Nuevo Horario" : "Editar Horarios" }}
-        </button>
-      </div>
-
-      @if (cargando) {
+      @if ((cargando || cargandoDisponibilidades) && !errorCarga) {
         <div class="ct-loading">
           <span class="material-symbols-outlined ct-spin">sync</span>
           <p>Cargando horarios...</p>
         </div>
       }
 
-      @if (!cargando && getEspecialidadesDelCentroActual().length > 0) {
-        @for (especialidad of getEspecialidadesDelCentroActual(); track especialidad.id) {
+      @if (!cargando && !cargandoDisponibilidades && !errorCarga) {
+        @for (staff of getStaffVisibles(); track staff.id) {
           <article class="especialidad">
             <div class="ct-section__header">
               <div class="ct-section__heading">
-                <span class="material-symbols-outlined ct-icon-chip">stethoscope</span>
+                <span class="material-symbols-outlined ct-icon-chip">local_hospital</span>
                 <div>
-                  <h3 class="especialidad__nombre">{{ especialidad.nombre }}</h3>
+                  <h3 class="especialidad__nombre">{{ staff.centroAtencion?.nombre || "Centro no disponible" }}</h3>
+                  <span class="ct-badge">
+                    <span class="material-symbols-outlined">stethoscope</span>
+                    {{ staff.especialidad?.nombre || "Sin especialidad" }}
+                  </span>
                   <span
                     class="ct-badge"
-                    [class.ct-badge--success]="especialidadTieneDisponibilidades(especialidad.id)"
-                    [class.ct-badge--warning]="!especialidadTieneDisponibilidades(especialidad.id)"
+                    [class.ct-badge--success]="getDisponibilidadesDeStaff(staff.id).length > 0"
+                    [class.ct-badge--warning]="getDisponibilidadesDeStaff(staff.id).length === 0"
                     >
-                    @if (especialidadTieneDisponibilidades(especialidad.id)) {
-                      <span class="material-symbols-outlined">check_circle</span>
-                    }
-                    @if (!especialidadTieneDisponibilidades(especialidad.id)) {
-                      <span class="material-symbols-outlined">schedule</span>
-                    }
-                    {{ especialidadTieneDisponibilidades(especialidad.id) ? "Configurado" : "Pendiente" }}
+                    {{ getDisponibilidadesDeStaff(staff.id).length > 0 ? "Configurado" : "Pendiente" }}
                   </span>
                 </div>
               </div>
-              @if (!especialidadTieneDisponibilidades(especialidad.id)) {
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  (click)="nuevaDisponibilidadParaEspecialidad(especialidad.id)"
-                  >
+              @if (getDisponibilidadesDeStaff(staff.id).length === 0) {
+                <button type="button" class="btn btn-primary" (click)="nuevaDisponibilidadParaStaff(staff)">
                   <span class="material-symbols-outlined">add</span>
                   Configurar Horarios
                 </button>
               }
-              @if (especialidadTieneDisponibilidades(especialidad.id)) {
-                <span class="ct-badge">
-                  <span class="material-symbols-outlined">date_range</span>
-                  {{ getHorariosPorEspecialidad(especialidad.id).length }} configuraciones
-                </span>
-              }
             </div>
 
-            @if (especialidadTieneDisponibilidades(especialidad.id)) {
+            @if (getDisponibilidadesDeStaff(staff.id).length > 0) {
               <div class="ct-grid ct-grid--wide">
-                @for (disponibilidad of disponibilidadesPorEspecialidad[especialidad.id]; track disponibilidad.id) {
+                @for (disponibilidad of getDisponibilidadesDeStaff(staff.id); track disponibilidad.id) {
                   <div class="disponibilidad">
                     <div class="disponibilidad__header">
                       <div>
-                        <div class="disponibilidad__titulo">Horarios de {{ especialidad.nombre }}</div>
+                        <div class="disponibilidad__titulo">Horarios de {{ staff.especialidad?.nombre }}</div>
                         <div class="disponibilidad__detalle">{{ disponibilidad.horarios.length }} días configurados</div>
                       </div>
                       <div class="ct-btn-group">
@@ -300,9 +247,6 @@
             @for (especialidad of getEspecialidadesDelCentroActual(); track especialidad.id) {
               <option [value]="especialidad.id">
                 {{ especialidad.nombre }}
-                @if (especialidadTieneDisponibilidades(especialidad.id) && !modoEdicion) {
-                  (Ya configurada)
-                }
               </option>
             }
           </select>
@@ -313,6 +257,7 @@
             <span>
               {{ modoEdicion ? "Editando horarios para:" : "Configurando horarios para:" }}
               <strong>{{ getNombreEspecialidad(especialidadSeleccionada) }}</strong>
+              en <strong>{{ getNombreCentroActual() }}</strong>
             </span>
           </div>
         }

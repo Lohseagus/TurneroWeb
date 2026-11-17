@@ -61,6 +61,7 @@ export class MedicoHorariosComponent implements OnInit {
   staffMedicos: any[] = []; // Lista de todos los StaffMedico del médico actual
   staffMedicoSeleccionado: any | null = null; // StaffMedico actual (centro + especialidad específicos)
   centroActual: any | null = null; // Centro de atención actual
+  centroFiltro: number | null = null; // Centro elegido en el filtro; null = todos los centros
 
   horariosForm: { dia: string, horaInicio: string, horaFin: string }[] = [];
 
@@ -691,19 +692,44 @@ Posible problema de configuración. Verifique:
   }
 
   // Nuevo método para filtrar disponibilidades sin recargar desde servidor
+  // Por defecto se muestran los horarios de todos los centros del médico;
+  // con un centro elegido en el filtro, solo los de ese centro.
   private filtrarDisponibilidadesPorCentroActual() {
-    if (this.staffMedicoSeleccionado) {
-      this.disponibilidades = this.todasLasDisponibilidades.filter(disp => 
-        disp.staffMedicoId === this.staffMedicoSeleccionado.id
-      );
-      console.log('Disponibilidades filtradas para StaffMedico', this.staffMedicoSeleccionado.id, ':', this.disponibilidades);
-    } else {
-      // Si no hay StaffMedico seleccionado, mostrar todas
-      this.disponibilidades = this.todasLasDisponibilidades;
-      console.log('Mostrando todas las disponibilidades:', this.disponibilidades);
-    }
-    
+    const staffVisibles = new Set(this.getStaffVisibles().map(sm => sm.id));
+    this.disponibilidades = this.todasLasDisponibilidades.filter(disp => staffVisibles.has(disp.staffMedicoId));
     this.organizarDisponibilidadesPorEspecialidad();
+  }
+
+  getCentros(): { id: number; nombre: string }[] {
+    const centros = new Map<number, { id: number; nombre: string }>();
+    (this.staffMedicos || []).forEach(sm => {
+      const centro = sm.centroAtencion;
+      if (centro?.id && !centros.has(centro.id)) {
+        centros.set(centro.id, { id: centro.id, nombre: centro.nombre });
+      }
+    });
+    return Array.from(centros.values());
+  }
+
+  getStaffVisibles(): any[] {
+    const staff = this.staffMedicos || [];
+    return this.centroFiltro === null ? staff : staff.filter(sm => sm.centroAtencion?.id === this.centroFiltro);
+  }
+
+  getDisponibilidadesDeStaff(staffMedicoId: number): DisponibilidadMedico[] {
+    return this.todasLasDisponibilidades.filter(disp => disp.staffMedicoId === staffMedicoId);
+  }
+
+  onFiltrarCentro(event: Event): void {
+    const valor = (event.target as HTMLSelectElement).value;
+    this.centroFiltro = valor ? Number(valor) : null;
+    this.filtrarDisponibilidadesPorCentroActual();
+  }
+
+  nuevaDisponibilidadParaStaff(staff: any): void {
+    this.staffMedicoSeleccionado = staff;
+    this.centroActual = staff?.centroAtencion;
+    this.nuevaDisponibilidadParaEspecialidad(staff?.especialidad?.id);
   }
 
   // Método para invalidar cache cuando hay cambios en disponibilidades
@@ -1060,7 +1086,7 @@ Posible problema de configuración. Verifique:
       });
     } else {
       // Al crear nueva disponibilidad, obtener o buscar el staffMedicoId
-      const staffMedicoIdNum = await this.getOrFetchStaffMedicoId();
+      const staffMedicoIdNum: number | null = this.staffMedicoSeleccionado?.id ?? null;
 
       if (!staffMedicoIdNum) {
         alert('Error: No se pudo obtener el ID del médico en el centro. Por favor, verifique su sesión o contacte al administrador.');
@@ -1070,68 +1096,6 @@ Posible problema de configuración. Verifique:
       }
 
       // Validar que el ID sea consistente con disponibilidades existentes
-      if (this.disponibilidades.length > 0) {
-        const idExistente = this.disponibilidades[0].staffMedicoId;
-        if (staffMedicoIdNum !== idExistente) {
-          console.warn(`Inconsistencia de IDs detectada. Usando ID de disponibilidad existente: ${idExistente}`);
-          const staffMedicoIdCorregido = idExistente;
-          
-          console.log('Modo creación - usando ID corregido:', staffMedicoIdCorregido);
-          console.log('Horarios a guardar:', horarios);
-          console.log('Especialidad seleccionada:', this.especialidadSeleccionada);
-
-          const nuevaDisponibilidad = {
-            id: 0,
-            staffMedicoId: staffMedicoIdCorregido,
-            especialidadId: this.especialidadSeleccionada,
-            horarios
-          } as DisponibilidadMedico;
-
-          console.log('Creando nueva disponibilidad con ID corregido:', nuevaDisponibilidad);
-
-          this.disponibilidadService.create(nuevaDisponibilidad).subscribe({
-            next: (response) => {
-              console.log('Respuesta del servidor (crear):', response);
-              this.guardando = false;
-              this.cancelarFormulario();
-              // Invalidar cache antes de recargar
-              this.invalidarCacheDisponibilidades();
-              this.cargarDisponibilidades();
-              alert('Horarios guardados correctamente');
-            },
-            error: (error) => {
-              console.error('Error al guardar disponibilidad:', error);
-              console.error('Error completo:', JSON.stringify(error, null, 2));
-              this.guardando = false;
-              
-              let errorMessage = 'Error desconocido al guardar los horarios';
-              
-              if (error.status === 404) {
-                errorMessage = 'Error: No se encontró el médico. Verifique que su sesión sea válida.';
-              } else if (error.status === 400) {
-                // Error 400 podría ser el problema del StaffMedico
-                if (error.error?.status_text?.includes('StaffMedico no encontrado')) {
-                  errorMessage = `Error: El médico con ID ${staffMedicoIdCorregido} no existe en el sistema. Por favor, contacte al administrador o inicie sesión nuevamente.`;
-                  console.error('StaffMedico no encontrado con ID corregido:', staffMedicoIdCorregido);
-                  
-                  // Limpiar localStorage y redirigir al login
-                  this.errorCarga = errorMessage;
-                } else {
-                  errorMessage = `Error de validación: ${error.error?.status_text || error.error?.message || 'Datos inválidos'}`;
-                }
-              } else if (error.status === 403) {
-                errorMessage = 'Error de permisos. Verifique que su sesión sea válida.';
-              } else {
-                errorMessage = `Error al guardar los horarios: ${error.error?.status_text || error.error?.message || error.message}`;
-              }
-              
-              alert(errorMessage);
-            }
-          });
-          return;
-        }
-      }
-
       // Asegurar que tengamos una especialidad seleccionada
       if (!this.especialidadSeleccionada) {
         alert('Error: Debe seleccionar una especialidad antes de guardar.');
@@ -1196,6 +1160,11 @@ Posible problema de configuración. Verifique:
   editarDisponibilidad(disponibilidad: DisponibilidadMedico) {
     this.modoEdicion = true;
     this.disponibilidadEditando = disponibilidad;
+    const staff = this.staffMedicos.find(sm => sm.id === disponibilidad.staffMedicoId);
+    if (staff) {
+      this.staffMedicoSeleccionado = staff;
+      this.centroActual = staff.centroAtencion;
+    }
     this.mostrarFormulario = true;
     
     // Asegurar que tenemos la especialidad asociada
