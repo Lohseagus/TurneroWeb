@@ -13,6 +13,7 @@ import { PacienteService } from './paciente.service';
 
 class PacienteFalso {
   fichas: { id: number; subject: Subject<DataPackage<Paciente>> }[] = [];
+  propias: Subject<DataPackage<Paciente>>[] = [];
   private obras = new Subject<DataPackage<{ id: number; nombre: string; codigo: string }[]>>();
 
   getObrasSociales() {
@@ -25,12 +26,26 @@ class PacienteFalso {
     return subject.asObservable();
   }
 
+  mio() {
+    const subject = new Subject<DataPackage<Paciente>>();
+    this.propias.push(subject);
+    return subject.asObservable();
+  }
+
   get ficha(): Subject<DataPackage<Paciente>> {
     const ultima = this.fichas[this.fichas.length - 1];
     if (!ultima) {
       throw new Error('Todavía no se pidió la ficha');
     }
     return ultima.subject;
+  }
+
+  get propia(): Subject<DataPackage<Paciente>> {
+    const ultima = this.propias[this.propias.length - 1];
+    if (!ultima) {
+      throw new Error('Todavía no se pidió la ficha propia');
+    }
+    return ultima;
   }
 }
 
@@ -123,9 +138,10 @@ describe('PacienteDetailComponent', () => {
     expect(texto).toContain('Cargando ficha del paciente');
     expect(texto).not.toContain('Nuevo Paciente');
     expect(texto).not.toContain('Contraseña automática');
-    expect(pacientes.fichas.map(f => f.id)).toEqual([12]);
+    expect(pacientes.fichas).toHaveLength(0);
+    expect(pacientes.propias).toHaveLength(1);
 
-    pacientes.ficha.next(paquete(paciente()));
+    pacientes.propia.next(paquete(paciente()));
     fixture.detectChanges();
 
     const listo = fixture.nativeElement.textContent as string;
@@ -144,7 +160,7 @@ describe('PacienteDetailComponent', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain('Registro de nuevo paciente');
 
-    pacientes.ficha.next(paquete(paciente()));
+    pacientes.propia.next(paquete(paciente()));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.modoEdicion).toBe(true);
@@ -153,24 +169,35 @@ describe('PacienteDetailComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Contraseña automática');
   });
 
-  it('un operador sin ficha ve el aviso y no el formulario de alta', async () => {
+  it('un operador sin id local pide /me y el 404 no abre el alta', async () => {
     auth.pacienteId = null;
     await montar();
 
+    expect(fixture.nativeElement.textContent).toContain('Cargando ficha del paciente');
+    expect(fixture.nativeElement.textContent).not.toContain('Nuevo Paciente');
+    expect(pacientes.fichas).toHaveLength(0);
+    expect(pacientes.propias).toHaveLength(1);
+
+    pacientes.propia.error(new HttpErrorResponse({
+      status: 404,
+      error: {
+        status_text: 'Tu usuario puede ver el panel de paciente, pero no hay una ficha de paciente vinculada. Pedile a un administrador del centro que te asocie.'
+      }
+    }));
+    fixture.detectChanges();
+
     const texto = fixture.nativeElement.textContent as string;
     expect(fixture.componentInstance.sinFicha).toBe(true);
-    expect(fixture.componentInstance.cargando).toBe(false);
     expect(texto).toContain('Sin ficha de paciente');
     expect(texto).toContain('no hay una ficha de paciente vinculada');
     expect(texto).not.toContain('Nuevo Paciente');
     expect(texto).not.toContain('Contraseña automática');
     expect(auth.logoutLlamado).toBe(false);
-    expect(pacientes.fichas).toHaveLength(0);
   });
 
   it('un 404 del perfil propio se muestra como sin ficha y el reintento vuelve a pedirla', async () => {
     await montar();
-    pacientes.ficha.error(new HttpErrorResponse({
+    pacientes.propia.error(new HttpErrorResponse({
       status: 404,
       error: { status_code: 404, status_text: 'Paciente con id 12 no encontrado' }
     }));
@@ -183,10 +210,10 @@ describe('PacienteDetailComponent', () => {
 
     fixture.componentInstance.reintentar();
     expect(fixture.componentInstance.cargando).toBe(true);
-    expect(pacientes.fichas.length).toBe(2);
-    expect(pacientes.fichas[1].id).toBe(12);
+    expect(pacientes.propias.length).toBe(2);
+    expect(pacientes.fichas).toHaveLength(0);
 
-    pacientes.ficha.next(paquete(paciente({ nombre: 'Luis', apellido: 'Pérez' })));
+    pacientes.propia.next(paquete(paciente({ nombre: 'Luis', apellido: 'Pérez' })));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.sinFicha).toBe(false);

@@ -704,11 +704,6 @@ Posible problema de configuración. Verifique:
     }
   }
 
-  verNotificaciones() {
-    // Navegar a una página de notificaciones o mostrar un modal
-    this.router.navigate(['/medico-notificaciones']);
-  }
-
   verEstadisticas() {
     this.router.navigate(['/medico-estadisticas']);
   }

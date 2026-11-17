@@ -176,18 +176,6 @@
       <span class="material-symbols-outlined card-arrow">arrow_forward</span>
     </div>
 
-    <div class="card action-card" (click)="verNotificaciones()">
-      <span class="material-symbols-outlined card-icon">notifications</span>
-      <div class="card-content">
-        <h3>Notificaciones</h3>
-        <p>Ver alertas y mensajes importantes</p>
-      </div>
-      @if (stats.turnosPendientes > 0) {
-        <span class="notification-badge">{{ stats.turnosPendientes }}</span>
-      }
-      <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-    </div>
-
     <div class="card action-card" (click)="verEstadisticas()">
       <span class="material-symbols-outlined card-icon">bar_chart</span>
       <div class="card-content">

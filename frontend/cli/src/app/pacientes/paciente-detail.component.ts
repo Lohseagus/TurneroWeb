@@ -102,56 +102,58 @@ export class PacienteDetailComponent implements OnInit {
     this.modoEdicion = false;
     this.pacienteCargado = false;
 
+    if (this.esPerfil()) {
+      this.pacienteService.mio().subscribe({
+        next: (dp: DataPackage<Paciente>) => this.recibirFicha(token, dp),
+        error: (error) => this.falloCarga(token, error),
+      });
+      return;
+    }
+
     const id = this.resolverId();
     if (id == null) {
       return;
     }
 
     this.pacienteService.get(id).subscribe({
-      next: (dp: DataPackage<Paciente>) => {
-        if (token !== this.cargaToken) {
-          return;
-        }
-        if (!dp?.data?.id) {
-          this.fichaAusente();
-          return;
-        }
-        this.paciente = dp.data;
-        this.vincularObraSocial();
-        this.pacienteCargado = true;
-        this.modoEdicion = this.quiereEditar;
-        this.cargando = false;
-      },
-      error: (error) => {
-        if (token !== this.cargaToken) {
-          return;
-        }
-        this.cargando = false;
-        if (this.esPerfil() && this.esNoEncontrado(error)) {
-          this.mostrarSinFicha(this.textoConFicha(error));
-          return;
-        }
-        if (this.esNoEncontrado(error)) {
-          this.errorCarga =
-            this.textoBackend(error) || "No se encontró el paciente.";
-          return;
-        }
-        this.errorCarga = this.mensajeDe(error);
-      },
+      next: (dp: DataPackage<Paciente>) => this.recibirFicha(token, dp),
+      error: (error) => this.falloCarga(token, error),
     });
   }
 
-  /** null si no hay ficha que pedir: el estado de pantalla ya quedó resuelto. */
-  private resolverId(): number | null {
-    if (this.esPerfil()) {
-      const pacienteId = this.authService.getCurrentPatientId();
-      if (!pacienteId) {
-        this.mostrarSinFicha();
-        return null;
-      }
-      return pacienteId;
+  private recibirFicha(token: number, dp: DataPackage<Paciente>): void {
+    if (token !== this.cargaToken) {
+      return;
     }
+    if (!dp?.data?.id) {
+      this.fichaAusente();
+      return;
+    }
+    this.paciente = dp.data;
+    this.vincularObraSocial();
+    this.pacienteCargado = true;
+    this.modoEdicion = this.quiereEditar;
+    this.cargando = false;
+  }
 
+  private falloCarga(token: number, error: unknown): void {
+    if (token !== this.cargaToken) {
+      return;
+    }
+    this.cargando = false;
+    if (this.esPerfil() && this.esNoEncontrado(error)) {
+      this.mostrarSinFicha(this.textoConFicha(error));
+      return;
+    }
+    if (this.esNoEncontrado(error)) {
+      this.errorCarga = this.textoBackend(error) || "No se encontró el paciente.";
+      return;
+    }
+    this.errorCarga = this.mensajeDe(error);
+  }
+
+  /** null si el id de la ruta no sirve: el estado de pantalla ya quedó resuelto. */
+  private resolverId(): number | null {
     const raw = this.route.snapshot.paramMap.get("id");
     const id = raw == null ? NaN : Number(raw);
     if (!Number.isFinite(id) || id <= 0) {
@@ -270,8 +272,9 @@ export class PacienteDetailComponent implements OnInit {
     const userRole = this.authService.getUserRole();
     let op;
 
-    if (this.paciente.id) {
-      // Para actualizaciones, siempre usar update
+    if (this.paciente.id && this.esPacienteVendoSuPerfil()) {
+      op = this.pacienteService.actualizarMio(this.paciente);
+    } else if (this.paciente.id) {
       op = this.pacienteService.update(this.paciente.id, this.paciente);
     } else {
       // Para creaciones, usar el endpoint correcto según el tipo de usuario

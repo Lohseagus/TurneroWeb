@@ -249,8 +249,10 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.DELETE, "/api/admins/**").hasRole("SUPERADMIN")
                                 .requestMatchers("/api/admins/**").hasRole("ADMINISTRADOR")
 
-                                // Autoservicio del paciente (y de quien hereda PACIENTE).
-                                .requestMatchers("/api/pacientes/me/**").hasRole("PACIENTE")
+                                // Autoservicio del paciente (y de quien hereda PACIENTE):
+                                // la ficha propia y las preferencias. Va antes del catálogo,
+                                // que sigue siendo solo de administrador y operador.
+                                .requestMatchers("/api/pacientes/me", "/api/pacientes/me/**").hasRole("PACIENTE")
                                 .requestMatchers("/api/pacientes/sync-current-user").authenticated()
                                 .requestMatchers("/api/notificaciones/**").hasRole("PACIENTE")
                                 .requestMatchers("/api/encuestas/**").hasRole("PACIENTE")
