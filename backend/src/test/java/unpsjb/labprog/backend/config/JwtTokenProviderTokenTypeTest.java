@@ -48,7 +48,7 @@ class JwtTokenProviderTokenTypeTest {
 
     @Test
     void elRefreshTokenValidaComoRefreshYNoComoAccess() {
-        String refresh = provider.generateRefreshToken(user);
+        String refresh = provider.generateRefreshToken(user, "jti-de-prueba");
 
         assertTrue(provider.validateRefreshToken(refresh));
         assertFalse(provider.validateToken(refresh, user));

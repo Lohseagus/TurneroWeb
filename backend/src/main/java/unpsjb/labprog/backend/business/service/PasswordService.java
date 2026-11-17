@@ -30,6 +30,9 @@ public class PasswordService {
     
     @Autowired
     private AuditLogService auditLogService;
+
+    @Autowired
+    private SesionService sesionService;
     
     // ===============================
     // CAMBIO DESDE PERFIL (Usuario autenticado)
@@ -61,6 +64,8 @@ public class PasswordService {
         // 4. Actualizar contraseña
         String newHashedPassword = passwordEncoder.encode(newPassword);
         user.setHashedPassword(newHashedPassword);
+        // Una contraseña nueva cierra todas las sesiones abiertas con la anterior.
+        sesionService.invalidarTodas(user);
         userRepository.save(user);
         
         // 5. Auditar cambio

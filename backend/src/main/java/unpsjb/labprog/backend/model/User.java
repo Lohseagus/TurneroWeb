@@ -67,6 +67,14 @@ public class User extends Persona implements UserDetails {
      * Fecha y hora de activación de la cuenta
      */
     private java.time.LocalDateTime emailVerifiedAt;
+
+    /**
+     * Versión de las sesiones del usuario. Viaja en cada JWT (claim "ver"). Al subirla,
+     * todos los tokens emitidos antes dejan de valer: se usa al cambiar la contraseña
+     * y al deshabilitar la cuenta. Nullable porque las filas anteriores no la tienen.
+     */
+    @Column(name = "token_version")
+    private Integer tokenVersion = 0;
     
     // ===============================
     // MÉTODOS DE CONVENIENCIA
@@ -106,11 +114,25 @@ public class User extends Persona implements UserDetails {
         this.credentialsNonExpired = true;
     }
     
+    public int getTokenVersion() {
+        return tokenVersion == null ? 0 : tokenVersion;
+    }
+
     /**
-     * Deshabilita la cuenta del usuario
+     * Deja sin efecto todos los access y refresh tokens emitidos hasta ahora.
+     * Quien llama tiene que guardar el usuario.
+     */
+    public void invalidarSesiones() {
+        this.tokenVersion = getTokenVersion() + 1;
+    }
+
+    /**
+     * Deshabilita la cuenta del usuario y corta sus sesiones: si la cuenta se
+     * vuelve a habilitar, los tokens viejos no reviven.
      */
     public void disable() {
         this.enabled = false;
+        invalidarSesiones();
     }
     
     /**
@@ -125,6 +147,7 @@ public class User extends Persona implements UserDetails {
      */
     public void lock() {
         this.accountNonLocked = false;
+        invalidarSesiones();
     }
     
     /**

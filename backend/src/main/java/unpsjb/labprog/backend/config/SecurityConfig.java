@@ -227,6 +227,8 @@ public class SecurityConfig {
                                 // si no, el cliente recibe 403 y el frontend dice "no tenés permiso".
                                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                                 .requestMatchers("/", "/health", "/actuator/**").permitAll()
+                                // Operan sobre la cuenta de quien llama: necesitan un usuario autenticado.
+                                .requestMatchers("/api/auth/change-password", "/api/auth/update-profile").authenticated()
                                 .requestMatchers("/api/auth/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/publica", "/api/agenda/publica/**").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/deep-links/validate").permitAll()

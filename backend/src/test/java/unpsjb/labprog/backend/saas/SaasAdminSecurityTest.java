@@ -221,12 +221,37 @@ class SaasAdminSecurityTest {
     @Test
     void unRefreshTokenNoSirveComoBearer() throws Exception {
         User user = usuario(Role.SUPERADMIN, "superadmin@cheturno.test");
-        String refresh = jwtTokenProvider.generateRefreshToken(user);
+        String refresh = jwtTokenProvider.generateRefreshToken(user, "jti-de-prueba");
 
         assertStatus(401, new Call(HttpMethod.GET, "/api/saas/admin/suscripciones", null), refresh);
         assertStatus(401, new Call(HttpMethod.GET, "/api/admins", null), refresh);
         assertEquals(false, jwtTokenProvider.validateRefreshToken(jwtTokenProvider.generateAccessToken(user)),
                 "un access token no puede pasar por refresh token");
+    }
+
+    @Test
+    void unTokenEmitidoAntesDeInvalidarLasSesionesDejaDeServir() throws Exception {
+        Call call = new Call(HttpMethod.GET, "/api/saas/admin/suscripciones", null);
+        User user = usuario(Role.SUPERADMIN, "superadmin@cheturno.test");
+        String anterior = jwtTokenProvider.generateAccessToken(user);
+        assertStatus(200, call, anterior);
+
+        user.invalidarSesiones();
+
+        assertStatus(401, call, anterior);
+        assertStatus(200, call, jwtTokenProvider.generateAccessToken(user));
+    }
+
+    @Test
+    void unaCuentaDeshabilitadaNoEntraConUnTokenVigente() throws Exception {
+        Call call = new Call(HttpMethod.GET, "/api/saas/admin/suscripciones", null);
+        User user = usuario(Role.SUPERADMIN, "superadmin@cheturno.test");
+        String token = jwtTokenProvider.generateAccessToken(user);
+        assertStatus(200, call, token);
+
+        user.setEnabled(false);
+
+        assertStatus(401, call, token);
     }
 
     private String token(Role role, String email) {

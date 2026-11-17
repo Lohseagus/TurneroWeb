@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javax.crypto.SecretKey;
@@ -41,6 +42,11 @@ public class JwtTokenProvider implements InitializingBean {
     static final String CLAIM_TOKEN_TYPE = "tokenType";
     static final String TYPE_ACCESS = "access";
     static final String TYPE_REFRESH = "refresh";
+    static final String CLAIM_VERSION = "ver";
+
+    /** Lo que hace falta saber de un refresh token ya verificado (firma, tipo y vencimiento). */
+    public record RefreshTokenData(String email, String jti, int version) {
+    }
 
     // HS256 necesita una clave de 256 bits como mínimo.
     private static final int MIN_KEY_BYTES = 32;
@@ -148,6 +154,7 @@ public class JwtTokenProvider implements InitializingBean {
         claims.put(CLAIM_TOKEN_TYPE, TYPE_ACCESS);
         if (userDetails instanceof User) {
             User user = (User) userDetails;
+            claims.put(CLAIM_VERSION, user.getTokenVersion());
             claims.put("userId", user.getId());
             claims.put("role", user.getRole() != null ? user.getRole().getName() : "USER");
 
@@ -182,25 +189,40 @@ public class JwtTokenProvider implements InitializingBean {
     }
 
     /**
-     * Genera un refresh token para el usuario
+     * Genera un refresh token para el usuario.
+     *
+     * @param jti identificador con el que SesionService registra y rota el token
      */
-    public String generateRefreshToken(UserDetails userDetails) {
+    public String generateRefreshToken(UserDetails userDetails, String jti) {
         Map<String, Object> claims = new HashMap<>();
         claims.put(CLAIM_TOKEN_TYPE, TYPE_REFRESH);
-        return createToken(claims, userDetails.getUsername(), refreshTokenExpiration);
+        if (userDetails instanceof User user) {
+            claims.put(CLAIM_VERSION, user.getTokenVersion());
+        }
+        return createToken(claims, userDetails.getUsername(), refreshTokenExpiration, jti);
+    }
+
+    public long getRefreshTokenExpirationMillis() {
+        return refreshTokenExpiration;
     }
 
     /**
      * Crea un token JWT con los claims especificados
      */
     private String createToken(Map<String, Object> claims, String subject, long expiration) {
-        return Jwts.builder()
+        return createToken(claims, subject, expiration, null);
+    }
+
+    private String createToken(Map<String, Object> claims, String subject, long expiration, String jti) {
+        var builder = Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignKey(), Jwts.SIG.HS256)
-                .compact();
+                .expiration(new Date(System.currentTimeMillis() + expiration));
+        if (jti != null) {
+            builder.id(jti);
+        }
+        return builder.signWith(getSignKey(), Jwts.SIG.HS256).compact();
     }
 
     /**
@@ -211,7 +233,25 @@ public class JwtTokenProvider implements InitializingBean {
         Claims claims = extractAllClaims(token);
         return esAccessToken(claims)
                 && userDetails.getUsername().equals(claims.getSubject())
-                && !claims.getExpiration().before(new Date());
+                && !claims.getExpiration().before(new Date())
+                && sesionVigente(versionDe(claims), userDetails);
+    }
+
+    /**
+     * Un token firmado y sin vencer igual deja de valer si la cuenta se deshabilitó o
+     * bloqueó, o si el usuario subió su versión de sesiones (cambio de contraseña).
+     */
+    public boolean sesionVigente(int versionDelToken, UserDetails userDetails) {
+        if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+            return false;
+        }
+        return !(userDetails instanceof User user) || user.getTokenVersion() == versionDelToken;
+    }
+
+    /** Los tokens anteriores al claim no lo traen: valen como versión 0. */
+    private int versionDe(Claims claims) {
+        Object version = claims.get(CLAIM_VERSION);
+        return version instanceof Number numero ? numero.intValue() : 0;
     }
 
     /**
@@ -228,12 +268,28 @@ public class JwtTokenProvider implements InitializingBean {
      * Valida si el refresh token es válido
      */
     public Boolean validateRefreshToken(String token) {
+        return leerRefreshToken(token).isPresent();
+    }
+
+    /**
+     * Verifica firma, tipo y vencimiento de un refresh token y devuelve sus datos.
+     * Vacío si no es un refresh token válido. No consulta la base: que la sesión
+     * siga vigente lo decide SesionService.
+     */
+    public Optional<RefreshTokenData> leerRefreshToken(String token) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
         try {
             Claims claims = extractAllClaims(token);
             String tokenType = claims.get(CLAIM_TOKEN_TYPE, String.class);
-            return TYPE_REFRESH.equals(tokenType) && !claims.getExpiration().before(new Date());
+            if (!TYPE_REFRESH.equals(tokenType) || claims.getExpiration().before(new Date())
+                    || claims.getSubject() == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new RefreshTokenData(claims.getSubject(), claims.getId(), versionDe(claims)));
         } catch (Exception e) {
-            return false;
+            return Optional.empty();
         }
     }
 

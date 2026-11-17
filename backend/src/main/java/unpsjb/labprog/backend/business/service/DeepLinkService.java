@@ -1,11 +1,9 @@
 package unpsjb.labprog.backend.business.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import unpsjb.labprog.backend.business.repository.*;
-import unpsjb.labprog.backend.config.JwtTokenProvider;
 import unpsjb.labprog.backend.dto.DeepLinkResponseDTO;
 import unpsjb.labprog.backend.model.*;
 
@@ -40,10 +38,7 @@ public class DeepLinkService {
     // @Autowired private TurnoRepository turnoRepository;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    @Autowired
-    private UserService userService;
+    private SesionService sesionService;
 
     private static final int TOKEN_LENGTH = 64;
     private static final int EXPIRATION_HOURS = 48; // 48 horas de validez
@@ -116,10 +111,9 @@ public class DeepLinkService {
         }
 
         // Generar tokens JWT
-        UserDetails userDetails = userService.loadUserByUsername(user.getEmail());
-
-        String accessToken = jwtTokenProvider.generateAccessToken(userDetails);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
+        SesionService.Tokens sesion = sesionService.abrir(user);
+        String accessToken = sesion.accessToken();
+        String refreshToken = sesion.refreshToken();
 
         // Construir respuesta con tokens (sin role, ya que va en el JWT)
         DeepLinkResponseDTO.TokensDTO tokens = new DeepLinkResponseDTO.TokensDTO(
