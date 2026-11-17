@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
 import unpsjb.labprog.backend.business.service.EncuestaService;
+import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.dto.EncuestaRespuestaInputDTO;
 import unpsjb.labprog.backend.dto.EncuestaPlantillaDTO;
 import unpsjb.labprog.backend.dto.PreguntaDTO;
@@ -33,17 +34,21 @@ public class EncuestaPacientePresenter {
     @Autowired
     private TurnoRepository turnoRepository;
 
+    @Autowired
+    private PacienteAccessGuard pacienteAccess;
+
     /**
      * Obtener la plantilla de encuesta correspondiente a un turno.
-     * Pacientes solo pueden ver sus propios turnos, pero ADMIN/OPERADOR tienen acceso completo.
+     * Solo el titular del turno; la gestión de encuestas del centro va por /api/admin/encuestas.
      */
     @GetMapping("/turno/{idTurno}")
-    @PreAuthorize("hasRole('PACIENTE')") // Gracias a herencia, ADMIN y OPERADOR también pasan
+    @PreAuthorize("hasRole('PACIENTE')")
     public ResponseEntity<Object> getEncuestaForTurno(@PathVariable Integer idTurno) {
         Optional<Turno> turnoOpt = turnoRepository.findById(idTurno);
         if (turnoOpt.isEmpty()) {
             return Response.notFound("Turno no encontrado");
         }
+        pacienteAccess.exigirTitularDelTurno(turnoOpt.get());
 
         Optional<EncuestaPlantilla> plantillaOpt = encuestaService.getPlantillaForTurno(idTurno);
         if (plantillaOpt.isEmpty()) {
@@ -58,15 +63,16 @@ public class EncuestaPacientePresenter {
 
     /**
      * Indica si hay una encuesta pendiente para este turno (plantilla asignada y sin respuestas).
-     * Gracias a herencia de roles, ADMIN y OPERADOR también tienen acceso.
+     * Solo el titular del turno.
      */
     @GetMapping("/turno/{idTurno}/pendiente")
-    @PreAuthorize("hasRole('PACIENTE')") // Gracias a herencia, ADMIN y OPERADOR también pasan
+    @PreAuthorize("hasRole('PACIENTE')")
     public ResponseEntity<Object> isEncuestaPendiente(@PathVariable Integer idTurno) {
         Optional<Turno> turnoOpt = turnoRepository.findById(idTurno);
         if (turnoOpt.isEmpty()) {
             return Response.notFound("Turno no encontrado");
         }
+        pacienteAccess.exigirTitularDelTurno(turnoOpt.get());
 
         boolean pendiente = encuestaService.isEncuestaPendiente(idTurno);
         java.util.Map<String, Object> map = java.util.Map.of("pending", pendiente);
@@ -98,16 +104,17 @@ public class EncuestaPacientePresenter {
 
     /**
      * Guardar respuestas de encuesta.
-     * Gracias a herencia de roles, ADMIN y OPERADOR también tienen acceso.
+     * Solo el titular del turno.
      */
     @PostMapping("/responder")
-    @PreAuthorize("hasRole('PACIENTE')") // Gracias a herencia, ADMIN y OPERADOR también pasan
+    @PreAuthorize("hasRole('PACIENTE')")
     public ResponseEntity<Object> responderEncuesta(@RequestBody EncuestaRespuestaInputDTO dto) {
         // Validar turno
         Optional<Turno> turnoOpt = turnoRepository.findById(dto.getTurnoId());
         if (turnoOpt.isEmpty()) {
             return Response.notFound("Turno no encontrado");
         }
+        pacienteAccess.exigirTitularDelTurno(turnoOpt.get());
 
         int saved = encuestaService.guardarRespuestas(dto);
         Map<String, Object> map = Map.of("saved", saved);
