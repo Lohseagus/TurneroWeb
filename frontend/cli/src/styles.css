@@ -13,6 +13,9 @@
 /* SISTEMA DE COLORES GLOBAL POR ENTIDAD */
 @import './entity-colors.css';
 
+/* TOKENS FALTANTES Y PIEZAS COMPARTIDAS (contenedor, encabezado, botones, cards...) */
+@import './ct-ui.css';
+
 /* ============================================
    1. GUÍA DE ESTILOS - VARIABLES GLOBALES (:root)
 ============================================ */
