@@ -305,6 +305,9 @@ public class SecurityConfig {
                                 .anyRequest().authenticated();
                     }
                 })
+                .exceptionHandling(errores -> errores
+                        .authenticationEntryPoint(new RestAuthenticationEntryPoint())
+                        .accessDeniedHandler(new RestAccessDeniedHandler()))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

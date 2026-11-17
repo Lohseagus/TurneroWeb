@@ -142,10 +142,29 @@ class SaasAdminSecurityTest {
     }
 
     @Test
-    void anonimoTampocoEntraAlAdminSaas() throws Exception {
+    void anonimoRecibe401YNo403() throws Exception {
         for (Call call : SAAS_ADMIN) {
-            assertStatus(403, call, null);
+            assertStatus(401, call, null);
         }
+        for (Call call : OTROS_SUPERADMIN) {
+            assertStatus(401, call, null);
+        }
+    }
+
+    @Test
+    void unBearerRotoNoTapaLasRutasPublicas() throws Exception {
+        assertStatus(200, new Call(HttpMethod.GET, "/api/saas/planes", null), "aaa.bbb.ccc");
+        assertStatus(200, new Call(HttpMethod.POST, "/api/saas/cotizar", "{}"), "aaa.bbb.ccc");
+        assertStatus(401, new Call(HttpMethod.GET, "/api/saas/admin/resumen", null), "aaa.bbb.ccc");
+    }
+
+    @Test
+    void el401DiceSiFaltaElTokenOSiSeRechazo() throws Exception {
+        Call call = new Call(HttpMethod.GET, "/api/saas/admin/resumen", null);
+        assertEquals(true, cuerpo(call, null).contains("Autenticación requerida"));
+        assertEquals(true, cuerpo(call, "aaa.bbb.ccc").contains("Token inválido o vencido"));
+        String medico = token(Role.MEDICO, "medico@cheturno.test");
+        assertEquals(true, cuerpo(call, medico).contains("\"status_code\":403"));
     }
 
     @Test
@@ -225,6 +244,15 @@ class SaasAdminSecurityTest {
     }
 
     private int status(Call call, String bearer) throws Exception {
+        return respuesta(call, bearer).getStatus();
+    }
+
+    private String cuerpo(Call call, String bearer) throws Exception {
+        return respuesta(call, bearer).getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private org.springframework.mock.web.MockHttpServletResponse respuesta(Call call, String bearer)
+            throws Exception {
         MockHttpServletRequestBuilder request = org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                 .request(call.method(), call.path());
         if (call.body() != null) {
@@ -233,7 +261,7 @@ class SaasAdminSecurityTest {
         if (bearer != null) {
             request.header("Authorization", "Bearer " + bearer);
         }
-        return mvc.perform(request).andReturn().getResponse().getStatus();
+        return mvc.perform(request).andReturn().getResponse();
     }
 
     private void assertStatus(int expected, Call call, String bearer) throws Exception {
