@@ -6,13 +6,6 @@
    1. DASHBOARD WRAPPER
    ========================= */
 
-.dashboard-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: var(--space-xl);
-  min-height: 100vh;
-}
-
 /* =========================
    2. DASHBOARD HEADER
    ========================= */
@@ -1141,10 +1134,6 @@
    ========================= */
 
 @media (max-width: 768px) {
-  .dashboard-wrapper {
-    padding: var(--space-lg);
-  }
-
   .dashboard-header {
     margin-bottom: var(--space-xl);
   }
@@ -1216,10 +1205,6 @@
 }
 
 @media (max-width: 480px) {
-  .dashboard-wrapper {
-    padding: var(--space-md);
-  }
-
   .header-content,
   .modal-body,
   .modal-header,

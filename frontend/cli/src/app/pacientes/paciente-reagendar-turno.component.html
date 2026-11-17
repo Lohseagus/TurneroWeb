@@ -1,26 +1,20 @@
-<div class="container-fluid mt-4">
+<div class="ct-page">
   <!-- HEADER -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="banner-reagendar-turno">
-        <div class="header-content">
-          <div class="header-actions">
-            <button class="btn btn-secondary btn-header-glass" (click)="goBack()">
-              <span class="material-symbols-outlined">arrow_back</span>
-              Volver
-            </button>
-          </div>
-          <div class="header-icon">
-            <span class="material-symbols-outlined">event_repeat</span>
-          </div>
-          <div class="header-text">
-            <h1>Reagendar Turno</h1>
-            <p>Selecciona un nuevo horario disponible con el mismo médico</p>
-          </div>
-        </div>
+    <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_repeat</span>
+      <div>
+        <h1 class="ct-page-header__title">Reagendar Turno</h1>
+        <p class="ct-page-header__subtitle">Selecciona un nuevo horario disponible con el mismo médico</p>
       </div>
     </div>
-  </div>
+    <div class="ct-page-header__actions">
+      <button type="button" class="btn btn-secondary" (click)="goBack()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver
+      </button>
+    </div>
+  </header>
 
   <!-- Current Appointment Info -->
   @if (currentTurno) {

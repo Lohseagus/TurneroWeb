@@ -534,7 +534,7 @@
   font-size: var(--font-size-lg);
 }
 
-.loading-turnos i {
+.loading-turnos .material-symbols-outlined {
   margin-right: var(--space-sm);
   font-size: var(--font-size-xl);
 }
@@ -629,7 +629,7 @@
   box-shadow: var(--box-shadow-md);
 }
 
-.medico-header i {
+.medico-header .material-symbols-outlined {
   font-size: var(--font-size-base);
 }
 
@@ -796,7 +796,7 @@
   text-align: center;
 }
 
-.no-turnos-content i {
+.no-turnos-content .material-symbols-outlined {
   font-size: 4rem;
   color: var(--text-secondary);
   margin-bottom: var(--space-md);
@@ -1387,7 +1387,7 @@
   color: var(--text-secondary);
 }
 
-.detalle-item i {
+.detalle-item .material-symbols-outlined {
   color: var(--color-accent);
 }
 
@@ -1513,12 +1513,12 @@
   font-size: var(--font-size-sm);
 }
 
-.dia-fecha i {
+.dia-fecha .material-symbols-outlined {
   font-size: var(--font-size-lg);
   color: var(--color-accent);
 }
 
-.dia-header.expandido .dia-fecha i {
+.dia-header.expandido .dia-fecha .material-symbols-outlined {
   color: var(--text-on-accent);
 }
 
@@ -1602,12 +1602,12 @@
   transform: rotate(180deg);
 }
 
-.dia-expand-icon i {
+.dia-expand-icon .material-symbols-outlined {
   color: var(--color-accent);
   font-size: var(--font-size-sm);
 }
 
-.dia-header.expandido .dia-expand-icon i {
+.dia-header.expandido .dia-expand-icon .material-symbols-outlined {
   color: var(--text-on-accent);
 }
 
@@ -1813,7 +1813,7 @@
   font-size: var(--font-size-base);
 }
 
-.info-medicos i {
+.info-medicos .material-symbols-outlined {
   font-size: var(--font-size-lg);
 }
 

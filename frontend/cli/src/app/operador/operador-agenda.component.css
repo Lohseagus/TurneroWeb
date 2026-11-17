@@ -369,7 +369,7 @@
   font-size: 1.1rem;
 }
 
-.loading-turnos i {
+.loading-turnos .material-symbols-outlined {
   margin-right: 0.5rem;
   font-size: 1.2rem;
 }
@@ -484,7 +484,7 @@
   flex-wrap: wrap;
 }
 
-.medico-header i {
+.medico-header .material-symbols-outlined {
   font-size: 1rem;
 }
 
@@ -706,8 +706,8 @@
   text-align: center;
 }
 
-.filtros-inicial-content i,
-.no-turnos-content i {
+.filtros-inicial-content .material-symbols-outlined,
+.no-turnos-content .material-symbols-outlined {
   font-size: 4rem;
   color: #28a745;
   margin-bottom: 1rem;

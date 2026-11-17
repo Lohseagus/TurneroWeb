@@ -149,6 +149,11 @@
 
 /* La regla global de .material-symbols-outlined fija 20px y carga después:
    el tamaño del ícono se declara con selector compuesto para que gane. */
+.material-symbols-outlined.ct-icon-chip,
+.material-symbols-outlined.ct-empty__icon {
+  display: inline-flex;
+}
+
 .material-symbols-outlined.ct-icon-chip {
   font-size: 28px;
 }
