@@ -38,7 +38,22 @@ jobs:
           mvn -version
 
       - name: Compilar y correr tests
-        run: mvn -B -ntp -f backend/pom.xml test
+        run: |
+          # Maven Central a veces responde 429 en un runner sin cache. Un fallo
+          # de tests no se reintenta.
+          for attempt in 1 2 3 4; do
+            if mvn -B -ntp -f backend/pom.xml test > /tmp/mvn-test.log 2>&1; then
+              cat /tmp/mvn-test.log
+              exit 0
+            fi
+            cat /tmp/mvn-test.log
+            if ! grep -q "429" /tmp/mvn-test.log; then
+              exit 1
+            fi
+            echo "Maven Central respondió 429 (intento ${attempt}/4). Reintento."
+            sleep $((attempt * 20))
+          done
+          exit 1
 
   frontend:
     name: Frontend (Angular)
