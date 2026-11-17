@@ -35,6 +35,7 @@ import unpsjb.labprog.backend.model.User;
 /**
  * security.dev.mode=false. La ficha propia se lee y se edita en /api/pacientes/me
  * con el rol PACIENTE (OPERADOR lo hereda). El catálogo por id no se abre a un paciente.
+ * Un anónimo recibe 401, igual que el resto de las rutas protegidas.
  */
 @WebMvcTest(controllers = PacientePresenter.class)
 @AutoConfigureMockMvc
@@ -125,7 +126,8 @@ class PacienteMeSecurityTest {
 
     @Test
     void anonimoNoEntra() throws Exception {
-        cuerpo(403, null, "/api/pacientes/me");
+        String body = cuerpo(401, null, "/api/pacientes/me");
+        assertTrue(body.contains("Autenticación requerida"), body);
     }
 
     private PacienteDTO ficha(int id, String nombre) {
