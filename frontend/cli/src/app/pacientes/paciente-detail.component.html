@@ -1,4 +1,47 @@
-@if (paciente) {
+@if (cargando) {
+  <div class="paciente-detail-card card p-xl mb-xl mx-auto" style="max-width: 1000px;">
+    <div class="ct-loading" role="status" aria-live="polite">
+      <span class="material-symbols-outlined ct-spin" aria-hidden="true">sync</span>
+      <p>Cargando ficha del paciente...</p>
+    </div>
+  </div>
+} @else if (sinFicha) {
+  <div class="paciente-detail-card card p-xl mb-xl mx-auto" style="max-width: 1000px;">
+    <div class="ct-empty">
+      <span class="material-symbols-outlined ct-empty__icon">person</span>
+      <h3 class="ct-empty__title">Sin ficha de paciente</h3>
+      <p class="ct-empty__text">{{ errorCarga }}</p>
+      <div class="d-flex flex-wrap justify-content-center gap-md">
+        <button type="button" class="btn btn-primary" (click)="reintentar()">
+          <span class="material-symbols-outlined">refresh</span>
+          Reintentar
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="goBack()">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver
+        </button>
+      </div>
+    </div>
+  </div>
+} @else if (errorCarga) {
+  <div class="paciente-detail-card card p-xl mb-xl mx-auto" style="max-width: 1000px;">
+    <div class="ct-empty">
+      <span class="material-symbols-outlined ct-empty__icon ct-empty__icon--danger">error</span>
+      <h3 class="ct-empty__title">No se pudo cargar la ficha</h3>
+      <p class="ct-empty__text">{{ errorCarga }}</p>
+      <div class="d-flex flex-wrap justify-content-center gap-md">
+        <button type="button" class="btn btn-primary" (click)="reintentar()">
+          <span class="material-symbols-outlined">refresh</span>
+          Reintentar
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="goBack()">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver
+        </button>
+      </div>
+    </div>
+  </div>
+} @else if (paciente) {
   <div class="paciente-detail-card card p-xl mb-xl mx-auto" style="max-width: 1000px;">
     <!-- Header -->
     <div class="paciente-detail-header d-flex align-items-center justify-content-between mb-lg">

@@ -30,6 +30,7 @@ import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.CompleteProfileDTO;
 import unpsjb.labprog.backend.dto.PacienteDTO;
+import unpsjb.labprog.backend.exception.PacienteSinFichaException;
 import unpsjb.labprog.backend.model.PreferenciaHoraria;
 import unpsjb.labprog.backend.model.User;
 
@@ -81,6 +82,42 @@ public class PacientePresenter {
         response.put("currentPage", pageResult.getNumber());
 
         return Response.ok(response);
+    }
+
+    /**
+     * Ficha del usuario autenticado. El id lo decide el backend.
+     * GET /api/pacientes/me
+     */
+    @GetMapping("/me")
+    public ResponseEntity<Object> actual() {
+        try {
+            return service.actual()
+                    .map(paciente -> Response.ok(paciente, "Paciente de la sesión"))
+                    .orElseGet(() -> noEncontrado(PacienteSinFichaException.MENSAJE));
+        } catch (PacienteSinFichaException e) {
+            return noEncontrado(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(cuerpo(HttpStatus.UNAUTHORIZED, e.getMessage()));
+        }
+    }
+
+    /**
+     * Edita solo la ficha propia. Un id ajeno en el cuerpo no se usa.
+     * PUT /api/pacientes/me
+     */
+    @PutMapping("/me")
+    public ResponseEntity<Object> actualizarPropio(@RequestBody PacienteDTO pacienteDTO) {
+        try {
+            PacienteDTO updated = service.actualizarPropio(pacienteDTO);
+            return Response.ok(updated, "Paciente actualizado correctamente");
+        } catch (PacienteSinFichaException e) {
+            return noEncontrado(e.getMessage());
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return Response.dbError(e.getMessage());
+        } catch (Exception e) {
+            return Response.error(null, "Error al actualizar el paciente: " + e.getMessage());
+        }
     }
 
     @GetMapping("/{id}")
@@ -390,6 +427,18 @@ public class PacientePresenter {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    private ResponseEntity<Object> noEncontrado(String mensaje) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cuerpo(HttpStatus.NOT_FOUND, mensaje));
+    }
+
+    private Map<String, Object> cuerpo(HttpStatus status, String mensaje) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status_code", status.value());
+        body.put("status_text", mensaje);
+        body.put("data", null);
+        return body;
     }
 
 }

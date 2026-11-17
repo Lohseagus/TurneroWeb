@@ -19,8 +19,10 @@ import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.PreferenciaHorariaRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.config.TenantContext;
+import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.ObraSocialDTO;
 import unpsjb.labprog.backend.dto.PacienteDTO;
+import unpsjb.labprog.backend.exception.PacienteSinFichaException;
 import unpsjb.labprog.backend.model.AuditLog;
 import unpsjb.labprog.backend.model.ObraSocial;
 import unpsjb.labprog.backend.model.Paciente;
@@ -116,6 +118,44 @@ public class PacienteService {
 
     public Optional<PacienteDTO> findById(Integer id) {
         return repository.findById(id).map(this::toDTO);
+    }
+
+    /**
+     * Ficha del usuario autenticado. No hay FK paciente→user: el titular es la
+     * cuenta del JWT (userId) y se resuelve por el email de esa cuenta.
+     * Un id enviado por el cliente no participa.
+     */
+    @Transactional(readOnly = true)
+    public Optional<PacienteDTO> actual() {
+        User user = usuarioDeLaSesion();
+        return repository.findByUserEmail(user.getEmail()).map(this::toDTO);
+    }
+
+    /**
+     * Actualiza solo la ficha de la cuenta autenticada. El id del cuerpo se
+     * descarta: no se puede apuntar la escritura a otra ficha.
+     */
+    @Transactional
+    public PacienteDTO actualizarPropio(PacienteDTO dto) {
+        User user = usuarioDeLaSesion();
+        Paciente propio = repository.findByUserEmail(user.getEmail())
+                .orElseThrow(PacienteSinFichaException::new);
+        if (dto == null) {
+            throw new IllegalArgumentException("Faltan los datos de la ficha");
+        }
+        dto.setId(propio.getId());
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            dto.setEmail(propio.getEmail());
+        }
+        return saveOrUpdate(dto, user.getEmail());
+    }
+
+    private User usuarioDeLaSesion() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getId() == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new IllegalStateException("No hay una sesión válida");
+        }
+        return user;
     }
 
     public Optional<PacienteDTO> findByDni(Integer dni) {

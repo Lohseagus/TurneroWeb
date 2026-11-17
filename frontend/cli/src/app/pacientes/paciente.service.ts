@@ -29,9 +29,19 @@ export class PacienteService {
     return this.http.get<DataPackage<Paciente[]>>(`${this.url}/para-asignar`);
   }
 
-  /** Obtiene un paciente por ID */
+  /** Obtiene un paciente por ID (catálogo de admin/operador). */
   get(id: number): Observable<DataPackage<Paciente>> {
     return this.http.get<DataPackage<Paciente>>(`${this.url}/${id}`);
+  }
+
+  /** Ficha del usuario autenticado. El id lo decide el backend. */
+  mio(): Observable<DataPackage<Paciente>> {
+    return this.http.get<DataPackage<Paciente>>(`${this.url}/me`);
+  }
+
+  /** Actualiza solo la ficha del usuario autenticado. */
+  actualizarMio(paciente: Paciente): Observable<DataPackage<Paciente>> {
+    return this.http.put<DataPackage<Paciente>>(`${this.url}/me`, paciente);
   }
 
   /** Crea un nuevo paciente */

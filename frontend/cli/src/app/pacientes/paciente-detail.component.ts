@@ -30,7 +30,17 @@ export class PacienteDetailComponent implements OnInit {
     fechaNacimiento: "",
   };
   modoEdicion = false;
+  /** Alta explícita (ruta pacientes/new). No se infiere de un id vacío mientras carga. */
+  alta = false;
+  cargando = true;
+  sinFicha = false;
+  errorCarga = "";
   obrasSociales: { id: number; nombre: string; codigo: string }[] = [];
+  private pacienteCargado = false;
+  private quiereEditar = false;
+  private cargaToken = 0;
+  private readonly mensajeSinFicha =
+    "Tu usuario puede ver el panel de paciente, pero no hay una ficha de paciente vinculada. Pedile a un administrador del centro que te asocie.";
 
   constructor(
     private pacienteService: PacienteService,
@@ -46,74 +56,176 @@ export class PacienteDetailComponent implements OnInit {
       .getObrasSociales()
       .subscribe(
         (dp: DataPackage<{ id: number; nombre: string; codigo: string }[]>) => {
-          this.obrasSociales = dp.data;
+          this.obrasSociales = dp.data || [];
+          this.vincularObraSocial();
         }
       );
 
+    // El query param solo cambia el modo cuando la ficha ya está. Antes, un id
+    // vacío hacía que la pantalla se viera como un alta.
+    this.route.queryParamMap.subscribe((params) => {
+      this.quiereEditar = params.get("edit") === "true";
+      if (this.pacienteCargado) {
+        this.modoEdicion = this.quiereEditar;
+      }
+    });
+
     const path = this.route.snapshot.routeConfig?.path;
     if (path === "pacientes/new") {
+      this.alta = true;
       this.modoEdicion = true;
-    } else {
-      let id: number;
-
-      // Si estamos en la ruta del perfil del paciente, usar el ID del localStorage
-      if (path === "paciente-perfil") {
-        console.log("Entrando a ruta paciente-perfil");
-
-        // Usar el método robusto del AuthService para obtener el ID
-        const pacienteId = this.authService.getCurrentPatientId();
-        console.log("ID del paciente obtenido:", pacienteId);
-
-        if (!pacienteId) {
-          console.error("No se pudo obtener el ID del paciente actual");
-          alert(
-            "No se pudo cargar el perfil. Por favor, inicia sesión nuevamente."
-          );
-          this.authService.logout();
-          this.router.navigate(["/ingresar"]);
-          return;
-        }
-
-        id = pacienteId;
-        console.log("ID final del paciente a buscar:", id);
-      } else {
-        // Para rutas de admin, usar el parámetro de la URL
-        id = +this.route.snapshot.paramMap.get("id")!;
-      }
-
-      console.log("Llamando a pacienteService.get con ID:", id);
-      this.pacienteService.get(id).subscribe({
-        next: (dp: DataPackage<Paciente>) => {
-          console.log("Respuesta del servicio de paciente:", dp);
-          this.paciente = dp.data;
-
-          // Asignar la obra social asociada al paciente
-          if (this.paciente.obraSocial) {
-            const obraSocial = this.obrasSociales.find(
-              (os) => os.id === this.paciente.obraSocial?.id
-            );
-            if (obraSocial) {
-              this.paciente.obraSocial = obraSocial;
-            }
-          }
-
-          this.route.queryParams.subscribe((params) => {
-            this.modoEdicion = params["edit"] === "true";
-          });
-        },
-        error: (error) => {
-          console.error("Error al obtener los datos del paciente:", error);
-          alert(
-            `Error al cargar el perfil: ${error.message || "Error desconocido"}`
-          );
-          this.router.navigate(["/paciente-dashboard"]);
-        },
-      });
+      this.cargando = false;
+      return;
     }
+
+    this.cargarFicha();
+  }
+
+  reintentar(): void {
+    this.cargarFicha();
   }
 
   esNuevo(): boolean {
-    return !this.paciente.id || this.paciente.id === 0;
+    return this.alta;
+  }
+
+  private esPerfil(): boolean {
+    return this.route.snapshot.routeConfig?.path === "paciente-perfil";
+  }
+
+  private cargarFicha(): void {
+    const token = ++this.cargaToken;
+    this.cargando = true;
+    this.sinFicha = false;
+    this.errorCarga = "";
+    this.alta = false;
+    this.modoEdicion = false;
+    this.pacienteCargado = false;
+
+    if (this.esPerfil()) {
+      this.pacienteService.mio().subscribe({
+        next: (dp: DataPackage<Paciente>) => this.recibirFicha(token, dp),
+        error: (error) => this.falloCarga(token, error),
+      });
+      return;
+    }
+
+    const id = this.resolverId();
+    if (id == null) {
+      return;
+    }
+
+    this.pacienteService.get(id).subscribe({
+      next: (dp: DataPackage<Paciente>) => this.recibirFicha(token, dp),
+      error: (error) => this.falloCarga(token, error),
+    });
+  }
+
+  private recibirFicha(token: number, dp: DataPackage<Paciente>): void {
+    if (token !== this.cargaToken) {
+      return;
+    }
+    if (!dp?.data?.id) {
+      this.fichaAusente();
+      return;
+    }
+    this.paciente = dp.data;
+    this.vincularObraSocial();
+    this.pacienteCargado = true;
+    this.modoEdicion = this.quiereEditar;
+    this.cargando = false;
+  }
+
+  private falloCarga(token: number, error: unknown): void {
+    if (token !== this.cargaToken) {
+      return;
+    }
+    this.cargando = false;
+    if (this.esPerfil() && this.esNoEncontrado(error)) {
+      this.mostrarSinFicha(this.textoConFicha(error));
+      return;
+    }
+    if (this.esNoEncontrado(error)) {
+      this.errorCarga = this.textoBackend(error) || "No se encontró el paciente.";
+      return;
+    }
+    this.errorCarga = this.mensajeDe(error);
+  }
+
+  /** null si el id de la ruta no sirve: el estado de pantalla ya quedó resuelto. */
+  private resolverId(): number | null {
+    const raw = this.route.snapshot.paramMap.get("id");
+    const id = raw == null ? NaN : Number(raw);
+    if (!Number.isFinite(id) || id <= 0) {
+      this.cargando = false;
+      this.errorCarga = "No se pudo identificar al paciente.";
+      return null;
+    }
+    return id;
+  }
+
+  private fichaAusente(): void {
+    this.cargando = false;
+    if (this.esPerfil()) {
+      this.mostrarSinFicha();
+      return;
+    }
+    this.errorCarga = "No se encontró el paciente.";
+  }
+
+  private mostrarSinFicha(mensaje?: string): void {
+    this.cargando = false;
+    this.sinFicha = true;
+    this.alta = false;
+    this.modoEdicion = false;
+    this.pacienteCargado = false;
+    this.errorCarga = mensaje?.trim() || this.mensajeSinFicha;
+  }
+
+  private vincularObraSocial(): void {
+    if (!this.paciente.obraSocial || !this.obrasSociales.length) {
+      return;
+    }
+    const obraSocial = this.obrasSociales.find(
+      (os) => os.id === this.paciente.obraSocial?.id
+    );
+    if (obraSocial) {
+      this.paciente.obraSocial = obraSocial;
+    }
+  }
+
+  private esNoEncontrado(error: unknown): boolean {
+    const http = error as {
+      status?: number;
+      error?: { status_code?: number };
+    };
+    return http?.status === 404 || http?.error?.status_code === 404;
+  }
+
+  private textoConFicha(error: unknown): string | undefined {
+    const texto = this.textoBackend(error);
+    return texto && /ficha/i.test(texto) ? texto : undefined;
+  }
+
+  private mensajeDe(error: unknown): string {
+    const texto = this.textoBackend(error);
+    if (texto) {
+      return texto;
+    }
+    const status = (error as { status?: number })?.status;
+    if (status === 0) {
+      return "No hay conexión con el servidor. Reintentá.";
+    }
+    return "No se pudo cargar la ficha del paciente. Reintentá.";
+  }
+
+  private textoBackend(error: unknown): string {
+    const http = error as {
+      error?: { status_text?: unknown; message?: unknown };
+      message?: unknown;
+    };
+    const crudo = http?.error?.status_text ?? http?.error?.message;
+    return typeof crudo === "string" ? crudo.trim() : "";
   }
 
   isInvalidField(field: any): boolean {
@@ -160,8 +272,9 @@ export class PacienteDetailComponent implements OnInit {
     const userRole = this.authService.getUserRole();
     let op;
 
-    if (this.paciente.id) {
-      // Para actualizaciones, siempre usar update
+    if (this.paciente.id && this.esPacienteVendoSuPerfil()) {
+      op = this.pacienteService.actualizarMio(this.paciente);
+    } else if (this.paciente.id) {
       op = this.pacienteService.update(this.paciente.id, this.paciente);
     } else {
       // Para creaciones, usar el endpoint correcto según el tipo de usuario
