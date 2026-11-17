@@ -82,6 +82,8 @@
             <tr>
               <th>Paciente</th>
               <th>DNI</th>
+              <th>Consultas</th>
+              <th>Última consulta</th>
               <th class="hce-col-acciones">Acciones</th>
             </tr>
           </thead>
@@ -94,6 +96,13 @@
                 </a>
               </td>
               <td>{{ paciente.dni || '—' }}</td>
+              <td>
+                <span class="ct-badge" [class.ct-badge--accent]="paciente.consultas">
+                  <span class="material-symbols-outlined">clinical_notes</span>
+                  {{ paciente.consultas || 0 }}
+                </span>
+              </td>
+              <td>{{ paciente.ultimaConsulta ? (paciente.ultimaConsulta | date:'dd/MM/yyyy') : '—' }}</td>
               <td class="hce-col-acciones">
                 <div class="ct-btn-group">
                   <a class="btn btn-secondary btn-sm" [routerLink]="['/medico-hce', paciente.id]">

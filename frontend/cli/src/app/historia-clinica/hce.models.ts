@@ -138,6 +138,8 @@ export interface PacienteResumenHce {
   nombre: string;
   apellido: string;
   dni?: number;
+  consultas?: number;
+  ultimaConsulta?: string;
 }
 
 export interface TurnoContextoHce {
