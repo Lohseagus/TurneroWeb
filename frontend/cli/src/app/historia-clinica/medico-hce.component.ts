@@ -36,10 +36,14 @@ export class MedicoHceComponent implements OnInit {
     { centros: [], medicos: [], especialidades: [] };
 
   get pacientesFiltrados(): PacienteResumenHce[] {
-    const q = this.busqueda.trim().toLowerCase();
+    const q = this.normalizar(this.busqueda.trim());
     if (!q) return this.pacientes;
     return this.pacientes.filter(p =>
-      `${p.apellido} ${p.nombre} ${p.apellido} ${p.dni ?? ''}`.toLowerCase().includes(q));
+      this.normalizar(`${p.apellido} ${p.nombre} ${p.apellido} ${p.dni ?? ''}`).includes(q));
+  }
+
+  private normalizar(texto: string): string {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   }
 
   readonly porPagina = 20;
