@@ -40,6 +40,13 @@ Característica: Historia clínica electrónica
     Entonces recibo status_code 403
 
   @hce @multi-tenant
+  Escenario: El médico autenticado obtiene su ficha en el endpoint me
+    Dado que me autentico como "medico@turnero.com" con password "password"
+    Cuando consulto mi ficha de médico
+    Entonces recibo status_code 200
+    Y la ficha de médico tiene id
+
+  @hce @multi-tenant
   Escenario: El paciente lee su historia y no la de otra persona
     Dado que preparo una consulta cerrada de historia clínica en el centro 1
     Y que me autentico como "paciente1.santamaria@turnero.com" con password "password"

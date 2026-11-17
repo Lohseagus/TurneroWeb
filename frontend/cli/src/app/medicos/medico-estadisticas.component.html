@@ -15,6 +15,21 @@
     </div>
   </header>
 
+  @if (cargando) {
+    <section class="ct-section">
+      <div class="ct-loading">
+        <span class="material-symbols-outlined ct-spin">sync</span>
+        <p>Cargando…</p>
+      </div>
+    </section>
+  }
+  @if (errorCarga) {
+    <section class="ct-section">
+      <p>{{ errorCarga }}</p>
+      <button type="button" class="btn btn-primary" (click)="reintentar()">Reintentar</button>
+    </section>
+  }
+
   <!-- Resumen del período -->
   <section class="ct-section">
     <div class="ct-section__header">

@@ -143,6 +143,11 @@ When('consulto los metadatos de historia clínica del paciente de prueba', funct
   guardar(this, result);
 });
 
+When('consulto mi ficha de médico', function () {
+  const result = GET('/medicos/me', this.accessToken);
+  guardar(this, result);
+});
+
 When('consulto mi historia clínica', function () {
   const result = GET('/hce/mi', this.accessToken);
   guardar(this, result);
@@ -157,6 +162,11 @@ Then('la consulta de historia clínica tiene una enmienda', function () {
   const enmiendas = this.response.data && this.response.data.enmiendas;
   assert.ok(Array.isArray(enmiendas) && enmiendas.length >= 1, 'La consulta cerrada debería mostrar la enmienda');
   assert.strictEqual(enmiendas[0].motivo, 'Error de transcripción');
+});
+
+Then('la ficha de médico tiene id', function () {
+  const id = this.response && this.response.data && this.response.data.id;
+  assert.ok(Number.isInteger(id) && id > 0, `La ficha no trajo un id: ${JSON.stringify(this.response)}`);
 });
 
 Then('recibo un PDF de historia clínica', function () {

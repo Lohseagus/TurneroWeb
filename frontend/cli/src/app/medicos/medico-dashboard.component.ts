@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, timeout } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { TurnoService } from '../turnos/turno.service';
 import { DisponibilidadMedicoService } from '../disponibilidadMedicos/disponibilidadMedico.service';
@@ -12,6 +12,7 @@ import { DisponibilidadMedico } from '../disponibilidadMedicos/disponibilidadMed
 import { Medico } from './medico';
 import { AuthService } from '../inicio-sesion/auth.service';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
+import { MedicoSesionService, comoMedico, mensajeMedico } from './medico-sesion.service';
 import { AusenciaModalComponent } from '../modal/ausencia-modal.component';
 import { ModalService } from '../modal/modal.service';
 
@@ -33,6 +34,9 @@ interface DashboardStats {
 export class MedicoDashboardComponent implements OnInit {
   medicoActual: Medico | null = null;
   staffMedicoId: number | null = null; // ID para consultar turnos
+  medicoIdResuelto: number | null = null;
+  cargandoMedico = false;
+  errorMedico = '';
   stats: DashboardStats = {
     turnosHoy: 0,
     turnosManana: 0,
@@ -61,7 +65,8 @@ export class MedicoDashboardComponent implements OnInit {
     private authService: AuthService,
     private staffMedicoService: StaffMedicoService,
     private modalService: NgbModal,
-    private notificationService: ModalService
+    private notificationService: ModalService,
+    private medicoSesion: MedicoSesionService
   ) {
     this.initializeParticles();
   }
@@ -119,18 +124,36 @@ export class MedicoDashboardComponent implements OnInit {
     console.log('✅ Validación de localStorage completada');
   }
 
-  async ngOnInit() {
-    // Validar y corregir localStorage al inicializar
-    this.validarYCorregirLocalStorage();
+  ngOnInit() {
+    this.cargarSesion();
+  }
 
-    // Asegurar que staffMedicoId esté disponible en localStorage
-    await this.getOrFetchStaffMedicoId();
+  reintentarSesion(): void {
+    this.medicoSesion.invalidar();
+    this.cargarSesion();
+  }
 
-    // Primero cargar los datos del médico (esto puede actualizar localStorage con el ID real)
-    await this.cargarDatosMedicoAsync();
-
-    // Luego cargar disponibilidades para obtener el staffMedicoId correcto
-    this.cargarDisponibilidadYDatos();
+  private cargarSesion(): void {
+    this.cargandoMedico = true;
+    this.errorMedico = '';
+    this.medicoSesion.resolver(true).subscribe({
+      next: sesion => {
+        this.medicoIdResuelto = sesion.id;
+        this.staffMedicoId = sesion.staffMedicoId;
+        this.medicoActual = comoMedico(sesion);
+        this.cargandoMedico = false;
+        if (!sesion.staffMedicoId) {
+          this.errorMedico = 'No hay un staff médico vinculado a tu usuario en un centro. Pedile a un administrador que te asocie.';
+        }
+        this.cargarDisponibilidadYDatos();
+      },
+      error: err => {
+        this.cargandoMedico = false;
+        this.medicoActual = null;
+        this.staffMedicoId = null;
+        this.errorMedico = mensajeMedico(err);
+      }
+    });
   }
 
   private cargarDatosMedicoAsync(): Promise<void> {
@@ -237,24 +260,24 @@ export class MedicoDashboardComponent implements OnInit {
         this.disponibilidadActual = response.data || [];
 
         // Obtener el staffMedicoId de las disponibilidades
-        if (this.disponibilidadActual.length > 0) {
-          this.staffMedicoId = this.disponibilidadActual[0].staffMedicoId;
-          console.log('staffMedicoId obtenido de disponibilidades:', this.staffMedicoId);
-
-          // Ahora cargar los datos de turnos con el staffMedicoId correcto
-          this.cargarDatos();
-        } else {
-          console.warn('No se encontraron disponibilidades. Usando ID del médico como staffMedicoId');
-          this.staffMedicoId = medicoId; // Usar el ID real del médico
-          console.log('✅ Usando medicoId como staffMedicoId:', this.staffMedicoId);
-          this.cargarDatos();
+        const desdeDisponibilidad = this.disponibilidadActual[0]?.staffMedicoId;
+        if (desdeDisponibilidad) {
+          this.staffMedicoId = desdeDisponibilidad;
         }
+        if (!this.staffMedicoId) {
+          this.errorMedico = 'No hay un staff médico vinculado a tu usuario en un centro. Pedile a un administrador que te asocie.';
+          this.isLoadingTurnos = false;
+          return;
+        }
+        this.cargarDatos();
       },
       error: (error) => {
         console.error('Error al cargar disponibilidad:', error);
-        console.warn('Usando ID del médico como staffMedicoId por error en disponibilidades');
-        this.staffMedicoId = medicoId; // Usar el ID real del médico
-        console.log('✅ Usando medicoId como staffMedicoId (fallback):', this.staffMedicoId);
+        if (!this.staffMedicoId) {
+          this.errorMedico = 'No se pudieron cargar los horarios del médico. Reintentá.';
+          this.isLoadingTurnos = false;
+          return;
+        }
         this.cargarDatos();
       }
     });
@@ -275,18 +298,11 @@ export class MedicoDashboardComponent implements OnInit {
 
   // Helper method to get medico ID from localStorage (fallback) or AuthService
   private getMedicoIdFromLocalStorage(): number | null {
-    console.log('=== DEBUG: getMedicoIdFromLocalStorage ===');
-
-    // PRIMERA OPCIÓN: Usar AuthService moderno para obtener el médico por email
-    const userEmail = this.authService.getUserEmail();
-    if (userEmail) {
-      console.log('Usando AuthService - Email del usuario:', userEmail);
-      // En lugar de hacer la búsqueda aquí, delegamos a cargarDatosMedico() 
-      // para hacer la búsqueda por email
-      return -1; // Valor especial para indicar que se debe buscar por email
+    if (this.medicoIdResuelto && this.medicoIdResuelto > 0) {
+      return this.medicoIdResuelto;
     }
 
-    // FALLBACK: Intentar obtener de localStorage (sistema legacy)
+    // Caché que escribe MedicoSesionService después de /api/medicos/me.
     const staffMedicoId = localStorage.getItem('staffMedicoId');
     const medicoId = localStorage.getItem('medicoId');
     const currentUser = localStorage.getItem('currentUser');
@@ -477,7 +493,7 @@ Posible problema de configuración. Verifique:
           const shouldLogout = confirm('¿Desea cerrar sesión e ir al login?');
           if (shouldLogout) {
             localStorage.clear();
-            this.router.navigate(['/login']);
+            this.router.navigate(['/ingresar']);
           }
         } else {
           console.error('Error del servidor:', error.message || error);
@@ -489,9 +505,11 @@ Posible problema de configuración. Verifique:
 
   private cargarEstadisticas() {
     if (!this.staffMedicoId) {
+      this.isLoadingTurnos = false;
       console.error('No se pudo obtener el staffMedicoId para cargar estadísticas');
       return;
     }
+    this.isLoadingTurnos = true;
 
     console.log('� Cargando los turnos del panel en dos consultas');
     console.log('StaffMedicoId:', this.staffMedicoId);
@@ -529,7 +547,7 @@ Posible problema de configuración. Verifique:
       size: 100
     });
 
-    forkJoin([anteriores$, proximos$]).subscribe({
+    forkJoin([anteriores$, proximos$]).pipe(timeout(20000)).subscribe({
       next: ([anteriores, proximos]) => {
         const contenido = (response: any): any[] => response.data?.content || response.data || [];
         const todosTurnos = [...contenido(anteriores).reverse(), ...contenido(proximos)];
@@ -590,12 +608,21 @@ Posible problema de configuración. Verifique:
         }
 
         console.log('🎉 Panel cargado con 2 consultas');
+        this.isLoadingTurnos = false;
       },
       error: (error) => {
         console.error('❌ Error al cargar datos:', error);
+        this.isLoadingTurnos = false;
         this.stats = { turnosHoy: 0, turnosManana: 0, turnosSemana: 0, turnosPendientes: 0 };
         this.turnosHoy = [];
         this.proximosTurnos = [];
+        this.allTurnos = [];
+        this.filteredTurnos = [];
+        if (!this.errorMedico) {
+          this.errorMedico = mensajeMedico(error) === 'No se pudo identificar al médico. Reintentá.'
+            ? 'No se pudieron cargar los turnos. Reintentá.'
+            : mensajeMedico(error);
+        }
       }
     });
   }

@@ -259,6 +259,10 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/especialidades", "/api/especialidades/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/obra-social", "/api/obra-social/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/centrosAtencion", "/api/centrosAtencion/**").hasRole("PACIENTE")
+                                // La ficha del profesional se resuelve con el principal del JWT.
+                                // Va antes que el catálogo: un MEDICO autenticado tiene que poder
+                                // pedir /api/medicos/me aunque no haya guardado un id en el cliente.
+                                .requestMatchers(HttpMethod.GET, "/api/medicos/me").authenticated()
                                 .requestMatchers(HttpMethod.GET, "/api/medicos", "/api/medicos/**").hasRole("PACIENTE")
 
                                 // Administración

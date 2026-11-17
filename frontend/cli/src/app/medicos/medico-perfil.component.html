@@ -24,7 +24,14 @@
     </section>
   }
 
-  @if (!cargando) {
+  @if (!cargando && errorCarga) {
+    <section class="ct-section">
+      <p>{{ errorCarga }}</p>
+      <button type="button" class="btn btn-primary" (click)="reintentar()">Reintentar</button>
+    </section>
+  }
+
+  @if (!cargando && !errorCarga) {
     <!-- Información Personal -->
     <section class="ct-section">
       <div class="ct-section__header">

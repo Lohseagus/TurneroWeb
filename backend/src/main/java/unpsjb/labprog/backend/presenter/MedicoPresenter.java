@@ -19,11 +19,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.http.HttpStatus;
+
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.MedicoService;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.MedicoDTO;
 import unpsjb.labprog.backend.exception.InputValidationException;
+import unpsjb.labprog.backend.exception.MedicoSinFichaException;
 
 @RestController
 @RequestMapping("/api/medicos")
@@ -31,6 +34,23 @@ public class MedicoPresenter {
 
     @Autowired
     private MedicoService service;
+
+    /**
+     * Ficha del médico autenticado. El id sale del principal del JWT.
+     * GET /api/medicos/me
+     */
+    @GetMapping("/me")
+    public ResponseEntity<Object> actual() {
+        try {
+            return service.actual()
+                    .map(medico -> Response.ok(medico, "Médico de la sesión"))
+                    .orElseGet(() -> noEncontrado("No hay un profesional asociado a esta cuenta"));
+        } catch (MedicoSinFichaException e) {
+            return noEncontrado(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(cuerpo(HttpStatus.UNAUTHORIZED, e.getMessage()));
+        }
+    }
 
     @GetMapping
     public ResponseEntity<Object> findAll() {
@@ -147,11 +167,23 @@ public class MedicoPresenter {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/email/{email}")
+    @GetMapping("/email/{email:.+}")
     public ResponseEntity<Object> findByEmail(@PathVariable String email) {
         return service.findByEmail(email)
                 .map(medico -> Response.ok(medico, "Médico encontrado por email"))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> noEncontrado("No hay un profesional con ese email"));
+    }
+
+    private ResponseEntity<Object> noEncontrado(String mensaje) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cuerpo(HttpStatus.NOT_FOUND, mensaje));
+    }
+
+    private Map<String, Object> cuerpo(HttpStatus status, String mensaje) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status_code", status.value());
+        body.put("status_text", mensaje);
+        body.put("data", null);
+        return body;
     }
     
     // ===============================

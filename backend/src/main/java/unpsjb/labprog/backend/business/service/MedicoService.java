@@ -20,11 +20,15 @@ import unpsjb.labprog.backend.business.repository.EspecialidadRepository;
 import unpsjb.labprog.backend.business.repository.MedicoRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.CentroAtencionRepository;
+import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.EspecialidadDTO;
+import unpsjb.labprog.backend.dto.MedicoActualDTO;
 import unpsjb.labprog.backend.dto.MedicoDTO;
 import unpsjb.labprog.backend.exception.InputValidationException;
+import unpsjb.labprog.backend.exception.MedicoSinFichaException;
 import unpsjb.labprog.backend.model.Especialidad;
 import unpsjb.labprog.backend.model.Medico;
+import unpsjb.labprog.backend.model.Role;
 import unpsjb.labprog.backend.model.StaffMedico;
 import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.User;
@@ -138,7 +142,73 @@ public class MedicoService {
     }
     
     public Optional<MedicoDTO> findByEmail(String email) {
-        return repository.findByEmail(email).map(this::toDTO);
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.findByEmailIgnoreCase(email.trim()).map(this::toDTO);
+    }
+
+    /**
+     * Médico que corresponde al usuario autenticado. El email sale del principal
+     * del JWT, no de un id que el cliente haya guardado en el navegador.
+     * Si el rol primario es MEDICO y no hay ficha, se registra y se lanza
+     * {@link MedicoSinFichaException}.
+     */
+    @Transactional(readOnly = true)
+    public Optional<MedicoActualDTO> actual() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new IllegalStateException("No hay una sesión válida");
+        }
+        String email = user.getEmail().trim();
+        Optional<Medico> medico = repository.findByEmailIgnoreCase(email);
+        if (medico.isEmpty()) {
+            if (user.getRole() == Role.MEDICO) {
+                logger.warn(
+                        "Usuario {} tiene rol MEDICO y no tiene una ficha Medico vinculada por email",
+                        email);
+                throw new MedicoSinFichaException();
+            }
+            return Optional.empty();
+        }
+        return Optional.of(aActual(medico.get()));
+    }
+
+    private MedicoActualDTO aActual(Medico medico) {
+        MedicoDTO base = toDTO(medico);
+        MedicoActualDTO dto = new MedicoActualDTO();
+        dto.setId(base.getId());
+        dto.setNombre(base.getNombre());
+        dto.setApellido(base.getApellido());
+        dto.setDni(base.getDni());
+        dto.setEmail(base.getEmail());
+        dto.setTelefono(base.getTelefono());
+        dto.setMatricula(base.getMatricula());
+        dto.setRefepsId(base.getRefepsId());
+        dto.setEspecialidades(base.getEspecialidades());
+
+        List<MedicoActualDTO.StaffResumen> staff = staffMedicoRepository.findByMedicoId(medico.getId()).stream()
+                .map(this::aStaff)
+                .toList();
+        dto.setStaff(staff);
+        if (!staff.isEmpty()) {
+            dto.setStaffMedicoId(staff.get(0).getId());
+        }
+        return dto;
+    }
+
+    private MedicoActualDTO.StaffResumen aStaff(StaffMedico staff) {
+        MedicoActualDTO.StaffResumen resumen = new MedicoActualDTO.StaffResumen();
+        resumen.setId(staff.getId());
+        if (staff.getCentroAtencion() != null) {
+            resumen.setCentroId(staff.getCentroAtencion().getId());
+            resumen.setCentroNombre(staff.getCentroAtencion().getNombre());
+        }
+        if (staff.getEspecialidad() != null) {
+            resumen.setEspecialidadId(staff.getEspecialidad().getId());
+            resumen.setEspecialidadNombre(staff.getEspecialidad().getNombre());
+        }
+        return resumen;
     }
     
     /**

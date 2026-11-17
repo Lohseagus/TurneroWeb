@@ -22,6 +22,8 @@ public interface MedicoRepository extends JpaRepository<Medico, Integer> {
     Optional<Medico> findByMatricula(String matricula);
     Optional<Medico> findByEmail(String email);
 
+    Optional<Medico> findByEmailIgnoreCase(String email);
+
     /**
      * Método para búsqueda paginada con filtros combinados y ordenamiento dinámico
      * @param nombre Filtro por nombre (LIKE, opcional)

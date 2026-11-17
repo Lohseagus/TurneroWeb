@@ -44,6 +44,16 @@
   </div>
 </div>
 
+@if (cargandoMedico) {
+  <p class="section-description">Cargando…</p>
+}
+@if (errorMedico) {
+  <section class="card" style="padding: 1rem; margin: 1rem 0;">
+    <p>{{ errorMedico }}</p>
+    <button type="button" class="btn btn-primary" (click)="reintentarSesion()">Reintentar</button>
+  </section>
+}
+
 <!-- Sección Estadísticas -->
 <section class="stats-section card">
   <h2>
