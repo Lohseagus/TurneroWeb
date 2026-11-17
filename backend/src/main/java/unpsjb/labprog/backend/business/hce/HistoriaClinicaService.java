@@ -63,6 +63,10 @@ import unpsjb.labprog.backend.model.hce.TipoEventoHistoria;
 import unpsjb.labprog.backend.model.hce.Vacuna;
 import unpsjb.labprog.backend.business.repository.AccesoHistoriaClinicaRepository;
 import unpsjb.labprog.backend.business.repository.AdjuntoClinicoRepository;
+import unpsjb.labprog.backend.business.repository.OrdenEstudioRepository;
+import unpsjb.labprog.backend.business.repository.RecetaRepository;
+import unpsjb.labprog.backend.model.hce.OrdenEstudio;
+import unpsjb.labprog.backend.model.hce.Receta;
 
 @Service
 public class HistoriaClinicaService {
@@ -82,6 +86,8 @@ public class HistoriaClinicaService {
     private final EspecialidadRepository especialidadRepository;
     private final AccesoHistoriaClinicaRepository accesoRepository;
     private final AdjuntoClinicoRepository adjuntoRepository;
+    private final RecetaRepository recetaRepository;
+    private final OrdenEstudioRepository ordenRepository;
 
     public HistoriaClinicaService(HceAccessGuard guard, PacienteRepository pacienteRepository,
             TurnoRepository turnoRepository, ConsultaRepository consultaRepository,
@@ -90,7 +96,8 @@ public class HistoriaClinicaService {
             MedicacionHabitualRepository medicacionRepository, VacunaRepository vacunaRepository,
             CodigoCie10Repository cie10Repository, CentroAtencionRepository centroRepository,
             EspecialidadRepository especialidadRepository, AccesoHistoriaClinicaRepository accesoRepository,
-            AdjuntoClinicoRepository adjuntoRepository) {
+            AdjuntoClinicoRepository adjuntoRepository, RecetaRepository recetaRepository,
+            OrdenEstudioRepository ordenRepository) {
         this.guard = guard;
         this.pacienteRepository = pacienteRepository;
         this.turnoRepository = turnoRepository;
@@ -106,6 +113,8 @@ public class HistoriaClinicaService {
         this.especialidadRepository = especialidadRepository;
         this.accesoRepository = accesoRepository;
         this.adjuntoRepository = adjuntoRepository;
+        this.recetaRepository = recetaRepository;
+        this.ordenRepository = ordenRepository;
     }
 
     @Transactional(readOnly = true)
@@ -284,6 +293,26 @@ public class HistoriaClinicaService {
                 items.add(item);
             });
         }
+        if (filtroTipo == null || filtroTipo == TipoEventoHistoria.RECETA) {
+            for (Receta receta : recetaRepository.findByPaciente_IdOrderByCreadaEnDesc(pacienteId)) {
+                if (!visible(receta.getConsulta()) || !pasaFiltroCentroMedicoEspecialidad(receta.getConsulta(), centroId,
+                        medicoId, especialidadId)) {
+                    continue;
+                }
+                items.add(itemDocumento(TipoEventoHistoria.RECETA, receta.getId(), receta.getConsulta(),
+                        receta.getCreadaEn(), receta.getEstado().name(), receta.getResumen()));
+            }
+        }
+        if (filtroTipo == null || filtroTipo == TipoEventoHistoria.ORDEN) {
+            for (OrdenEstudio orden : ordenRepository.findByPaciente_IdOrderByCreadaEnDesc(pacienteId)) {
+                if (!visible(orden.getConsulta()) || !pasaFiltroCentroMedicoEspecialidad(orden.getConsulta(), centroId,
+                        medicoId, especialidadId)) {
+                    continue;
+                }
+                items.add(itemDocumento(TipoEventoHistoria.ORDEN, orden.getId(), orden.getConsulta(),
+                        orden.getCreadaEn(), orden.getEstado().name(), orden.getResumen()));
+            }
+        }
         items.sort(Comparator.comparing(TimelineItemDTO::getFecha, Comparator.nullsLast(Comparator.reverseOrder())));
         guard.auditar(paciente, AccionAuditoriaHce.VER_TIMELINE, "TIMELINE", String.valueOf(pacienteId), centroId,
                 "Lectura de la línea de tiempo");
@@ -304,6 +333,8 @@ public class HistoriaClinicaService {
         dto.setCantidadCerradas((int) consultas.stream().filter(c -> c.getEstado() == EstadoConsulta.CERRADA).count());
         dto.setCantidadAdjuntos(adjuntoRepository.findByPaciente_IdOrderByCreadoEnDesc(pacienteId).size());
         dto.setCantidadEnmiendas(enmiendaRepository.findByConsulta_Paciente_IdOrderByCreadaEnDesc(pacienteId).size());
+        dto.setCantidadRecetas((int) recetaRepository.countByPaciente_Id(pacienteId));
+        dto.setCantidadOrdenes((int) ordenRepository.countByPaciente_Id(pacienteId));
         dto.setUltimaActividad(consultas.stream().map(Consulta::getCreadaEn).filter(Objects::nonNull).findFirst().orElse(null));
         guard.auditar(paciente, AccionAuditoriaHce.VER_METADATA, "METADATA", String.valueOf(pacienteId), null,
                 "Lectura de metadatos");
@@ -643,6 +674,26 @@ public class HistoriaClinicaService {
         }
         return especialidadId == null || (consulta.getEspecialidad() != null
                 && especialidadId.equals(consulta.getEspecialidad().getId()));
+    }
+
+    private TimelineItemDTO itemDocumento(TipoEventoHistoria tipo, Long id, Consulta consulta,
+            LocalDateTime fecha, String estado, String resumen) {
+        TimelineItemDTO item = new TimelineItemDTO();
+        item.setTipo(tipo.name());
+        item.setRecursoId(String.valueOf(id));
+        item.setConsultaId(consulta.getId());
+        item.setFecha(fecha);
+        item.setCentroId(consulta.getCentroAtencion().getId());
+        item.setCentroNombre(consulta.getCentroAtencion().getNombre());
+        item.setMedicoId(consulta.getMedico().getId());
+        item.setMedicoNombre(nombreMedico(consulta.getMedico()));
+        if (consulta.getEspecialidad() != null) {
+            item.setEspecialidadId(consulta.getEspecialidad().getId());
+            item.setEspecialidadNombre(consulta.getEspecialidad().getNombre());
+        }
+        item.setEstado(estado);
+        item.setResumen(resumen);
+        return item;
     }
 
     private TimelineItemDTO itemConsulta(Consulta consulta) {

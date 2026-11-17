@@ -1,0 +1,166 @@
+<section class="hce-panel">
+  <div class="hce-header">
+    <h2>Recetas y órdenes</h2>
+    <div class="hce-tabs">
+      <button type="button" class="hce-tab" [class.active]="tab === 'receta'" (click)="tab = 'receta'">Receta</button>
+      <button type="button" class="hce-tab" [class.active]="tab === 'orden'" (click)="tab = 'orden'">Orden de estudio</button>
+    </div>
+  </div>
+  <p class="hce-muted">La emisión deja el documento firmado. Después no se edita: se anula con motivo. Psicotrópicos y estupefacientes (listas II a IV) quedan afuera: requieren receta oficial archivada.</p>
+  <div class="hce-error" *ngIf="error">{{ error }}</div>
+  <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
+
+  <ng-container *ngIf="tab === 'receta'">
+    <div class="hce-list" *ngIf="recetas.length">
+      <button type="button" class="hce-list-item" *ngFor="let receta of recetas" (click)="abrir(receta)">
+        <span>{{ receta.fechaEmision || 'Borrador' }} · {{ receta.items[0]?.nombreGenerico || 'Receta' }}</span>
+        <span class="hce-badge">{{ receta.estado }}</span>
+      </button>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="nueva()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span> Nueva receta
+    </button>
+
+    <div class="hce-preview">
+      <p class="hce-badge" [class.cerrada]="form.estado === 'EMITIDA'" [class.borrador]="form.estado === 'BORRADOR'">{{ form.estado || 'BORRADOR' }}</p>
+      <label>Tipo</label>
+      <select [(ngModel)]="form.tipo" [disabled]="bloqueada">
+        <option value="COMUN">Receta común</option>
+        <option value="PSICOTROPICO">Psicotrópicos (no se emite)</option>
+        <option value="ESTUPEFACIENTE">Estupefacientes (no se emite)</option>
+      </select>
+      <p class="hce-muted" *ngIf="form.tipo !== 'COMUN'">Requiere receta oficial archivada. Esta plataforma no la emite.</p>
+      <label>Diagnóstico de la consulta</label>
+      <select [(ngModel)]="form.diagnosticoCode" [disabled]="bloqueada">
+        <option value="">Elegí un CIE-10</option>
+        <option *ngFor="let diagnostico of consulta.diagnosticos" [value]="diagnostico.code">{{ diagnostico.code }} — {{ diagnostico.display }}</option>
+      </select>
+      <div class="hce-signos">
+        <div>
+          <label>Sexo</label>
+          <select [(ngModel)]="form.pacienteSexo" [disabled]="bloqueada">
+            <option value="">Sin informar</option>
+            <option value="F">Femenino</option>
+            <option value="M">Masculino</option>
+            <option value="X">X</option>
+          </select>
+        </div>
+        <div>
+          <label>Nacimiento</label>
+          <input type="date" [(ngModel)]="form.pacienteNacimiento" [disabled]="bloqueada" />
+        </div>
+        <div>
+          <label>Obra social o prepaga</label>
+          <input type="text" [(ngModel)]="form.obraSocialNombre" [disabled]="bloqueada" />
+        </div>
+        <div>
+          <label>Nº de afiliado</label>
+          <input type="text" [(ngModel)]="form.numeroAfiliado" [disabled]="bloqueada" />
+        </div>
+      </div>
+
+      <article class="hce-card" *ngFor="let item of form.items; let i = index">
+        <label>Nombre genérico</label>
+        <input type="search" [(ngModel)]="item.nombreGenerico" [disabled]="bloqueada" (ngModelChange)="buscar(item.nombreGenerico, i)" placeholder="ibuprofeno" />
+        <div class="hce-sugerencias" *ngIf="sugerencias.length && sugerenciaPara === i && !bloqueada">
+          <button type="button" *ngFor="let med of sugerencias" (click)="elegir(med)">
+            {{ med.nombreGenerico }} {{ med.concentracion }} · {{ med.formaFarmaceutica }}
+            <span *ngIf="med.lista !== 'NINGUNA'"> · receta oficial</span>
+          </button>
+        </div>
+        <p class="hce-error" *ngIf="controlada(item)">Requiere receta oficial archivada.</p>
+        <div class="hce-signos">
+          <div><label>Marca (opcional)</label><input [(ngModel)]="item.marcaComercial" [disabled]="bloqueada" /></div>
+          <div><label>Concentración</label><input [(ngModel)]="item.concentracion" [disabled]="bloqueada" /></div>
+          <div><label>Forma</label><input [(ngModel)]="item.formaFarmaceutica" [disabled]="bloqueada" /></div>
+          <div><label>Presentación</label><input [(ngModel)]="item.presentacion" [disabled]="bloqueada" /></div>
+          <div><label>Cantidad</label><input type="number" [(ngModel)]="item.cantidad" [disabled]="bloqueada" /></div>
+          <div><label>Cantidad en letras</label><input [(ngModel)]="item.cantidadEnLetras" [disabled]="bloqueada" placeholder="se completa sola si la dejás vacía" /></div>
+          <div><label>Dosis</label><input [(ngModel)]="item.dosis" [disabled]="bloqueada" /></div>
+          <div><label>Frecuencia</label><input [(ngModel)]="item.frecuencia" [disabled]="bloqueada" /></div>
+          <div><label>Duración</label><input [(ngModel)]="item.duracion" [disabled]="bloqueada" /></div>
+          <div><label>Vía</label><input [(ngModel)]="item.via" [disabled]="bloqueada" /></div>
+        </div>
+        <label>Indicaciones</label>
+        <textarea [(ngModel)]="item.indicaciones" [disabled]="bloqueada"></textarea>
+        <label><input type="checkbox" [(ngModel)]="item.noSustituir" [disabled]="bloqueada" /> No sustituir</label>
+        <input *ngIf="item.noSustituir" [(ngModel)]="item.justificacionNoSustituir" [disabled]="bloqueada" placeholder="Justificación" />
+        <button type="button" class="btn btn-secondary" *ngIf="!bloqueada" (click)="quitarItem(i)">Quitar</button>
+      </article>
+      <button type="button" class="btn btn-secondary" *ngIf="!bloqueada" (click)="agregarItem()">Agregar medicamento</button>
+
+      <div class="hce-card">
+        <h3>Vista previa</h3>
+        <p>{{ form.pacienteApellido }} {{ form.pacienteNombre }} <span *ngIf="form.pacienteDni">· DNI {{ form.pacienteDni }}</span></p>
+        <p *ngFor="let item of form.items">{{ item.nombreGenerico }} {{ item.concentracion }} — {{ item.cantidad || '—' }} {{ item.cantidadEnLetras }}</p>
+        <p class="hce-muted" *ngIf="form.identificador">Identificador {{ form.identificador }}</p>
+        <p class="hce-muted" *ngIf="form.cuir">CUIR {{ form.cuir }}</p>
+        <p class="hce-muted" *ngIf="form.hashContenido">Huella {{ form.hashContenido }}</p>
+        <p class="hce-muted" *ngIf="!form.hashContenido">Todavía sin validez de farmacia.</p>
+      </div>
+
+      <div class="hce-actions">
+        <button type="button" class="btn btn-secondary" *ngIf="!bloqueada" (click)="guardar()" [disabled]="guardando">Guardar borrador</button>
+        <button type="button" class="btn btn-primary" *ngIf="!bloqueada" (click)="emitir()" [disabled]="guardando">Emitir</button>
+        <button type="button" class="btn btn-secondary" *ngIf="form.id" (click)="pdf()">
+          <span class="material-symbols-outlined" aria-hidden="true">print</span> PDF
+        </button>
+      </div>
+      <div class="hce-actions" *ngIf="bloqueada && form.estado !== 'ANULADA'">
+        <input type="text" [(ngModel)]="motivo" placeholder="Motivo de anulación" />
+        <button type="button" class="btn btn-secondary" (click)="anular()" [disabled]="guardando">
+          <span class="material-symbols-outlined" aria-hidden="true">cancel</span> Anular
+        </button>
+      </div>
+      <p *ngIf="form.motivoAnulacion">Anulada por {{ form.anuladoPor }}: {{ form.motivoAnulacion }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="tab === 'orden'">
+    <div class="hce-list" *ngIf="ordenes.length">
+      <button type="button" class="hce-list-item" *ngFor="let item of ordenes" (click)="abrirOrden(item)">
+        <span>{{ item.fechaEmision || 'Borrador' }} · {{ item.items[0]?.nombrePractica || 'Orden' }}</span>
+        <span class="hce-badge">{{ item.estado }}</span>
+      </button>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="nuevaOrden()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span> Nueva orden
+    </button>
+    <label>Diagnóstico</label>
+    <select [(ngModel)]="orden.diagnosticoCode" [disabled]="ordenBloqueada">
+      <option value="">Elegí un CIE-10</option>
+      <option *ngFor="let diagnostico of consulta.diagnosticos" [value]="diagnostico.code">{{ diagnostico.code }} — {{ diagnostico.display }}</option>
+    </select>
+    <label>Urgencia</label>
+    <select [(ngModel)]="orden.urgencia" [disabled]="ordenBloqueada">
+      <option value="NORMAL">Normal</option>
+      <option value="PREFERENTE">Preferente</option>
+      <option value="URGENTE">Urgente</option>
+    </select>
+    <label>Indicación clínica</label>
+    <textarea [(ngModel)]="orden.indicacionClinica" [disabled]="ordenBloqueada"></textarea>
+    <article class="hce-card" *ngFor="let practica of orden.items; let i = index">
+      <label>Práctica</label>
+      <input [(ngModel)]="practica.nombrePractica" [disabled]="ordenBloqueada" placeholder="Hemograma" />
+      <div class="hce-signos">
+        <div><label>Sistema de código</label><input [(ngModel)]="practica.systemUri" [disabled]="ordenBloqueada" placeholder="nomenclador" /></div>
+        <div><label>Código</label><input [(ngModel)]="practica.code" [disabled]="ordenBloqueada" /></div>
+      </div>
+      <button type="button" class="btn btn-secondary" *ngIf="!ordenBloqueada" (click)="quitarPractica(i)">Quitar</button>
+    </article>
+    <button type="button" class="btn btn-secondary" *ngIf="!ordenBloqueada" (click)="agregarPractica()">Agregar práctica</button>
+    <div class="hce-actions">
+      <button type="button" class="btn btn-secondary" *ngIf="!ordenBloqueada" (click)="guardarOrden()" [disabled]="guardando">Guardar borrador</button>
+      <button type="button" class="btn btn-primary" *ngIf="!ordenBloqueada" (click)="emitirOrden()" [disabled]="guardando">Emitir</button>
+      <button type="button" class="btn btn-secondary" *ngIf="orden.id" (click)="pdfOrden()">
+        <span class="material-symbols-outlined" aria-hidden="true">print</span> PDF
+      </button>
+    </div>
+    <div class="hce-actions" *ngIf="ordenBloqueada && orden.estado !== 'ANULADA'">
+      <input type="text" [(ngModel)]="motivo" placeholder="Motivo de anulación" />
+      <button type="button" class="btn btn-secondary" (click)="anularOrden()" [disabled]="guardando">Anular</button>
+    </div>
+    <p class="hce-muted" *ngIf="orden.identificador">Identificador {{ orden.identificador }}</p>
+    <p class="hce-muted" *ngIf="orden.hashContenido">Huella {{ orden.hashContenido }}</p>
+  </ng-container>
+</section>

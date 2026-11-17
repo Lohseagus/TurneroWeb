@@ -76,6 +76,8 @@ import { ListaEsperaEstadisticasComponent } from "./lista-espera/lista-espera-es
 import { MedicoHceComponent } from "./historia-clinica/medico-hce.component";
 import { MedicoConsultaComponent } from "./historia-clinica/medico-consulta.component";
 import { PacienteHceComponent } from "./historia-clinica/paciente-hce.component";
+import { PacienteRecetasComponent } from "./historia-clinica/paciente-recetas.component";
+import { VerificarPrescripcionComponent } from "./historia-clinica/verificar-prescripcion.component";
 import { PlanesPublicosComponent } from "./saas/planes-publicos.component";
 import { RegistroSaasComponent } from "./saas/registro-saas.component";
 import { MiPlanComponent } from "./saas/mi-plan.component";
@@ -89,6 +91,8 @@ export const routes: Routes = [
   { path: "superadmin-metricas", redirectTo: "dashboard-gestion", pathMatch: "full" },
   { path: "planes", component: PlanesPublicosComponent },
   { path: "registro-saas", component: RegistroSaasComponent },
+  { path: "verificar-receta/:codigo", component: VerificarPrescripcionComponent },
+  { path: "verificar-orden/:codigo", component: VerificarPrescripcionComponent, data: { tipo: "ORDEN" } },
 
   // Ruta puente para deep linking (enlimport { ListaEsperaFormComponent } from "./lista-espera/lista-espera-form.component";
   //aces desde email)
@@ -173,6 +177,11 @@ export const routes: Routes = [
   {
     path: "paciente-historia-clinica",
     component: PacienteHceComponent,
+    canActivate: [PatientGuard],
+  },
+  {
+    path: "paciente-recetas",
+    component: PacienteRecetasComponent,
     canActivate: [PatientGuard],
   },
   {

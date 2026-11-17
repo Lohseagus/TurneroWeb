@@ -8,7 +8,10 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import unpsjb.labprog.backend.business.receta.FhirPrescripcion;
 import unpsjb.labprog.backend.business.repository.AdjuntoClinicoRepository;
+import unpsjb.labprog.backend.business.repository.OrdenEstudioRepository;
+import unpsjb.labprog.backend.business.repository.RecetaRepository;
 import unpsjb.labprog.backend.dto.hce.AlergiaDTO;
 import unpsjb.labprog.backend.dto.hce.ConsultaDTO;
 import unpsjb.labprog.backend.dto.hce.DiagnosticoDTO;
@@ -34,12 +37,19 @@ public class HceFhirService {
     private final HistoriaClinicaService historia;
     private final HceAccessGuard guard;
     private final AdjuntoClinicoRepository adjuntoRepository;
+    private final RecetaRepository recetaRepository;
+    private final OrdenEstudioRepository ordenRepository;
+    private final FhirPrescripcion fhirPrescripcion;
 
     public HceFhirService(HistoriaClinicaService historia, HceAccessGuard guard,
-            AdjuntoClinicoRepository adjuntoRepository) {
+            AdjuntoClinicoRepository adjuntoRepository, RecetaRepository recetaRepository,
+            OrdenEstudioRepository ordenRepository, FhirPrescripcion fhirPrescripcion) {
         this.historia = historia;
         this.guard = guard;
         this.adjuntoRepository = adjuntoRepository;
+        this.recetaRepository = recetaRepository;
+        this.ordenRepository = ordenRepository;
+        this.fhirPrescripcion = fhirPrescripcion;
     }
 
     @Transactional
@@ -70,6 +80,22 @@ public class HceFhirService {
             entries.add(entry(observation(consulta, "29463-7", "Peso", consulta.getPesoKg(), "kg")));
             entries.add(entry(observation(consulta, "8302-2", "Talla", consulta.getTallaCm(), "cm")));
             entries.add(entry(observation(consulta, "39156-5", "IMC", consulta.getImc(), "kg/m2")));
+            for (var receta : recetaRepository.findByConsulta_IdOrderByCreadaEnDesc(consulta.getId())) {
+                if (!guard.puedeLeerConsulta(receta.getConsulta())) {
+                    continue;
+                }
+                for (Map<String, Object> recurso : fhirPrescripcion.receta(receta)) {
+                    entries.add(entry(recurso));
+                }
+            }
+            for (var orden : ordenRepository.findByConsulta_IdOrderByCreadaEnDesc(consulta.getId())) {
+                if (!guard.puedeLeerConsulta(orden.getConsulta())) {
+                    continue;
+                }
+                for (Map<String, Object> recurso : fhirPrescripcion.orden(orden)) {
+                    entries.add(entry(recurso));
+                }
+            }
         }
         for (AdjuntoClinico adjunto : adjuntoRepository.findByPaciente_IdOrderByCreadoEnDesc(pacienteId)) {
             if (adjunto.getConsulta() != null && !guard.puedeLeerConsulta(adjunto.getConsulta())) {

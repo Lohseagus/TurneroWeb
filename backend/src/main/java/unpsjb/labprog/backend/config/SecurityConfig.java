@@ -289,6 +289,11 @@ public class SecurityConfig {
                                 // centro, consentimiento y titularidad: la jerarquía hace que
                                 // ADMINISTRADOR y SUPERADMIN hereden ROLE_MEDICO.
                                 .requestMatchers("/api/hce/**").authenticated()
+                                // Verificación de farmacia o laboratorio, sin sesión.
+                                // El código es un token largo; el servicio no devuelve la historia.
+                                .requestMatchers(HttpMethod.GET, "/api/recetas/verificar/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/ordenes-estudio/verificar/**").permitAll()
+                                .requestMatchers("/api/recetas/**", "/api/ordenes-estudio/**").authenticated()
 
                                 .anyRequest().authenticated();
                     }

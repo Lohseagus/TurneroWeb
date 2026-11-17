@@ -43,6 +43,25 @@ public class HceAuditoriaService {
         repository.save(acceso);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrarSistema(Integer pacienteId, AccionAuditoriaHce accion, String recursoTipo, String recursoId,
+            Integer centroId, String detalle, String actorEmail, String actorRol) {
+        if (pacienteId == null || accion == null) {
+            return;
+        }
+        AccesoHistoriaClinica acceso = new AccesoHistoriaClinica();
+        acceso.setPacienteId(pacienteId);
+        acceso.setAccion(accion);
+        acceso.setRecursoTipo(recursoTipo);
+        acceso.setRecursoId(recursoId);
+        acceso.setCentroId(centroId);
+        acceso.setDetalle(recortar(detalle));
+        acceso.setOcurridoEn(LocalDateTime.now());
+        acceso.setActorEmail(actorEmail);
+        acceso.setActorRol(actorRol);
+        repository.save(acceso);
+    }
+
     private String recortar(String detalle) {
         if (detalle == null) {
             return null;

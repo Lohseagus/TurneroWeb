@@ -5,11 +5,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { HceService } from './hce.service';
 import { AdjuntoHce, Cie10, ConsultaHce, DiagnosticoHce } from './hce.models';
+import { RecetasConsultaComponent } from './recetas-consulta.component';
 
 @Component({
   selector: 'app-medico-consulta',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, RecetasConsultaComponent],
   templateUrl: './medico-consulta.component.html',
   styleUrl: './hce.css'
 })

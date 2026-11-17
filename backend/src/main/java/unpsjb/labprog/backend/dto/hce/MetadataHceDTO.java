@@ -18,5 +18,7 @@ public class MetadataHceDTO {
     private int cantidadCerradas;
     private int cantidadAdjuntos;
     private int cantidadEnmiendas;
+    private int cantidadRecetas;
+    private int cantidadOrdenes;
     private LocalDateTime ultimaActividad;
 }

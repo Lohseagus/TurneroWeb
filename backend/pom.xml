@@ -82,6 +82,12 @@
 			<artifactId>io</artifactId>
 			<version>${itext.version}</version>
 		</dependency>
+		<!-- QR de verificación. No había librería en el proyecto; zxing-core arma la matriz y el JDK la rasteriza. -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
 		<!-- Spring Boot Mail Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
