@@ -5,12 +5,10 @@ import { UserContextService } from './user-context.service';
 import { 
   MenuSection, 
   MenuItem, 
-  MENU_CONFIG, 
   SHARED_MENU_ITEMS,
-  getMenuSectionsForRoles,
-  getAllMenuItems 
+  getMenuSectionsForUser,
+  filterItemsByPrimaryRole
 } from '../config/menu.config';
-import { Role } from '../inicio-sesion/auth.service';
 
 /**
  * Estado del menú lateral
@@ -62,17 +60,8 @@ export class MenuService {
           return [];
         }
         
-        let sections = getMenuSectionsForRoles(context.allRoles);
-        
-        // TODO: Refactorizar jerarquía de roles - La jerarquía MEDICO < ADMINISTRADOR no tiene sentido
-        // Solución temporal hardcodeada: Ocultar paneles específicos cuando el usuario primario es ADMINISTRADOR
-        if (context.primaryRole?.toUpperCase() === 'ADMINISTRADOR') {
-          sections = sections.filter(section => 
-            section.id !== 'medico' && section.id !== 'gestion'
-          );
-        }
-        
-        return sections;
+        // ADMINISTRADOR no ve Panel de Médico ni Gestión General: lo resuelve getMenuSectionsForUser.
+        return getMenuSectionsForUser(context.allRoles, context.primaryRole);
       })
     );
 
@@ -154,23 +143,11 @@ export class MenuService {
       map(([sections, badges, userContext]) => {
         const isSuperAdmin = userContext.primaryRole?.toUpperCase() === 'SUPERADMIN';
         const isAdmin = userContext.primaryRole?.toUpperCase() === 'ADMINISTRADOR';
+        const visibleSections = filterItemsByPrimaryRole(sections, userContext?.primaryRole);
         
-        return sections.map(section => ({
+        return visibleSections.map(section => ({
           ...section,
           items: section.items
-            .filter(item => {
-              // Si el item no requiere rol primario, siempre se muestra
-              if (!item.requiresPrimaryRole) {
-                return true;
-              }
-              
-              // Si requiere rol primario, verificar que el usuario tenga ese rol como primario
-              if (!userContext || !userContext.primaryRole) {
-                return false;
-              }
-              
-              return userContext.primaryRole.toUpperCase() === section.role.toUpperCase();
-            })
             .map(item => {
               const badgeCount = item.route ? badges.get(item.route) : undefined;
               

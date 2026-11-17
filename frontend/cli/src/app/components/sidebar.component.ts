@@ -1,23 +1,27 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription, Observable, combineLatest } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { MenuService } from '../services/menu.service';
 import { UserContextService, UserContext } from '../services/user-context.service';
 import { AuthService } from '../inicio-sesion/auth.service';
-import { MenuSection, MenuItem } from '../config/menu.config';
+import { MenuSection } from '../config/menu.config';
+import {
+  readMenuSectionState,
+  writeMenuSectionState
+} from '../config/menu-section-storage';
+import {
+  resolveOpenSectionIds,
+  routeMatches
+} from '../config/menu-section-state';
 
 /**
- * Componente del menú lateral (sidebar) dinámico basado en roles
- * 
- * Características:
- * - Menú adaptativo según roles del usuario
- * - Colapso/expansión de secciones
- * - Badges de notificaciones
- * - Responsive (mobile/desktop)
- * - Highlighting de ruta activa
- * - Mini-sidebar estilo Google Gemini cuando está colapsado
+ * Componente del menú lateral (sidebar) dinámico basado en roles.
+ *
+ * Cada panel de rol es un grupo colapsable. Al entrar se abre solo el del rol
+ * de mayor jerarquía, más el grupo de la ruta activa. Lo que el usuario abre
+ * o cierra a mano queda en sessionStorage hasta el logout o un nuevo login.
  */
 @Component({
   selector: 'app-sidebar',
@@ -26,9 +30,7 @@ import { MenuSection, MenuItem } from '../config/menu.config';
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
   changeDetection: ChangeDetectionStrategy.Eager,
-  animations: [
-    // Puedes agregar animaciones Angular aquí si lo deseas
-  ]
+  animations: []
 })
 export class SidebarComponent implements OnInit, OnDestroy {
   
@@ -39,6 +41,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
   
   private subscriptions: Subscription[] = [];
   private currentRoute = '';
+  private sections: MenuSection[] = [];
+  private userKey: string | null = null;
+  private sectionSignature = '';
+  /** null: el usuario no tocó los paneles en esta sesión. */
+  private preference: Record<string, boolean> | null = null;
+  private ignoreClickUntil = 0;
+
+  openSectionIds = new Set<string>();
 
   constructor(
     public menuService: MenuService,
@@ -48,15 +58,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Inicializar observables
     this.userContext$ = this.userContextService.userContext$;
     this.menuSectionsWithBadges$ = this.menuService.getMenuSectionsWithBadges();
-    
-    // Suscribirse a cambios de ruta para highlight
+    this.currentRoute = this.router.url;
+
+    const menuSub = combineLatest([
+      this.menuSectionsWithBadges$,
+      this.userContextService.userContext$
+    ]).subscribe(([sections, context]) => {
+      this.sections = sections ?? [];
+      this.syncUserPreference(context);
+    });
+
     const routeSub = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
-        this.currentRoute = event.url;
+        this.currentRoute = event.urlAfterRedirects || event.url;
+        this.rebuildOpenState();
         
         // En mobile, cerrar sidebar después de navegar
         this.menuService.sidebarState$.subscribe(state => {
@@ -66,7 +84,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         }).unsubscribe();
       });
     
-    this.subscriptions.push(routeSub);
+    this.subscriptions.push(menuSub, routeSub);
   }
 
   ngOnDestroy(): void {
@@ -77,8 +95,43 @@ export class SidebarComponent implements OnInit, OnDestroy {
    * Verifica si una ruta está activa
    */
   isActiveRoute(route?: string): boolean {
-    if (!route) return false;
-    return this.currentRoute === route || this.currentRoute.startsWith(route + '/');
+    return routeMatches(this.currentRoute, route);
+  }
+
+  isSectionOpen(sectionId: string): boolean {
+    return this.openSectionIds.has(sectionId);
+  }
+
+  toggleSection(sectionId: string): void {
+    const next = new Set(this.openSectionIds);
+    if (next.has(sectionId)) {
+      next.delete(sectionId);
+    } else {
+      next.add(sectionId);
+    }
+    this.openSectionIds = next;
+    this.persistOpenState();
+  }
+
+  /**
+   * Enter y Espacio activan el botón. preventDefault evita el click sintético
+   * que volvería a invertir el panel; el margen cubre el click de keyup.
+   */
+  onSectionKeydown(event: KeyboardEvent, sectionId: string): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    this.ignoreClickUntil = Date.now() + 400;
+    this.toggleSection(sectionId);
+  }
+
+  onSectionClick(sectionId: string): void {
+    if (Date.now() < this.ignoreClickUntil) {
+      this.ignoreClickUntil = 0;
+      return;
+    }
+    this.toggleSection(sectionId);
   }
 
   /**
@@ -96,9 +149,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Emite evento para toggle del sidebar (controla el parent)
+   * Emite evento para toggle del sidebar (controla el parent).
+   * En mobile el drawer lo abre el estado del MenuService, no la clase del padre.
    */
   onToggleSidebar(): void {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      this.menuService.toggleSidebar();
+    }
     this.toggleSidebar.emit();
   }
 
@@ -121,5 +178,97 @@ export class SidebarComponent implements OnInit, OnDestroy {
       'SUPERADMIN': 'Super Administrador'
     };
     return roleMap[role] || role;
+  }
+
+  private syncUserPreference(context: UserContext | null): void {
+    const nextKey = context?.isAuthenticated ? this.userStorageKey(context) : null;
+    if (!nextKey) {
+      this.userKey = null;
+      this.preference = null;
+      this.sectionSignature = '';
+      this.openSectionIds = new Set();
+      return;
+    }
+
+    const stored = readMenuSectionState(this.sessionStorage(), nextKey);
+    const signature = this.signatureOf(this.sections);
+    const userChanged = nextKey !== this.userKey;
+    const preferenceChanged = !this.samePreference(stored, this.preference);
+    const sectionsChanged = signature !== this.sectionSignature;
+
+    this.userKey = nextKey;
+    if (userChanged || preferenceChanged || sectionsChanged) {
+      this.preference = stored;
+      this.sectionSignature = signature;
+      this.rebuildOpenState();
+    }
+  }
+
+  private rebuildOpenState(): void {
+    if (!this.userKey) {
+      this.openSectionIds = new Set();
+      return;
+    }
+    this.openSectionIds = new Set(
+      resolveOpenSectionIds(this.sections, this.currentRoute, this.preference)
+    );
+  }
+
+  private persistOpenState(): void {
+    if (!this.userKey) {
+      return;
+    }
+
+    const preference: Record<string, boolean> = { ...(this.preference ?? {}) };
+    for (const section of this.sections) {
+      preference[section.id] = this.openSectionIds.has(section.id);
+    }
+    this.preference = preference;
+    this.sectionSignature = this.signatureOf(this.sections);
+    writeMenuSectionState(this.sessionStorage(), this.userKey, preference);
+  }
+
+  private userStorageKey(context: UserContext): string {
+    const email = context.email?.trim();
+    if (email) {
+      return email;
+    }
+    if (context.id) {
+      return `id:${context.id}`;
+    }
+    return 'session';
+  }
+
+  private signatureOf(sections: MenuSection[]): string {
+    return sections
+      .map(section => `${section.id}:${section.items.map(item => item.route ?? '').join(',')}`)
+      .join('|');
+  }
+
+  private samePreference(
+    left: Record<string, boolean> | null,
+    right: Record<string, boolean> | null
+  ): boolean {
+    if (left === right) {
+      return true;
+    }
+    if (!left || !right) {
+      return false;
+    }
+    const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+    for (const key of keys) {
+      if ((left[key] ?? false) !== (right[key] ?? false)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private sessionStorage(): Storage | null {
+    try {
+      return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+    } catch {
+      return null;
+    }
   }
 }

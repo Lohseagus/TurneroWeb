@@ -436,6 +436,37 @@ export function getMenuSectionsForRoles(userRoles: Role[]): MenuSection[] {
 }
 
 /**
+ * Secciones que el usuario ve, incluido el recorte de paneles que no corresponden
+ * al rol primario ADMINISTRADOR (Médico y Gestión General).
+ */
+export function getMenuSectionsForUser(userRoles: Role[], primaryRole?: string | null): MenuSection[] {
+  const sections = getMenuSectionsForRoles(userRoles);
+  if (primaryRole?.toUpperCase() === Role.ADMINISTRADOR) {
+    return sections.filter(section => section.id !== 'medico' && section.id !== 'gestion');
+  }
+  return sections;
+}
+
+/**
+ * Oculta ítems marcados como `requiresPrimaryRole` cuando el rol primario no es el de la sección.
+ */
+export function filterItemsByPrimaryRole(sections: MenuSection[], primaryRole?: string | null): MenuSection[] {
+  const primary = primaryRole?.toUpperCase() ?? '';
+  return sections.map(section => ({
+    ...section,
+    items: section.items.filter(item => {
+      if (!item.requiresPrimaryRole) {
+        return true;
+      }
+      if (!primary) {
+        return false;
+      }
+      return primary === String(section.role).toUpperCase();
+    })
+  }));
+}
+
+/**
  * Helper para obtener todos los items de menú sin duplicados
  * (útil para búsqueda o navegación global)
  * @param userRoles Roles del usuario actual
