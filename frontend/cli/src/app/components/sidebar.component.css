@@ -108,11 +108,14 @@
   margin: 0;
 }
 
-/* Ocultar mini-sidebar y botón flotante en mobile */
+/* En mobile el rail colapsado no aplica; el botón abre el drawer */
 @media (max-width: 767px) {
-  .mini-sidebar,
-  .sidebar-toggle-floating {
+  .mini-sidebar {
     display: none;
+  }
+
+  .sidebar-toggle-floating {
+    display: flex;
   }
 }
 
@@ -146,12 +149,6 @@
 
 .sidebar--open {
   transform: translateX(0);
-}
-
-/* Estado cerrado controlado desde el componente padre - debe tener máxima prioridad */
-.sidebar.sidebar-closed,
-:host.sidebar-closed .sidebar {
-  transform: translateX(-100%) !important;
 }
 
 .sidebar__header {
@@ -244,13 +241,82 @@
   opacity: 0.9;
 }
 
+.sidebar__section-toggle {
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sidebar__section-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+.sidebar__section-toggle:focus-visible {
+  outline: 2px solid #ffd700;
+  outline-offset: -2px;
+  opacity: 1;
+}
+
+.sidebar__section-toggle--open {
+  opacity: 1;
+}
+
 .sidebar__section-icon {
   font-size: var(--font-size-body);
   margin: 0;
+  text-transform: none;
+  flex-shrink: 0;
 }
 
 .sidebar__section-title {
   flex: 1;
+  min-width: 0;
+}
+
+.sidebar__section-chevron {
+  margin: 0;
+  font-size: var(--font-size-body);
+  flex-shrink: 0;
+  text-transform: none;
+  transition: transform 0.25s ease;
+}
+
+.sidebar__section-chevron--open {
+  transform: rotate(180deg);
+}
+
+.sidebar__section-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.sidebar__section-body--open {
+  grid-template-rows: 1fr;
+}
+
+.sidebar__section-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__section-body,
+  .sidebar__section-chevron {
+    transition: none;
+  }
 }
 
 .sidebar__menu {

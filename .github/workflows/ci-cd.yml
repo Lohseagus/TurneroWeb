@@ -75,6 +75,10 @@ jobs:
         working-directory: frontend/cli
         run: npm ci
 
+      - name: Tests unitarios
+        working-directory: frontend/cli
+        run: npm test -- --no-watch
+
       - name: Build de producción
         working-directory: frontend/cli
         env:
@@ -90,10 +94,6 @@ jobs:
             echo "El build de producción contiene el literal /api/api."
             exit 1
           fi
-
-      # No hay target "test" en angular.json: los schematics tienen skipTests
-      # y no existe ningún *.spec.ts. Cuando haya tests de Angular:
-      #   npm test -- --watch=false --browsers=ChromeHeadless
 
   # El Dockerfile corre `nginx -t`. Sin esta imagen, un location con llaves
   # sin comillas pasa el build de Angular y rompe el deploy a master.

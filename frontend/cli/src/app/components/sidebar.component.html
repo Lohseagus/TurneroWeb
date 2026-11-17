@@ -64,19 +64,41 @@
       </div>
     }
 
-    <!-- Secciones por Rol -->
-    @for (section of menuSectionsWithBadges$ | async; track section) {
+    <!-- Secciones por Rol: cada panel es un grupo colapsable -->
+    @for (section of menuSectionsWithBadges$ | async; track section.id) {
       <div
         class="sidebar__section"
         >
-        <!-- Header de Sección -->
-        <div class="sidebar__section-header">
+        <button
+          type="button"
+          class="sidebar__section-header sidebar__section-toggle"
+          [class.sidebar__section-toggle--open]="isSectionOpen(section.id)"
+          [id]="'sidebar-toggle-' + section.id"
+          [attr.aria-expanded]="isSectionOpen(section.id)"
+          [attr.aria-controls]="'sidebar-panel-' + section.id"
+          (click)="onSectionClick(section.id)"
+          (keydown)="onSectionKeydown($event, section.id)"
+          >
           <span class="material-symbols-outlined sidebar__section-icon">{{ section.icon }}</span>
           <span class="sidebar__section-title">{{ section.label }}</span>
-        </div>
-        <!-- Items de la Sección (siempre visibles) -->
+          <span
+            class="material-symbols-outlined sidebar__section-chevron"
+            [class.sidebar__section-chevron--open]="isSectionOpen(section.id)"
+            aria-hidden="true"
+            >expand_more</span>
+        </button>
+        <div
+          class="sidebar__section-body"
+          [class.sidebar__section-body--open]="isSectionOpen(section.id)"
+          [id]="'sidebar-panel-' + section.id"
+          role="region"
+          [attr.aria-labelledby]="'sidebar-toggle-' + section.id"
+          [attr.aria-hidden]="!isSectionOpen(section.id)"
+          [attr.inert]="isSectionOpen(section.id) ? null : ''"
+          >
+          <div class="sidebar__section-body-inner">
         <ul class="sidebar__menu">
-          @for (item of section.items; track item) {
+          @for (item of section.items; track item.route ?? item.label) {
             <!-- Divider -->
             @if (item.divider) {
               <li class="sidebar__divider"></li>
@@ -121,6 +143,8 @@
             }
           }
         </ul>
+          </div>
+        </div>
       </div>
     }
   </nav>
