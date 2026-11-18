@@ -478,7 +478,7 @@ public class AgendaPresenter {
             
             ConfiguracionExcepcionalDTO configDTO = configuracionExcepcionalService.saveOrUpdateDTO(
                 new ConfiguracionExcepcionalDTO(configId, fecha, null, tipoAgenda, descripcion, horaInicio, horaFin, 
-                duracion, true, null, null, null, null, esquemaTurnoId, null, null, null, null, null, null, null, null, null));
+                duracion, true, null, null, null, null, esquemaTurnoId, null, null, null, null, null, null, null, null, null, false));
             
             return Response.ok(configDTO, "Día excepcional actualizado correctamente");
         } catch (AccessDeniedException e) {

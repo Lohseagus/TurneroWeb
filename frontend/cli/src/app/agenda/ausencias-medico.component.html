@@ -10,6 +10,11 @@
     y el paciente recibe un enlace para reservar uno nuevo con el mismo profesional.
     Los de hoy, o los que ya pasaron, quedan para resolverlos a mano.
   </p>
+  @if (modo === 'medico') {
+    <p class="ausencias__ayuda" data-testid="ayuda-anticipacion">
+      Las ausencias se cargan con al menos {{ diasAnticipacion }} días de anticipación.
+    </p>
+  }
 
   @if (error) {
     <p class="ausencias__error" role="alert">{{ error }}</p>
@@ -43,7 +48,8 @@
 
     <label>
       Desde
-      <input class="form-control" type="date" name="desde" [(ngModel)]="fechaInicio" (ngModelChange)="alEditar()" required />
+      <input class="form-control" type="date" name="desde" [(ngModel)]="fechaInicio" (ngModelChange)="alEditar()"
+        [min]="minimoDelMedico" required />
     </label>
     <label>
       Hasta
@@ -57,10 +63,19 @@
       Hasta la hora (opcional)
       <input class="form-control" type="time" name="horaFin" [(ngModel)]="horaFin" (ngModelChange)="alEditar()" />
     </label>
+    @if (requiereUrgencia) {
+      <label class="ausencias__motivo">
+        <input type="checkbox" name="urgente" [(ngModel)]="urgente" (ngModelChange)="alEditar()" />
+        Urgencia
+      </label>
+      <p class="ausencias__ayuda">
+        Esta fecha es anterior al mínimo de {{ diasAnticipacion }} días. Solo la administración puede cargarla, con un motivo.
+      </p>
+    }
     <label class="ausencias__motivo">
-      Motivo (opcional)
+      {{ requiereUrgencia ? 'Motivo de la urgencia' : 'Motivo (opcional)' }}
       <input class="form-control" type="text" name="motivo" maxlength="500" [(ngModel)]="motivo"
-        (ngModelChange)="alEditar()" placeholder="Vacaciones, congreso, licencia" />
+        (ngModelChange)="alEditar()" [required]="requiereUrgencia" placeholder="Vacaciones, congreso, licencia" />
     </label>
 
     <div class="ausencias__acciones">

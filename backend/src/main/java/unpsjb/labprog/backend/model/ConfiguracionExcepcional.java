@@ -60,6 +60,9 @@ public class ConfiguracionExcepcional {
     
     private boolean activo = true;
 
+    /** Ausencia cargada por la administración dentro del plazo mínimo. */
+    private boolean urgente = false;
+
     public LocalDate finInclusive() {
         return fechaFin != null ? fechaFin : fecha;
     }
