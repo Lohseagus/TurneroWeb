@@ -56,6 +56,15 @@ public interface CentroAtencionRepository
 
     java.util.List<CentroAtencion> findByOrganizacionIsNull();
 
+    @Query("""
+            select c from CentroAtencion c
+            where c.organizacion is not null
+              and not exists (
+                select s.id from Suscripcion s where s.organizacion = c.organizacion
+              )
+            """)
+    java.util.List<CentroAtencion> findConOrganizacionSinSuscripcion();
+
     java.util.List<CentroAtencion> findByOrganizacion_Id(Integer organizacionId);
 
     @Query("select count(distinct e.id) from CentroAtencion c join c.especialidades e where c.organizacion.id = :orgId")

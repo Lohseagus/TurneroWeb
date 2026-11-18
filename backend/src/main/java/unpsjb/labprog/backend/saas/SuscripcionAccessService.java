@@ -19,6 +19,8 @@ import unpsjb.labprog.backend.model.SuscripcionEvento;
 @Service
 public class SuscripcionAccessService {
 
+    public static final String CODIGO_SOLO_LECTURA = "SUSCRIPCION_SOLO_LECTURA";
+
     @Autowired
     private CentroAtencionRepository centroAtencionRepository;
 
@@ -43,10 +45,10 @@ public class SuscripcionAccessService {
     }
 
     /**
-     * Sin suscripción (centro legado todavía no vinculado) no se bloquea,
-     * para no dejar afuera datos de prueba ni un alta hecha por SUPERADMIN.
-     * Con suscripción, el trial vencido o la mora dejan la cuenta en solo lectura
-     * y los topes del plan rechazan el alta.
+     * La falta de suscripción la corta el filtro HTTP ({@code SuscripcionSoloLecturaFilter}):
+     * acá no, para que un alta del SUPERADMIN o un job interno sobre un centro
+     * todavía no heredado no reviente. Con suscripción, el trial vencido o la mora
+     * dejan la cuenta en solo lectura y los topes del plan rechazan el alta.
      */
     @Transactional
     public void assertOperacion(Integer centroId, RecursoSaas recurso, Integer medicoId) {
@@ -88,6 +90,27 @@ public class SuscripcionAccessService {
             throw new ReglaSuscripcionException(
                     "El plan " + suscripcion.getPlan().getNombre() + " no incluye reportes consolidados de la red.");
         }
+    }
+
+    /**
+     * Regla de solo lectura del centro. La usa el filtro antes de llegar al controller.
+     * Sin fila de suscripción también bloquea: la herencia corre al arrancar y al
+     * pedir el catálogo, así que un centro que sigue sin suscripción no se opera.
+     */
+    @Transactional
+    public ResultadoEscritura evaluarEscritura(Integer centroId) {
+        if (centroId == null) {
+            return ResultadoEscritura.permitir();
+        }
+        Suscripcion suscripcion = buscarPorCentro(centroId).orElse(null);
+        if (suscripcion == null || suscripcion.getPlan() == null || suscripcion.getEstado() == null) {
+            return ResultadoEscritura.bloquear(mensajeSinSuscripcion(), true);
+        }
+        sincronizar(suscripcion);
+        if (!suscripcion.getEstado().permiteEscribir()) {
+            return ResultadoEscritura.bloquear(mensajeSoloLectura(suscripcion.getEstado()), false);
+        }
+        return ResultadoEscritura.permitir();
     }
 
     @Transactional(readOnly = true)
@@ -162,6 +185,21 @@ public class SuscripcionAccessService {
             suscripcion.setProfesionalesContratados(siguiente);
             suscripcionRepository.save(suscripcion);
         }
+    }
+
+    public static String mensajeSinSuscripcion() {
+        return "Este centro no tiene una suscripción activa. La cuenta es de solo lectura: "
+                + "no se pueden crear ni modificar turnos, pacientes ni recursos. "
+                + "Los datos que ya están cargados se conservan.";
+    }
+
+    public static String mensajeParaPaciente(boolean sinSuscripcion) {
+        if (sinSuscripcion) {
+            return "Este centro no está tomando turnos porque no tiene una suscripción activa. "
+                    + "Podés ver lo que ya tenías, pero no reservar, confirmar, cancelar ni reagendar.";
+        }
+        return "Este centro no está tomando turnos porque su suscripción no está activa. "
+                + "Podés ver lo que ya tenías, pero no reservar, confirmar, cancelar ni reagendar.";
     }
 
     public static String mensajeSoloLectura(EstadoSuscripcion estado) {

@@ -2,6 +2,7 @@ package unpsjb.labprog.backend.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -27,6 +28,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import unpsjb.labprog.backend.business.service.UserService;
+import unpsjb.labprog.backend.saas.CentroObjetivoResolver;
+import unpsjb.labprog.backend.saas.SaasEnforcement;
+import unpsjb.labprog.backend.saas.SuscripcionAccessService;
+import unpsjb.labprog.backend.saas.SuscripcionSoloLecturaFilter;
 
 import jakarta.servlet.DispatcherType;
 
@@ -83,6 +88,27 @@ public class SecurityConfig {
      * la cadena. OncePerRequestFilter corre una sola vez: si gana esa copia,
      * la de la cadena se saltea y el usuario queda anónimo (403).
      */
+    /**
+     * El filtro no es un {@code @Component}: si lo fuera, Boot lo publicaría
+     * también como filtro del servlet, fuera de la cadena, y correría sin el usuario.
+     * En los slices de seguridad que no cargan el servicio SaaS queda en no-op.
+     */
+    @Bean
+    public SuscripcionSoloLecturaFilter suscripcionSoloLecturaFilter(
+            ObjectProvider<SuscripcionAccessService> access,
+            ObjectProvider<CentroObjetivoResolver> resolver,
+            ObjectProvider<SaasEnforcement> enforcement) {
+        return new SuscripcionSoloLecturaFilter(access, resolver, enforcement);
+    }
+
+    @Bean
+    public FilterRegistrationBean<SuscripcionSoloLecturaFilter> suscripcionSoloLecturaFilterRegistration(
+            SuscripcionSoloLecturaFilter filter) {
+        FilterRegistrationBean<SuscripcionSoloLecturaFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
             JwtAuthenticationFilter filter) {
@@ -199,7 +225,8 @@ public class SecurityConfig {
      * - Seguridad completa aplicada según roles del sistema
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, SuscripcionSoloLecturaFilter suscripcionSoloLecturaFilter)
+            throws Exception {
         if (devMode) {
             logger.warn("security.dev.mode=true: TODOS los endpoints quedan públicos, sin control de roles. "
                     + "Usalo solo en desarrollo local o en la suite e2e, nunca con datos reales.");
@@ -232,6 +259,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/auth/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/publica", "/api/agenda/publica/**").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/deep-links/validate").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/saas/aviso").authenticated()
                                 .requestMatchers(HttpMethod.GET, "/api/saas/planes").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/saas/cotizar").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/saas/registro").permitAll()
@@ -326,7 +354,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new RestAuthenticationEntryPoint())
                         .accessDeniedHandler(new RestAccessDeniedHandler()))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(suscripcionSoloLecturaFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

@@ -85,4 +85,7 @@ public interface StaffMedicoRepository extends JpaRepository<StaffMedico, Intege
             """)
     long countMedicoEnOrganizacion(@Param("orgId") Integer orgId, @Param("medicoId") Integer medicoId);
 
+    @Query("select s.centroAtencion.id from StaffMedico s where s.id = :id")
+    java.util.Optional<Integer> findCentroIdByStaffId(@Param("id") Integer id);
+
 }

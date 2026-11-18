@@ -22,4 +22,8 @@ public interface ConsultorioRepository extends JpaRepository<Consultorio, Intege
     List<Consultorio> findByNombreContainingIgnoreCase(String term);
 
     long countByCentroAtencion_Organizacion_Id(Integer organizacionId);
+
+    @org.springframework.data.jpa.repository.Query("select c.centroAtencion.id from Consultorio c where c.id = :id")
+    java.util.Optional<Integer> findCentroIdByConsultorioId(
+            @org.springframework.data.repository.query.Param("id") Integer id);
 }

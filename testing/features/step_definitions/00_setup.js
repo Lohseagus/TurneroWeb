@@ -7,7 +7,7 @@
 
 const { BeforeAll, Before } = require('@cucumber/cucumber');
 const rawRequest = require('sync-request');
-const { origin } = require('../../support/config');
+const { apiUrl } = require('../../support/config');
 const { prepareLegacyBaseline, seedMultiTenant } = require('../../support/db');
 const { clearAccessToken, getAccessToken } = require('../../support/auth');
 
@@ -20,7 +20,7 @@ async function waitForBackend(timeoutMs = 120000) {
   let lastError = 'sin respuesta';
   while (Date.now() - started < timeoutMs) {
     try {
-      const res = rawRequest('GET', `${origin()}/`, { timeout: 3000 });
+      const res = rawRequest('GET', apiUrl('/'), { timeout: 3000 });
       if (res.statusCode === 200) {
         return;
       }
@@ -30,7 +30,7 @@ async function waitForBackend(timeoutMs = 120000) {
     }
     await sleep(2000);
   }
-  throw new Error(`El backend no respondió en ${origin()}/ (${lastError})`);
+  throw new Error(`El backend no respondió en ${apiUrl('/')} (${lastError})`);
 }
 
 BeforeAll({ timeout: 180000 }, async function () {
@@ -44,6 +44,13 @@ BeforeAll({ timeout: 180000 }, async function () {
   console.log('🧹 Base reiniciada y superadmin de prueba listo');
 });
 
+function heredarCentrosSembrados() {
+  const res = rawRequest('GET', apiUrl('/api/saas/planes'), { timeout: 20000 });
+  if (res.statusCode !== 200) {
+    throw new Error(`No se pudieron heredar los centros sembrados: HTTP ${res.statusCode}`);
+  }
+}
+
 let multiTenantSeeded = false;
 let multiTenantSeedError = null;
 
@@ -56,6 +63,7 @@ Before({ tags: '@multi-tenant', timeout: 180000 }, function () {
   }
   try {
     seedMultiTenant();
+    heredarCentrosSembrados();
     clearAccessToken();
     multiTenantSeeded = true;
     console.log('🌱 Datos multi-tenant cargados desde staging/userinit.sql');

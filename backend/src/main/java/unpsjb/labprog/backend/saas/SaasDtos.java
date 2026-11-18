@@ -111,6 +111,15 @@ public final class SaasDtos {
         public String adminTelefono;
     }
 
+    public static class AvisoSuscripcion {
+        public boolean enforcementEnabled;
+        public boolean soloLectura;
+        public boolean sinSuscripcion;
+        public String estado;
+        public String mensaje;
+        public Long diasTrialRestantes;
+    }
+
     public static class RegistroResponse {
         public Integer suscripcionId;
         public Integer organizacionId;
@@ -159,6 +168,7 @@ public final class SaasDtos {
     public static class SuscripcionDetalle {
         public Integer id;
         public String estado;
+        public boolean enforcementEnabled;
         public boolean soloLectura;
         public boolean heredada;
         public boolean soportePrioritario;

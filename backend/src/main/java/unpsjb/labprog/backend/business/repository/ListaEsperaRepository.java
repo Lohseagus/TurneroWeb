@@ -144,4 +144,7 @@ public interface ListaEsperaRepository extends JpaRepository<ListaEspera, Long> 
          */
         @Query("SELECT le FROM ListaEspera le WHERE le.estado = 'PENDIENTE' ORDER BY le.fechaSolicitud ASC")
         List<ListaEspera> findSolicitudesConEsperaExcesiva();
+
+        @Query("select le.centroAtencion.id from ListaEspera le where le.id = :id")
+        java.util.Optional<Integer> findCentroIdByListaId(@Param("id") Long id);
 }
