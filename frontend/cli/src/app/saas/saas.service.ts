@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { DataPackage } from '../data.package';
-import { AddonSaas, CatalogoSaas, ConfiguracionSaas, PlanSaas, PrecioSaas, RegistroSaasResultado, ResumenSaas, SuscripcionSaas, PagoSaas } from './saas.models';
+import { AddonSaas, AvisoSuscripcion, CatalogoSaas, ConfiguracionSaas, PlanSaas, PrecioSaas, RegistroSaasResultado, ResumenSaas, SuscripcionSaas, PagoSaas } from './saas.models';
 
 @Injectable({ providedIn: 'root' })
 export class SaasService {
@@ -32,6 +32,11 @@ export class SaasService {
 
   miSuscripcion(): Observable<DataPackage<SuscripcionSaas>> {
     return this.http.get<DataPackage<SuscripcionSaas>>(`${this.base}/mi-suscripcion`);
+  }
+
+  aviso(centroId?: number): Observable<DataPackage<AvisoSuscripcion>> {
+    const query = centroId == null ? '' : `?centroId=${centroId}`;
+    return this.http.get<DataPackage<AvisoSuscripcion>>(`${this.base}/aviso${query}`);
   }
 
   pagar(ciclo: string): Observable<DataPackage<PrecioSaas>> {

@@ -691,7 +691,14 @@ public class SaasService {
         sincronizarTodas();
     }
 
-    private void heredarCentrosExistentes() {
+    /**
+     * Centros que ya operaban, o que quedaron sin organización o sin fila de suscripción
+     * (un truncate, un restore, un alta vieja). Reciben plan Centro en ACTIVA heredada
+     * para que la regla de solo lectura no deje la producción trabada.
+     * Un centro que se crea después y no pasa por acá queda en solo lectura hasta que
+     * se vuelva a correr (arranque, catálogo público o el alta SaaS).
+     */
+    public void heredarCentrosExistentes() {
         PlanSuscripcion centroPlan = planRepository.findByCodigo(CodigosPlan.CENTRO).orElse(null);
         if (centroPlan == null) {
             return;
@@ -706,21 +713,65 @@ public class SaasService {
             organizacion = organizacionRepository.save(organizacion);
             centro.setOrganizacion(organizacion);
             centroAtencionRepository.save(centro);
-
-            Suscripcion suscripcion = new Suscripcion();
-            suscripcion.setOrganizacion(organizacion);
-            suscripcion.setPlan(centroPlan);
-            suscripcion.setEstado(EstadoSuscripcion.ACTIVA);
-            suscripcion.setCiclo(CicloFacturacion.MENSUAL);
-            suscripcion.setProfesionalesContratados(1);
-            suscripcion.setFechaInicio(ahora);
-            suscripcion.setFechaInicioPeriodo(ahora);
-            suscripcion.setFechaFinPeriodo(ahora.plusYears(100));
-            suscripcion.setHeredada(true);
-            suscripcion.setMotivo("Suscripción activa heredada para no interrumpir la operación.");
-            suscripcion = suscripcionRepository.save(suscripcion);
-            access.registrar(suscripcion, TipoEventoSuscripcion.HEREDADA, suscripcion.getMotivo(), "sistema");
+            crearSuscripcionHeredada(organizacion, centroPlan, ahora);
         }
+        for (CentroAtencion centro : centroAtencionRepository.findConOrganizacionSinSuscripcion()) {
+            Organizacion organizacion = centro.getOrganizacion();
+            if (organizacion == null || organizacion.getId() == null) {
+                continue;
+            }
+            if (suscripcionRepository.findByOrganizacion_Id(organizacion.getId()).isPresent()) {
+                continue;
+            }
+            crearSuscripcionHeredada(organizacion, centroPlan, ahora);
+        }
+    }
+
+    private void crearSuscripcionHeredada(Organizacion organizacion, PlanSuscripcion centroPlan, LocalDateTime ahora) {
+        Suscripcion suscripcion = new Suscripcion();
+        suscripcion.setOrganizacion(organizacion);
+        suscripcion.setPlan(centroPlan);
+        suscripcion.setEstado(EstadoSuscripcion.ACTIVA);
+        suscripcion.setCiclo(CicloFacturacion.MENSUAL);
+        suscripcion.setProfesionalesContratados(1);
+        suscripcion.setFechaInicio(ahora);
+        suscripcion.setFechaInicioPeriodo(ahora);
+        suscripcion.setFechaFinPeriodo(ahora.plusYears(100));
+        suscripcion.setHeredada(true);
+        suscripcion.setMotivo("Suscripción activa heredada para no interrumpir la operación.");
+        suscripcion = suscripcionRepository.save(suscripcion);
+        access.registrar(suscripcion, TipoEventoSuscripcion.HEREDADA, suscripcion.getMotivo(), "sistema");
+    }
+
+    public SaasDtos.AvisoSuscripcion aviso(Integer centroPedido) {
+        User user = TenantContext.getCurrentUser();
+        boolean paciente = user != null && user.getRole() == Role.PACIENTE;
+        Integer centroId = paciente ? centroPedido : TenantContext.getCurrentCentroId();
+        SaasDtos.AvisoSuscripcion dto = new SaasDtos.AvisoSuscripcion();
+        dto.soloLectura = false;
+        dto.sinSuscripcion = false;
+        dto.mensaje = "";
+        if (centroId == null) {
+            return dto;
+        }
+        ResultadoEscritura resultado = access.evaluarEscritura(centroId);
+        dto.soloLectura = !resultado.permite();
+        dto.sinSuscripcion = resultado.sinSuscripcion();
+        Suscripcion suscripcion = access.buscarPorCentro(centroId).orElse(null);
+        if (suscripcion != null && suscripcion.getEstado() != null) {
+            dto.estado = suscripcion.getEstado().name();
+            if (suscripcion.getEstado() == EstadoSuscripcion.TRIAL && suscripcion.getFechaFinTrial() != null) {
+                long dias = ChronoUnit.DAYS.between(RelojArgentina.ahora().toLocalDate(),
+                        suscripcion.getFechaFinTrial().toLocalDate());
+                dto.diasTrialRestantes = Math.max(0, dias);
+            }
+        }
+        if (dto.soloLectura) {
+            dto.mensaje = paciente
+                    ? SuscripcionAccessService.mensajeParaPaciente(resultado.sinSuscripcion())
+                    : resultado.mensaje();
+        }
+        return dto;
     }
 
     private void asegurarPlan(String codigo, String nombre, String descripcion, BigDecimal base,

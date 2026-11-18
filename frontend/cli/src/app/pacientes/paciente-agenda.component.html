@@ -683,7 +683,10 @@
                   <strong>¿Deseas reservar este turno?</strong>
                 </p>
               }
-              @if (estaAutenticado) {
+              @if (estaAutenticado && mensajeReservaBloqueada) {
+                <p class="text-danger mb-0">{{ mensajeReservaBloqueada }}</p>
+              }
+              @if (estaAutenticado && !mensajeReservaBloqueada) {
                 <p>Una vez confirmado, el turno quedará reservado a tu nombre.</p>
               }
               @if (!estaAutenticado) {
@@ -714,10 +717,10 @@
                 type="button"
                 class="btn btn-primary"
                 (click)="confirmarReservaTurno()"
-                [disabled]="isBooking"
+                [disabled]="isBooking || !!mensajeReservaBloqueada"
                 >
                 <span class="material-symbols-outlined">check</span>
-                {{ isBooking ? "Reservando..." : "Confirmar Reserva" }}
+                {{ isBooking ? "Reservando..." : (mensajeReservaBloqueada ? "Centro en solo lectura" : "Confirmar Reserva") }}
               </button>
             }
             <!-- Botón para usuarios anónimos -->

@@ -17,6 +17,7 @@ import { AuthService, Role } from "../inicio-sesion/auth.service";
 import { UserContextService } from "../services/user-context.service";
 import { ToastService } from "../services/toast.service";
 import { ModalService } from "../modal/modal.service";
+import { SaasService } from "../saas/saas.service";
 import { CentrosMapaModalComponent } from "../modal/centros-mapa-modal.component";
 import { Turno } from "../turnos/turno";
 import { Especialidad } from "../especialidades/especialidad";
@@ -98,6 +99,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
   // Modal de reserva
   showBookingModal = false;
   slotSeleccionado: SlotDisponible | null = null;
+  mensajeReservaBloqueada = '';
   selectedTurnoDisponible: any = null; // Para el modal
   isBooking = false;
 
@@ -136,7 +138,8 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private userContextService: UserContextService,
     private toastService: ToastService,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private saasService: SaasService
   ) { }
 
   // 🎯 GETTERS para mantener compatibilidad con el template durante la migración
@@ -947,7 +950,21 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
       },
     };
 
+    this.mensajeReservaBloqueada = '';
     this.showBookingModal = true;
+    if (this.estaAutenticado && slot.centroId) {
+      const centroId = slot.centroId;
+      this.saasService.aviso(centroId).subscribe({
+        next: (resp) => {
+          if (this.slotSeleccionado?.centroId !== centroId) return;
+          if (resp.status_code === 200 && resp.data?.soloLectura) {
+            this.mensajeReservaBloqueada = resp.data.mensaje
+              || 'Este centro no está tomando turnos. Podés ver lo que ya tenías, pero no reservar.';
+            this.cdr.markForCheck();
+          }
+        }
+      });
+    }
   }
 
   // Calcular posición del modal cerca del elemento clickeado
@@ -1202,6 +1219,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     this.showBookingModal = false;
     this.selectedTurnoDisponible = null;
     this.slotSeleccionado = null;
+    this.mensajeReservaBloqueada = '';
     this.isBooking = false;
   }
 

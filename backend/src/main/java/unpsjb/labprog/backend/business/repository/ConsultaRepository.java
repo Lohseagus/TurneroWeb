@@ -1,6 +1,7 @@
 package unpsjb.labprog.backend.business.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
     @Query("SELECT c.paciente.id, COUNT(c), MAX(c.creadaEn) FROM Consulta c WHERE c.medico.id = :medicoId GROUP BY c.paciente.id")
     List<Object[]> resumenConsultasPorPaciente(@Param("medicoId") Integer medicoId);
+
+    @Query("select c.centroAtencion.id from Consulta c where c.id = :id")
+    Optional<Integer> findCentroIdByConsultaId(@Param("id") Long id);
 }

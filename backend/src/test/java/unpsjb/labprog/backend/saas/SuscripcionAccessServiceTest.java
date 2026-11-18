@@ -1,7 +1,10 @@
 package unpsjb.labprog.backend.saas;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -45,9 +48,83 @@ class SuscripcionAccessServiceTest {
     private SuscripcionAccessService service;
 
     @Test
-    void sinSuscripcionNoBloquea() {
+    void sinSuscripcionNoBloqueaElControlDeCupo() {
         when(centroAtencionRepository.findById(8)).thenReturn(Optional.empty());
         assertDoesNotThrow(() -> service.assertOperacion(8, RecursoSaas.TURNO));
+    }
+
+    @Test
+    void sinSuscripcionBloqueaLaEscritura() {
+        when(centroAtencionRepository.findById(8)).thenReturn(Optional.empty());
+        ResultadoEscritura resultado = service.evaluarEscritura(8);
+        assertFalse(resultado.permite());
+        assertTrue(resultado.sinSuscripcion());
+        assertTrue(resultado.mensaje().contains("no tiene una suscripción"));
+    }
+
+    @Test
+    void organizacionSinFilaDeSuscripcionTambienBloquea() {
+        Organizacion organizacion = new Organizacion();
+        organizacion.setId(5);
+        CentroAtencion centro = new CentroAtencion();
+        centro.setId(3);
+        centro.setOrganizacion(organizacion);
+        when(centroAtencionRepository.findById(3)).thenReturn(Optional.of(centro));
+        when(suscripcionRepository.findByOrganizacion_Id(5)).thenReturn(Optional.empty());
+
+        ResultadoEscritura resultado = service.evaluarEscritura(3);
+        assertFalse(resultado.permite());
+        assertTrue(resultado.sinSuscripcion());
+    }
+
+    @Test
+    void soloTrialYActivaPermitenEscribir() {
+        for (EstadoSuscripcion estado : EstadoSuscripcion.values()) {
+            Suscripcion suscripcion = suscripcion(estado, LocalDateTime.now().plusDays(15));
+            if (estado == EstadoSuscripcion.TRIAL) {
+                suscripcion.setFechaFinTrial(LocalDateTime.now().plusDays(15));
+            }
+            ResultadoEscritura resultado = service.evaluarEscritura(1);
+            if (estado.permiteEscribir()) {
+                assertTrue(resultado.permite(), estado.name());
+            } else {
+                assertFalse(resultado.permite(), estado.name());
+                assertFalse(resultado.sinSuscripcion(), estado.name());
+                assertTrue(resultado.mensaje().contains("solo lectura"), resultado.mensaje());
+            }
+        }
+    }
+
+    @Test
+    void trialVencidoPasaAVencidaAntesDeBloquear() {
+        Suscripcion suscripcion = suscripcion(EstadoSuscripcion.TRIAL, LocalDateTime.now().minusDays(1));
+        suscripcion.setFechaFinTrial(LocalDateTime.now().minusDays(1));
+
+        ResultadoEscritura resultado = service.evaluarEscritura(1);
+
+        assertEquals(EstadoSuscripcion.VENCIDA, suscripcion.getEstado());
+        assertFalse(resultado.permite());
+        assertFalse(resultado.sinSuscripcion());
+    }
+
+    @Test
+    void periodoPagoVencidoPasaAMorosa() {
+        Suscripcion suscripcion = suscripcion(EstadoSuscripcion.ACTIVA, RelojArgentina.ahora().minusMinutes(1));
+        suscripcion.setHeredada(false);
+
+        ResultadoEscritura resultado = service.evaluarEscritura(1);
+
+        assertEquals(EstadoSuscripcion.MOROSA, suscripcion.getEstado());
+        assertFalse(resultado.permite());
+    }
+
+    @Test
+    void laHeredadaActivaNoSeVenceSola() {
+        Suscripcion suscripcion = suscripcion(EstadoSuscripcion.ACTIVA, LocalDateTime.now().minusDays(2));
+        suscripcion.setHeredada(true);
+
+        assertTrue(service.evaluarEscritura(1).permite());
+        assertEquals(EstadoSuscripcion.ACTIVA, suscripcion.getEstado());
     }
 
     @Test

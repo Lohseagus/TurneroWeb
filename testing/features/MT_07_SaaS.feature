@@ -24,6 +24,18 @@ Característica: Suscripciones SaaS de CheTurno
     Cuando intento crear una segunda sede en la suscripción de prueba
     Entonces la operación SaaS es rechazada por límite del plan
 
+  Escenario: Una suscripción que no está activa deja el centro en solo lectura
+    Cuando registro una organización de prueba con el plan "PROFESIONAL"
+    Y ingreso como superadministrador de CheTurno
+    Cuando el superadministrador suspende la suscripción de prueba
+    Y ingreso con el administrador de esa prueba
+    Cuando intento una escritura del centro en solo lectura
+    Entonces la escritura es rechazada con código "SUSCRIPCION_SOLO_LECTURA"
+    Cuando intento pagar la suscripción suspendida
+    Entonces el intento de pago no responde suscripción de solo lectura
+    Cuando el superadministrador escribe aunque el centro esté suspendido
+    Entonces la escritura del superadministrador no queda en solo lectura
+
   Escenario: El pago simulado deja la suscripción activa
     Cuando registro una organización de prueba con el plan "CONSULTORIO"
     Y ingreso con el administrador de esa prueba

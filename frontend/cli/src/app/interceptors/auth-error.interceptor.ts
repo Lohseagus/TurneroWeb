@@ -28,6 +28,12 @@ export const authErrorInterceptor: HttpInterceptorFn = (req, next) => {
         authService.handleAuthError(error, customMessage);
       }
 
+      if (error.status === 403 && error.error?.code === 'SUSCRIPCION_SOLO_LECTURA') {
+        const texto = error.error?.status_text || 'La cuenta es de solo lectura.';
+        toast.error(texto, 8000);
+        return throwError(() => error);
+      }
+
       // 403 es falta de permiso, no una sesión vencida. No se cierra la sesión
       // ni se muestra el modal. Sin token, la página pública sigue en silencio.
       if (!isAuthEndpoint && error.status === 403) {

@@ -27,9 +27,13 @@ WhatsApp y SMS son complementos opcionales con precio de referencia. No envían 
 - `MOROSA`: el período pago venció.
 - `SUSPENDIDA` y `CANCELADA`: las decide un operador de CheTurno (o Mercado Pago, cuando esté conectado).
 
-En esos cuatro estados la cuenta queda de **solo lectura**. No se crean turnos, médicos, operadores, consultorios, sedes, especialidades ni listas de espera. Nada se borra: el paciente sigue viendo lo que ya tenía. Un pago simulado (o, más adelante, un `authorized` de Mercado Pago) vuelve a `ACTIVA`.
+En esos cuatro estados la cuenta queda de **solo lectura**. También queda en solo lectura un centro que no tiene suscripción. No se crean ni se modifican turnos, historia clínica, recetas, órdenes, pacientes, disponibilidades, listas de espera, esquemas, personal ni la configuración del centro. Nada se borra: se puede seguir leyendo. Un pago simulado (o, más adelante, un `authorized` de Mercado Pago) vuelve a `ACTIVA`. `SUSPENDIDA` no se paga sola: la reactiva el SUPERADMIN.
 
-Los centros que ya existían al desplegar esto reciben una suscripción `ACTIVA` heredada del plan Centro, una por centro, para que producción no quede bloqueada ni se mezclen organizaciones distintas. No entran en el MRR hasta que pasen a un cobro real.
+La regla vive en un filtro HTTP (`SuscripcionSoloLecturaFilter`), después del JWT y antes del controller. Corta `POST`, `PUT`, `PATCH` y `DELETE`. `GET`, `HEAD` y `OPTIONS` pasan. El SUPERADMIN no entra nunca en el filtro. La respuesta es **403** con `code: SUSCRIPCION_SOLO_LECTURA` y un texto en español. Si quien escribe es un paciente, el texto dice que el centro no está tomando turnos y que no puede reservar, confirmar, cancelar ni reagendar.
+
+Siguen abiertas, aunque el centro esté en solo lectura: login, refresh, logout, cambio de contraseña y el resto de `/api/auth/**`; `POST /api/saas/registro` y `/api/saas/cotizar`; todo `/api/saas/mi-suscripcion/**` (pagar, cambiar de plan, sedes); todo `/api/saas/admin/**`; el webhook de Mercado Pago; la verificación pública de recetas y órdenes; y las consultas que viajan como POST (búsqueda de turnos, exportaciones, validar conflictos). `GET /api/saas/aviso` le dice al personal y al paciente si el centro está en solo lectura, sin mostrar precios.
+
+Los centros que ya existían al desplegar esto reciben una suscripción `ACTIVA` heredada del plan Centro, una por centro, para que producción no quede bloqueada ni se mezclen organizaciones distintas. No entran en el MRR hasta que pasen a un cobro real. `heredarCentrosExistentes` corre al arrancar y cada vez que se pide el catálogo, el alta o el resumen de SUPERADMIN: cubre un centro sin organización y también una organización que se quedó sin fila de suscripción. La suite Cucumber, que vacía la base después del arranque, vuelve a pedir `GET /api/saas/planes` al sembrar `userinit.sql` para que esa herencia corra antes de los escenarios. Un centro creado después, que todavía no pasó por esa herencia, queda en solo lectura hasta el próximo arranque o hasta que alguien consulte el catálogo.
 
 Si el catálogo se vacía (el reset de Cucumber trunca las tablas), el próximo `GET /api/saas/planes` o el alta lo vuelven a sembrar. No pisa precios, IVA ni días de prueba que el SUPERADMIN ya haya editado.
 
@@ -93,6 +97,7 @@ Públicas:
 
 Del administrador del centro (`ADMINISTRADOR`; el SUPERADMIN también pasa la regla de rol, pero no tiene centro):
 
+- `GET /api/saas/aviso` — cualquier usuario autenticado. El personal ve su centro; el paciente pasa `?centroId=`
 - `GET /api/saas/mi-suscripcion`
 - `POST /api/saas/mi-suscripcion/pagar`
 - `POST /api/saas/mi-suscripcion/cambiar-plan`

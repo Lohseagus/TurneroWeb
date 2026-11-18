@@ -95,6 +95,12 @@ public class SaasPresenter {
         return ResponseEntity.ok(Map.of("aplicado", true, "tipo", evento.tipo().name()));
     }
 
+    @GetMapping("/aviso")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Object> aviso(@RequestParam(value = "centroId", required = false) Integer centroId) {
+        return Response.ok(saasService.aviso(centroId), "Estado de escritura del centro");
+    }
+
     @GetMapping("/mi-suscripcion")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Object> miSuscripcion() {

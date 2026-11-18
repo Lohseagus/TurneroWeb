@@ -1,3 +1,11 @@
+export interface AvisoSuscripcion {
+  soloLectura: boolean;
+  sinSuscripcion: boolean;
+  estado: string | null;
+  mensaje: string;
+  diasTrialRestantes: number | null;
+}
+
 export interface ConfiguracionSaas {
   ivaPorcentaje: number;
   diasTrial: number;

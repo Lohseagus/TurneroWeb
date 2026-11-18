@@ -153,6 +153,41 @@ Then('la operación SaaS es rechazada por límite del plan', function () {
   assert.match(texto, /máximo|sede|centro/i);
 });
 
+When('intento una escritura del centro en solo lectura', function () {
+  this.saasOperacion = POST('/api/pacientes', {
+    nombre: 'No',
+    apellido: 'Deberia',
+    dni: String(Date.now() % 100000000)
+  }, this.accessToken);
+});
+
+Then('la escritura es rechazada con código {string}', function (codigo) {
+  assert.strictEqual(this.saasOperacion.httpStatusCode, 403, JSON.stringify(this.saasOperacion.response));
+  assert.strictEqual(this.saasOperacion.response.code, codigo);
+  assert.match(this.saasOperacion.response.status_text || '', /solo lectura/i);
+});
+
+When('intento pagar la suscripción suspendida', function () {
+  this.saasOperacion = POST('/api/saas/mi-suscripcion/pagar', { ciclo: 'MENSUAL' }, this.accessToken);
+});
+
+Then('el intento de pago no responde suscripción de solo lectura', function () {
+  assert.notStrictEqual(this.saasOperacion.response.code, 'SUSCRIPCION_SOLO_LECTURA');
+  assert.match(JSON.stringify(this.saasOperacion.response), /suspendida/i);
+});
+
+When('el superadministrador escribe aunque el centro esté suspendido', function () {
+  const token = loginSuperadmin();
+  this.saasOperacion = POST('/api/especialidades', {
+    nombre: `Especialidad suspendida ${Date.now()}`
+  }, token);
+});
+
+Then('la escritura del superadministrador no queda en solo lectura', function () {
+  assert.notStrictEqual(this.saasOperacion.response.code, 'SUSCRIPCION_SOLO_LECTURA',
+    JSON.stringify(this.saasOperacion.response));
+});
+
 When('pago la suscripción de prueba con ciclo {string}', function (ciclo) {
   this.saasOperacion = POST('/api/saas/mi-suscripcion/pagar', { ciclo }, this.accessToken);
   assert.strictEqual(this.saasOperacion.statusCode, 200, JSON.stringify(this.saasOperacion.response));
