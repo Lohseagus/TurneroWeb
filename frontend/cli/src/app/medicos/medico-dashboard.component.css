@@ -1130,3 +1130,148 @@ input:disabled + .slider {
   line-height: 1.3;
   color: var(--text-secondary);
 }
+
+/* =========================
+   8. HEADER COMPACTO CON ESTADÍSTICAS
+   ========================= */
+
+.panel-header {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-lg);
+  margin-bottom: var(--section-gap);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.panel-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-brand-bar);
+}
+
+.panel-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.panel-header__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.panel-header__titulo h1 {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+.panel-header__medico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.panel-header__medico .ct-badge {
+  font-size: var(--font-size-sm);
+  color: var(--text-main);
+}
+
+.panel-header__medico .material-symbols-outlined {
+  color: var(--color-accent);
+}
+
+.panel-header__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.panel-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  text-align: left;
+  color: var(--text-main);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.panel-stat__valor {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.panel-stat__texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-stat__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.panel-stat__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.panel-stat--accion {
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.panel-stat--accion:hover,
+.panel-stat--accion:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.panel-stat--accion > .material-symbols-outlined {
+  color: var(--color-accent);
+}
+
+.panel-stat--accion.tiene-pendientes {
+  background: rgba(var(--color-warning-rgb), 0.15);
+  border-color: rgba(var(--color-warning-rgb), 0.6);
+}
+
+.turno-pendiente {
+  align-self: flex-start;
+}
+
+@media (max-width: 992px) {
+  .panel-header__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-header__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+#mis-turnos {
+  scroll-margin-top: 96px;
+}

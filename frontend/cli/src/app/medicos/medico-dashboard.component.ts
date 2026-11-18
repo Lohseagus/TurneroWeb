@@ -774,6 +774,9 @@ Posible problema de configuración. Verifique:
       case 'past':
         this.filteredTurnos = this.allTurnos.filter(turno => turno.fecha < today);
         break;
+      case 'pending':
+        this.filteredTurnos = this.allTurnos.filter(turno => turno.estado === 'PROGRAMADO');
+        break;
       case 'all':
       default:
         this.filteredTurnos = [...this.allTurnos];
@@ -792,6 +795,11 @@ Posible problema de configuración. Verifique:
     console.log(`📊 Filtro '${this.currentFilter}' aplicado:`, this.filteredTurnos.length, 'turnos');
   }
 
+  verPendientes(): void {
+    this.setTurnosFilter('pending');
+    document.getElementById('mis-turnos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   getFilterCount(filter: string): number {
     const today = new Date().toISOString().split('T')[0];
 
@@ -800,6 +808,8 @@ Posible problema de configuración. Verifique:
         return this.allTurnos.filter(turno => turno.fecha >= today).length;
       case 'past':
         return this.allTurnos.filter(turno => turno.fecha < today).length;
+      case 'pending':
+        return this.allTurnos.filter(turno => turno.estado === 'PROGRAMADO').length;
       case 'all':
         return this.allTurnos.length;
       default:
@@ -813,6 +823,8 @@ Posible problema de configuración. Verifique:
         return 'No tienes turnos programados próximamente.';
       case 'past':
         return 'No tienes turnos anteriores registrados.';
+      case 'pending':
+        return 'No tienes turnos pendientes de confirmación.';
       case 'all':
         return 'No tienes turnos registrados en el sistema.';
       default:

@@ -1,48 +1,71 @@
 <div class="dashboard-wrapper ct-page">
   <!-- Header del Dashboard -->
-  <div class="dashboard-header card">
-    <div class="header-content">
-      <div class="welcome-info">
-        <span class="material-symbols-outlined header-icon">medical_services</span>
-        <div>
-          <h1>Panel de Médico</h1>
-          <p class="header-subtitle">Panel de control médico profesional</p>
-        </div>
+  <header class="panel-header">
+    <div class="panel-header__top">
+      <div class="panel-header__titulo">
+        <span class="material-symbols-outlined ct-icon-chip">medical_services</span>
+        <h1>Panel de Médico</h1>
       </div>
       @if (medicoActual) {
-        <div class="user-info">
-          <div class="info-item">
+        <div class="panel-header__medico">
+          <span class="ct-badge">
             <span class="material-symbols-outlined">person</span>
-            <span>{{ medicoActual.nombre }} {{ medicoActual.apellido }}</span>
-          </div>
-          <div class="info-item">
+            {{ medicoActual.nombre }} {{ medicoActual.apellido }}
+          </span>
+          <span class="ct-badge">
             <span class="material-symbols-outlined">badge</span>
-            <span>Matrícula: {{ medicoActual.matricula }}</span>
-          </div>
-          <div class="info-item">
+            Matrícula: {{ medicoActual.matricula }}
+          </span>
+          <span class="ct-badge">
             <span class="material-symbols-outlined">stethoscope</span>
             @if (medicoActual.especialidades && medicoActual.especialidades.length > 0) {
-              <span>
-                @for (esp of medicoActual.especialidades; track esp; let last = $last) {
-                  <span>
-                    {{ esp.nombre }}@if (!last) {
-                    <span>, </span>
-                  }
-                </span>
+              @for (esp of medicoActual.especialidades; track esp.id; let last = $last) {
+                {{ esp.nombre }}{{ last ? '' : ', ' }}
               }
-            </span>
-          } @else {
-            @if (medicoActual.especialidad) {
-              <span>
-                {{ medicoActual.especialidad.nombre }}
-              </span>
+            } @else {
+              {{ medicoActual.especialidad?.nombre }}
             }
-          }
+          </span>
         </div>
+      }
+    </div>
+    <div class="panel-header__stats">
+      <div class="panel-stat">
+        <span class="panel-stat__valor">{{ stats.turnosHoy }}</span>
+        <span class="panel-stat__texto">
+          <span class="panel-stat__label">Turnos hoy</span>
+          <span class="panel-stat__hint">{{ fechaHoy | date : "dd/MM/yyyy" }}</span>
+        </span>
       </div>
-    }
-  </div>
-</div>
+      <div class="panel-stat">
+        <span class="panel-stat__valor">{{ stats.turnosManana }}</span>
+        <span class="panel-stat__texto">
+          <span class="panel-stat__label">Mañana</span>
+          <span class="panel-stat__hint">Próxima jornada</span>
+        </span>
+      </div>
+      <div class="panel-stat">
+        <span class="panel-stat__valor">{{ stats.turnosSemana }}</span>
+        <span class="panel-stat__texto">
+          <span class="panel-stat__label">Esta semana</span>
+          <span class="panel-stat__hint">Total semanal</span>
+        </span>
+      </div>
+      <button
+        type="button"
+        class="panel-stat panel-stat--accion"
+        [class.tiene-pendientes]="stats.turnosPendientes > 0"
+        (click)="verPendientes()"
+        >
+        <span class="panel-stat__valor">{{ stats.turnosPendientes }}</span>
+        <span class="panel-stat__texto">
+          <span class="panel-stat__label">Pendientes</span>
+          <span class="panel-stat__hint">Sin confirmar · ver lista</span>
+        </span>
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+    </div>
+  </header>
 
 @if (cargandoMedico) {
   <p class="section-description">Cargando…</p>
@@ -123,56 +146,6 @@
   }
 </section>
 
-<!-- Sección Estadísticas -->
-<section class="stats-section card">
-  <h2>
-    <span class="material-symbols-outlined">insights</span>
-    Estadísticas del Día
-  </h2>
-  <p class="section-description">Resumen de tu actividad médica</p>
-
-  <div class="stats-grid">
-    <div class="card stat-card stat-today">
-      <span class="material-symbols-outlined stat-icon">calendar_today</span>
-      <div class="stat-content">
-        <div class="stat-number">{{ stats.turnosHoy }}</div>
-        <div class="stat-label">Turnos Hoy</div>
-        <div class="stat-subtitle">{{ fechaHoy | date : "dd/MM/yyyy" }}</div>
-      </div>
-    </div>
-
-    <div class="card stat-card stat-tomorrow">
-      <span class="material-symbols-outlined stat-icon">schedule</span>
-      <div class="stat-content">
-        <div class="stat-number">{{ stats.turnosManana }}</div>
-        <div class="stat-label">Mañana</div>
-        <div class="stat-subtitle">Próxima jornada</div>
-      </div>
-    </div>
-
-    <div class="card stat-card stat-week">
-      <span class="material-symbols-outlined stat-icon">date_range</span>
-      <div class="stat-content">
-        <div class="stat-number">{{ stats.turnosSemana }}</div>
-        <div class="stat-label">Esta Semana</div>
-        <div class="stat-subtitle">Total semanal</div>
-      </div>
-    </div>
-
-    <div class="card stat-card stat-pending">
-      <span class="material-symbols-outlined stat-icon">pending_actions</span>
-      <div class="stat-content">
-        <div class="stat-number">{{ stats.turnosPendientes }}</div>
-        <div class="stat-label">Pendientes</div>
-        <div class="stat-subtitle">Por confirmar</div>
-      </div>
-      @if (stats.turnosPendientes > 0) {
-        <span class="notification-badge">{{ stats.turnosPendientes }}</span>
-      }
-    </div>
-  </div>
-</section>
-
 <!-- Sección Acciones Rápidas -->
 <section class="quick-actions-section card">
   <h2>
@@ -212,7 +185,7 @@
 </section>
 
 <!-- Sección Mis Turnos -->
-<section class="appointments-section card">
+<section class="appointments-section card" id="mis-turnos">
   <div class="section-header">
     <div class="section-title">
       <span class="material-symbols-outlined">event_available</span>
@@ -233,6 +206,16 @@
       <span>Próximos</span>
       @if (getFilterCount('upcoming') > 0) {
         <span class="tab-count">{{ getFilterCount("upcoming") }}</span>
+      }
+    </button>
+    <button
+      class="filter-tab"
+      [class.active]="currentFilter === 'pending'"
+      (click)="setTurnosFilter('pending')">
+      <span class="material-symbols-outlined">pending_actions</span>
+      <span>Pendientes</span>
+      @if (getFilterCount('pending') > 0) {
+        <span class="tab-count">{{ getFilterCount("pending") }}</span>
       }
     </button>
     <button
@@ -326,6 +309,12 @@
                 </label>
               </div>
             </div>
+          }
+          @if (turno.estado === 'PROGRAMADO') {
+            <span class="ct-badge ct-badge--warning turno-pendiente">
+              <span class="material-symbols-outlined">pending_actions</span>
+              Pendiente de confirmación
+            </span>
           }
           <div class="hce-actions">
             <button type="button" class="btn btn-primary" (click)="iniciarConsulta(turno)">
