@@ -339,6 +339,12 @@
           </div>
         }
 
+        @if (!isLoadingTurnos && errorCarga) {
+          <div class="loading-turnos">
+            <p>{{ errorCarga }}</p>
+          </div>
+        }
+
         <!-- VISTA COMPACTA POR MÉDICO CON PAGINACIÓN -->
         @if (!isLoadingTurnos && slotsDisponibles.length > 0) {
           <div

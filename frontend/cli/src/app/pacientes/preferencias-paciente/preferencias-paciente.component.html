@@ -11,6 +11,9 @@
   </header>
   }
   <section class="ct-section">
+          @if (cargandoLista) {
+            <p class="text-muted">Cargando horarios preferidos...</p>
+          }
           <!-- Mensajes de éxito/error -->
           @if (mensaje) {
             <div class="mb-4">

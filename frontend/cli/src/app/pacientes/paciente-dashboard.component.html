@@ -91,8 +91,20 @@
       </div>
     }
 
+    @if (!isLoadingTurnos && errorCarga) {
+      <div class="empty-state card">
+        <span class="material-symbols-outlined empty-icon">error</span>
+        <h3>No se pudieron cargar los turnos</h3>
+        <p>{{ errorCarga }}</p>
+        <button class="btn btn-primary" type="button" (click)="reintentar()">
+          <span class="material-symbols-outlined">refresh</span>
+          Reintentar
+        </button>
+      </div>
+    }
+
     <!-- Lista de Turnos -->
-    @if (!isLoadingTurnos && turnosVisibles.length > 0) {
+    @if (!isLoadingTurnos && !errorCarga && turnosVisibles.length > 0) {
       <div class="appointments-grid">
         @for (turno of turnosVisibles; track trackByTurno($index, turno)) {
           <div class="card appointment-card"
@@ -179,7 +191,7 @@
     }
 
     <!-- Estado vacío -->
-    @if (!isLoadingTurnos && turnosVisibles.length === 0) {
+    @if (!isLoadingTurnos && !errorCarga && turnosVisibles.length === 0) {
       <div class="empty-state card">
         <span class="material-symbols-outlined empty-icon">event_busy</span>
         <h3>No tenés turnos próximos</h3>

@@ -8,6 +8,7 @@ import { DataPackage } from "../data.package";
 import { ModalService } from "../modal/modal.service";
 import { AuthService } from "../inicio-sesion/auth.service";
 import { ToastService } from "../services/toast.service";
+import { timeout } from "rxjs/operators";
 
 @Component({
   selector: "app-paciente-detail",
@@ -104,7 +105,7 @@ export class PacienteDetailComponent implements OnInit {
     this.pacienteCargado = false;
 
     if (this.esPerfil()) {
-      this.pacienteService.mio().subscribe({
+      this.pacienteService.mio().pipe(timeout(20000)).subscribe({
         next: (dp: DataPackage<Paciente>) => this.recibirFicha(token, dp),
         error: (error) => this.falloCarga(token, error),
       });
@@ -116,7 +117,7 @@ export class PacienteDetailComponent implements OnInit {
       return;
     }
 
-    this.pacienteService.get(id).subscribe({
+    this.pacienteService.get(id).pipe(timeout(20000)).subscribe({
       next: (dp: DataPackage<Paciente>) => this.recibirFicha(token, dp),
       error: (error) => this.falloCarga(token, error),
     });

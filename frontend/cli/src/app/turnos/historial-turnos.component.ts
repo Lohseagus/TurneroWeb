@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { HistorialService, HistorialTurnoDTO, HistorialFilter } from './historial.service';
 import { HistorialTurnoDetalleComponent } from './historial-turno-detalle.component';
+import { timeout } from 'rxjs/operators';
+import { PacienteSesionService } from '../pacientes/paciente-sesion.service';
+import { mensajeDeCarga } from '../pacientes/mensaje-carga';
 
 @Component({
   selector: 'app-historial-turnos',
@@ -16,7 +19,9 @@ import { HistorialTurnoDetalleComponent } from './historial-turno-detalle.compon
 export class HistorialTurnosComponent implements OnInit {
   @Input() embebido = false;
   turnos: HistorialTurnoDTO[] = [];
-  isLoading = false;
+  isLoading = true;
+  errorCarga = '';
+  private pacienteId: number | null = null;
 
   // Paginación
   currentPage = 0;
@@ -32,7 +37,8 @@ export class HistorialTurnosComponent implements OnInit {
   };
   constructor(
     private historialService: HistorialService,
-    private modalService: NgbModal
+    private modalService: NgbModal,
+    private sesion: PacienteSesionService
   ) { }
 
   abrirDetalle(turno: HistorialTurnoDTO) {
@@ -46,17 +52,42 @@ export class HistorialTurnosComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.cargarHistorial();
+    this.resolverYcargar();
+  }
+
+  reintentar(): void {
+    this.sesion.invalidar();
+    this.resolverYcargar();
+  }
+
+  private resolverYcargar(): void {
+    this.isLoading = true;
+    this.errorCarga = '';
+    this.sesion.id().subscribe({
+      next: (id) => {
+        this.pacienteId = id;
+        if (!id) {
+          this.isLoading = false;
+          this.errorCarga = 'No encontramos tu ficha de paciente.';
+          return;
+        }
+        this.cargarHistorial();
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorCarga = mensajeDeCarga(error, 'No se pudo cargar el historial. Reintentá.');
+      }
+    });
   }
 
   cargarHistorial() {
-    const pacienteId = parseInt(localStorage.getItem('pacienteId') || '0');
+    const pacienteId = this.pacienteId;
     if (!pacienteId) {
-      console.error('No se encontró ID de paciente');
+      this.isLoading = false;
+      this.errorCarga = 'No encontramos tu ficha de paciente.';
       return;
     }
 
-    // 🔍 DEBUG: Ver qué filtros se están enviando
     console.log('📡 Enviando request con filtros:', {
       pacienteId,
       page: this.currentPage,
@@ -65,12 +96,13 @@ export class HistorialTurnosComponent implements OnInit {
     });
 
     this.isLoading = true;
+    this.errorCarga = '';
     this.historialService.getHistorialTurnosPaginado(
       pacienteId,
       this.currentPage,
       this.pageSize,
       this.filtro
-    ).subscribe({
+    ).pipe(timeout(20000)).subscribe({
       next: (response) => {
         console.log('✅ Response recibida:', response);
         this.turnos = response.data.content;
@@ -82,6 +114,7 @@ export class HistorialTurnosComponent implements OnInit {
       error: (error) => {
         console.error('❌ Error al cargar historial:', error);
         this.isLoading = false;
+        this.errorCarga = mensajeDeCarga(error, 'No se pudo cargar el historial. Reintentá.');
       }
     });
   }

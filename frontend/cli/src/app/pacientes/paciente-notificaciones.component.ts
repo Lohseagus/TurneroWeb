@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NotificacionService, NotificacionDTO, PageNotificacion } from '../services/notificacion.service';
 import { Subscription } from 'rxjs';
+import { timeout } from 'rxjs/operators';
+import { PacienteSesionService } from './paciente-sesion.service';
+import { mensajeDeCarga } from './mensaje-carga';
 
 @Component({
   selector: 'app-paciente-notificaciones',
@@ -19,7 +22,9 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
   notificaciones: NotificacionDTO[] = [];
   notificacionesFiltradas: NotificacionDTO[] = [];
   contadorNoLeidas = 0;
-  loading = false;
+  loading = true;
+  errorCarga = '';
+  private pacienteId: number | null = null;
   
   // Paginación
   currentPage = 0;
@@ -36,6 +41,7 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
 
   constructor(
     private notificacionService: NotificacionService,
+    private sesion: PacienteSesionService,
     private router: Router,
     private route: ActivatedRoute
   ) {
@@ -43,10 +49,8 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.cargarNotificaciones();
-    this.cargarContadorNoLeidas();
-    
-    // Suscribirse al contador de notificaciones no leídas
+    this.resolverYcargar();
+
     const contadorSub = this.notificacionService.contadorNoLeidas$.subscribe(
       count => this.contadorNoLeidas = count
     );
@@ -58,19 +62,42 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
   }
 
   private getPacienteId(): number | null {
-    const pacienteId = localStorage.getItem('pacienteId');
-    return pacienteId ? parseInt(pacienteId) : null;
+    return this.pacienteId;
+  }
+
+  private resolverYcargar(): void {
+    this.loading = true;
+    this.errorCarga = '';
+    this.sesion.id().subscribe({
+      next: (id) => {
+        this.pacienteId = id;
+        if (!id) {
+          this.loading = false;
+          this.errorCarga = 'No encontramos tu ficha de paciente.';
+          return;
+        }
+        this.cargarNotificaciones();
+        this.cargarContadorNoLeidas();
+      },
+      error: (error) => {
+        this.loading = false;
+        this.errorCarga = mensajeDeCarga(error, 'No se pudieron cargar las notificaciones.');
+      }
+    });
   }
 
   cargarNotificaciones(): void {
     const pacienteId = this.getPacienteId();
     if (!pacienteId) {
-      console.error('No se pudo obtener el ID del paciente');
+      this.loading = false;
+      this.errorCarga = 'No encontramos tu ficha de paciente.';
       return;
     }
 
     this.loading = true;
+    this.errorCarga = '';
     this.notificacionService.obtenerNotificacionesPorPaciente(pacienteId, this.currentPage, this.pageSize)
+      .pipe(timeout(20000))
       .subscribe({
         next: (page: PageNotificacion) => {
           this.notificaciones = page.content;
@@ -82,6 +109,7 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error al cargar notificaciones:', error);
           this.loading = false;
+          this.errorCarga = mensajeDeCarga(error, 'No se pudieron cargar las notificaciones.');
         }
       });
   }
@@ -204,8 +232,8 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
   }
 
   actualizarNotificaciones(): void {
-    this.cargarNotificaciones();
-    this.cargarContadorNoLeidas();
+    this.sesion.invalidar();
+    this.resolverYcargar();
   }
 
   verTurno(turnoId: number, event: Event): void {

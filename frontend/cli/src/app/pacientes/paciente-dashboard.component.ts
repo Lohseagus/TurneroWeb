@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, Input } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { timeout } from "rxjs/operators";
 import { TurnoService } from "../turnos/turno.service";
 import { Turno } from "../turnos/turno";
 import { DataPackage } from "../data.package";
@@ -11,6 +12,8 @@ import { AuthService } from "../inicio-sesion/auth.service";
 import { ModalService } from "../modal/modal.service";
 import { RecetaService } from "../historia-clinica/receta.service";
 import { PacienteListaEsperaComponent } from "./paciente-lista-espera.component";
+import { PacienteSesionService } from "./paciente-sesion.service";
+import { mensajeDeCarga } from "./mensaje-carga";
 
 @Component({
   selector: "app-paciente-dashboard",
@@ -28,7 +31,9 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   proximosTurnos: any[] = [];
   allTurnos: any[] = [];
   filteredTurnos: any[] = [];
-  isLoadingTurnos = false;
+  isLoadingTurnos = true;
+  errorCarga = "";
+  private pacienteId: number | null = null;
   currentFilter: "upcoming" | "past" | "all" = "upcoming";
 
   // Notificaciones y recetas vigentes, solo en Inicio
@@ -145,7 +150,9 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private encuestaService: EncuestaService,
     private modalService: ModalService,
-    private recetaService: RecetaService
+    private recetaService: RecetaService,
+    private sesion: PacienteSesionService,
+    private cdr: ChangeDetectorRef
   ) {
     // Obtener datos del usuario autenticado
     this.patientEmail = this.authService.getUserEmail() || "";
@@ -179,18 +186,44 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.currentFilter = "upcoming";
-    this.cargarTurnosPaciente();
-    if (!this.embebido) {
-      this.cargarContadorNotificaciones();
-      this.cargarRecetasPendientes();
-    }
-    this.cargarNotificacionesNoLeidas();
-
+    this.resolverFicha();
 
     // Verificar cada 5 minutos si hay turnos que deben completarse
     this.verificacionInterval = setInterval(() => {
       this.verificarYActualizarTurnosPasados();
     }, 5 * 60 * 1000); // 5 minutos
+  }
+
+  reintentar(): void {
+    this.sesion.invalidar();
+    this.resolverFicha();
+  }
+
+  private resolverFicha(): void {
+    this.isLoadingTurnos = true;
+    this.errorCarga = "";
+    this.sesion.id().subscribe({
+      next: (id) => {
+        this.pacienteId = id;
+        if (!id) {
+          this.isLoadingTurnos = false;
+          this.errorCarga = "No encontramos tu ficha de paciente.";
+          this.cdr.markForCheck();
+          return;
+        }
+        this.cargarTurnosPaciente();
+        if (!this.embebido) {
+          this.cargarContadorNotificaciones();
+          this.cargarRecetasPendientes();
+        }
+        this.cargarNotificacionesNoLeidas();
+      },
+      error: (error) => {
+        this.isLoadingTurnos = false;
+        this.errorCarga = mensajeDeCarga(error, "No se pudieron cargar tus turnos. Reintentá.");
+        this.cdr.markForCheck();
+      },
+    });
   }
 
 
@@ -203,10 +236,9 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
 
   // Agregar método de verificación periódica
   private verificarYActualizarTurnosPasados() {
-    const pacienteId = this.authService.getCurrentPatientId();
+    const pacienteId = this.pacienteId;
 
     if (!pacienteId) {
-      console.error("No se encontró ID del paciente en localStorage");
       return;
     }
 
@@ -318,7 +350,7 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   }
 
   private cargarContadorNotificaciones() {
-    const pacienteId = this.authService.getCurrentPatientId();
+    const pacienteId = this.pacienteId;
     if (pacienteId && pacienteId > 0) {
       this.notificacionService
         .contarNotificacionesNoLeidas(pacienteId)
@@ -334,78 +366,65 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   }
 
   cargarTurnosPaciente() {
-    const pacienteId = this.authService.getCurrentPatientId();
+    const pacienteId = this.pacienteId;
 
     if (!pacienteId) {
-      console.error("No se encontró ID del paciente en localStorage");
+      this.isLoadingTurnos = false;
+      this.errorCarga = "No encontramos tu ficha de paciente.";
+      this.cdr.markForCheck();
       return;
     }
 
     this.isLoadingTurnos = true;
+    this.errorCarga = "";
     console.log("Cargando todos los turnos para paciente ID:", pacienteId);
 
-    this.turnoService.getByPacienteId(pacienteId).subscribe({
+    this.turnoService.getByPacienteId(pacienteId).pipe(timeout(20000)).subscribe({
       next: (dataPackage: DataPackage<Turno[]>) => {
         console.log("Turnos recibidos en dashboard:", dataPackage);
         const turnos = dataPackage.data || [];
-
-        // Procesar turnos y actualizar los que ya pasaron
-        const turnosActualizados: Promise<Turno>[] = turnos.map(turno => {
-          return new Promise((resolve) => {
-            // Validar que el turno tenga ID antes de procesar
-            if (!turno.id) {
-              console.warn('Turno sin ID encontrado, se omite');
-              resolve(turno);
-              return;
-            }
-
-            // Si el turno está CONFIRMADO/PROGRAMADO y ya pasó, actualizarlo a COMPLETO
-            if ((turno.estado === 'CONFIRMADO' || turno.estado === 'PROGRAMADO') &&
-              this.turnoYaPaso(turno)) {
-
-              console.log(`Actualizando turno ${turno.id} a COMPLETO (fecha/hora pasada)`);
-
-              this.turnoService.updateEstado(
-                turno.id, // Ahora TypeScript sabe que no es undefined
-                'COMPLETO',
-                'Turno completado automáticamente'
-              ).subscribe({
-                next: () => {
-                  turno.estado = 'COMPLETO';
-                  resolve(turno);
-                },
-                error: (error) => {
-                  console.error(`Error actualizando turno ${turno.id}:`, error);
-                  resolve(turno);
-                }
-              });
-            } else {
-              resolve(turno);
-            }
-          });
-        });
-
-        // Esperar a que todos los turnos se procesen
-        Promise.all(turnosActualizados).then((turnosProcesados) => {
-          this.allTurnos = turnosProcesados.map((turno) =>
-            this.convertirTurnoParaDashboard(turno)
-          );
-
-          this.applyFilter();
-          this.isLoadingTurnos = false;
-          // Después de cargar turnos, reconstruir el mapa de encuestas pendientes
-          this.buildSurveyMapFromNotifications();
-        });
+        // La lista se muestra ya. Pasar un turno a COMPLETO es un efecto
+        // aparte: si esa llamada no vuelve, la pantalla no se queda en Cargando.
+        this.publicarTurnos(turnos);
+        this.isLoadingTurnos = false;
+        this.cdr.markForCheck();
+        this.completarTurnosPasados(turnos);
+        this.buildSurveyMapFromNotifications();
       },
       error: (error) => {
         console.error("Error cargando turnos:", error);
         this.isLoadingTurnos = false;
+        this.errorCarga = mensajeDeCarga(error, "No se pudieron cargar tus turnos. Reintentá.");
+        this.cdr.markForCheck();
       },
     });
   }
 
+  private publicarTurnos(turnos: Turno[]): void {
+    this.allTurnos = turnos.map((turno) => this.convertirTurnoParaDashboard(turno));
+    this.applyFilter();
+  }
+
+  private completarTurnosPasados(turnos: Turno[]): void {
+    for (const turno of turnos) {
+      if (!turno.id) {
+        continue;
+      }
+      if ((turno.estado === "CONFIRMADO" || turno.estado === "PROGRAMADO") && this.turnoYaPaso(turno)) {
+        this.turnoService.updateEstado(turno.id, "COMPLETO", "Turno completado automáticamente").subscribe({
+          next: () => {
+            turno.estado = "COMPLETO";
+            this.publicarTurnos(turnos);
+            this.cdr.markForCheck();
+          },
+          error: (error) => console.error(`Error actualizando turno ${turno.id}:`, error),
+        });
+      }
+    }
+  }
+
   private cargarNotificacionesNoLeidas() {
-    const pacienteId = this.authService.getCurrentPatientId();
+    const pacienteId = this.pacienteId;
     if (!pacienteId) return;
 
     this.notificacionService.obtenerNotificacionesNoLeidas(pacienteId).subscribe({
@@ -424,7 +443,7 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
 
   private buildSurveyMapFromNotifications() {
     // Re-query current notificaciones no leidas to ensure map updated
-    const pacienteId = this.authService.getCurrentPatientId();
+    const pacienteId = this.pacienteId;
     if (!pacienteId) return;
     this.notificacionService.obtenerNotificacionesNoLeidas(pacienteId).subscribe({
       next: (notis) => {
@@ -445,7 +464,7 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   }
 
   private checkSurveyPendingForCompletedTurnos() {
-    const pacienteId = this.authService.getCurrentPatientId();
+    const pacienteId = this.pacienteId;
     if (!pacienteId) return;
 
     // Recorrer turnos completados y consultar si hay encuesta pendiente

@@ -33,9 +33,14 @@ class SesionFalsa {
   tiene = true;
   error: HttpErrorResponse | null = null;
   creadas: unknown[] = [];
+  invalidadas = 0;
 
   tieneFicha() {
     return of(this.tiene);
+  }
+
+  invalidar(): void {
+    this.invalidadas += 1;
   }
 
   crear(datos: unknown) {
@@ -124,6 +129,7 @@ describe('SidebarComponent', () => {
     fixture.detectChanges();
 
     expect(router.navigate).toHaveBeenCalledWith(['/paciente-dashboard']);
+    expect(sesion.invalidadas).toBe(1);
     expect(botonVista().textContent).toContain('Cambiar a médico');
     expect(texto()).toContain('Inicio');
     expect(texto()).toContain('Mis turnos');

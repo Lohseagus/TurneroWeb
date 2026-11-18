@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { finalize } from 'rxjs/operators';
+import { finalize, timeout } from 'rxjs/operators';
 import { RecetaService } from './receta.service';
 import { OrdenEstudio, Receta } from './receta.models';
 import { MENSAJE_SIN_FICHA_PACIENTE } from '../config/menu.config';
@@ -34,14 +34,14 @@ export class PacienteRecetasComponent implements OnInit {
         this.cdr.detectChanges();
       }
     };
-    this.api.mias().pipe(finalize(listo)).subscribe({
+    this.api.mias().pipe(timeout(20000), finalize(listo)).subscribe({
       next: res => {
         this.recetas = res.data || [];
         this.cdr.markForCheck();
       },
       error: err => this.fallo(err)
     });
-    this.api.misOrdenes().pipe(finalize(listo)).subscribe({
+    this.api.misOrdenes().pipe(timeout(20000), finalize(listo)).subscribe({
       next: res => {
         this.ordenes = res.data || [];
         this.cdr.markForCheck();
