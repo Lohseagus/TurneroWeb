@@ -1,123 +1,339 @@
-<div class="hce-page">
-  <div class="hce-header">
-    <div>
-      <h1>Historia clínica</h1>
-      <p *ngIf="!pacienteId">Pacientes que atendiste</p>
-      <p *ngIf="perfil">{{ perfil.apellido }}, {{ perfil.nombre }} · DNI {{ perfil.dni || '—' }}</p>
+<div class="ct-page">
+  <!-- Encabezado: listado -->
+  <header class="ct-page-header" *ngIf="!pacienteId">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">clinical_notes</span>
+      <div>
+        <h1 class="ct-page-header__title">Historia clínica</h1>
+        <p class="ct-page-header__subtitle">Pacientes que atendiste</p>
+      </div>
     </div>
-    <div class="hce-actions" *ngIf="pacienteId">
-      <a class="btn btn-secondary" routerLink="/medico-hce">Volver</a>
-      <button type="button" class="btn btn-primary" (click)="nuevaConsulta()">Nueva consulta</button>
+  </header>
+
+  <!-- Encabezado: paciente -->
+  <header class="ct-page-header" *ngIf="pacienteId">
+    <div class="ct-page-header__main">
+      <span class="hce-avatar hce-avatar--lg" *ngIf="perfil">{{ iniciales(perfil) }}</span>
+      <div>
+        <h1 class="ct-page-header__title">{{ perfil ? perfil.apellido + ', ' + perfil.nombre : 'Historia clínica' }}</h1>
+        <p class="ct-page-header__subtitle" *ngIf="perfil">DNI {{ perfil.dni || '—' }} · Historia clínica</p>
+      </div>
     </div>
-  </div>
-
-  <div class="hce-error" *ngIf="error">
-    <p>{{ error }}</p>
-    <button type="button" class="btn btn-secondary" (click)="reintentar()">Reintentar</button>
-  </div>
-  <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
-  <p *ngIf="cargando && !error">Cargando…</p>
-
-  <section class="hce-panel" *ngIf="!pacienteId && !cargando && !error">
-    <div class="hce-list" *ngIf="pacientes.length; else vacio">
-      <a class="hce-card hce-list-item" *ngFor="let paciente of pacientes" [routerLink]="['/medico-hce', paciente.id]">
-        <div>
-          <strong>{{ paciente.apellido }}, {{ paciente.nombre }}</strong>
-          <div class="hce-muted">DNI {{ paciente.dni || '—' }}</div>
-        </div>
-        <span class="material-symbols-outlined">chevron_right</span>
+    <div class="ct-page-header__actions">
+      <a class="btn btn-secondary" routerLink="/medico-hce">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver a pacientes
       </a>
+      <button type="button" class="btn btn-primary" (click)="nuevaConsulta()" [disabled]="!perfil">
+        <span class="material-symbols-outlined">add</span>
+        Nueva consulta
+      </button>
     </div>
+  </header>
+
+  <div class="ct-alert ct-alert--danger hce-aviso" *ngIf="error">
+    <span class="material-symbols-outlined">error</span>
+    <span class="hce-aviso__texto">{{ error }}</span>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="reintentar()">
+      <span class="material-symbols-outlined">refresh</span>
+      Reintentar
+    </button>
+  </div>
+  <div class="ct-alert ct-alert--success hce-aviso" *ngIf="aviso">
+    <span class="material-symbols-outlined">check_circle</span>
+    <span>{{ aviso }}</span>
+  </div>
+
+  <section class="ct-section" *ngIf="cargando && !error">
+    <div class="ct-loading">
+      <span class="material-symbols-outlined ct-spin">sync</span>
+      <p>Cargando…</p>
+    </div>
+  </section>
+
+  <!-- Listado de pacientes -->
+  <section class="ct-section" *ngIf="!pacienteId && !cargando && !error">
+    <ng-container *ngIf="pacientes.length; else vacio">
+      <div class="ct-section__header">
+        <div class="hce-busqueda">
+          <label class="form-label" for="buscarPaciente">
+            <span class="material-symbols-outlined">person_search</span>
+            Buscar paciente
+          </label>
+          <input
+            id="buscarPaciente"
+            type="search"
+            class="form-control"
+            placeholder="Nombre, apellido o DNI..."
+            [(ngModel)]="busqueda"
+            (ngModelChange)="pagina = 0"
+            autocomplete="off"
+            />
+        </div>
+        <span class="ct-badge ct-badge--accent">
+          <span class="material-symbols-outlined">group</span>
+          {{ pacientesFiltrados.length }} de {{ pacientes.length }} pacientes
+        </span>
+      </div>
+
+      <div class="ct-table-wrap" *ngIf="pacientesFiltrados.length">
+        <table class="ct-table">
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>DNI</th>
+              <th>Consultas</th>
+              <th>Última consulta</th>
+              <th class="hce-col-acciones">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let paciente of pacientesPagina">
+              <td>
+                <a class="hce-paciente" [routerLink]="['/medico-hce', paciente.id]">
+                  <span class="hce-avatar">{{ iniciales(paciente) }}</span>
+                  <strong>{{ paciente.apellido }}, {{ paciente.nombre }}</strong>
+                </a>
+              </td>
+              <td>{{ paciente.dni || '—' }}</td>
+              <td>
+                <span class="ct-badge" [class.ct-badge--accent]="paciente.consultas">
+                  <span class="material-symbols-outlined">clinical_notes</span>
+                  {{ paciente.consultas || 0 }}
+                </span>
+              </td>
+              <td>{{ paciente.ultimaConsulta ? (paciente.ultimaConsulta | date:'dd/MM/yyyy') : '—' }}</td>
+              <td class="hce-col-acciones">
+                <div class="ct-btn-group">
+                  <a class="btn btn-secondary btn-sm" [routerLink]="['/medico-hce', paciente.id]">
+                    <span class="material-symbols-outlined">clinical_notes</span>
+                    Ver historia
+                  </a>
+                  <a class="btn btn-primary btn-sm" routerLink="/medico-consulta/nueva" [queryParams]="{ pacienteId: paciente.id }">
+                    <span class="material-symbols-outlined">add</span>
+                    Nueva consulta
+                  </a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hce-paginado" *ngIf="totalPaginas > 1">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="pagina = pagina - 1" [disabled]="pagina === 0">
+          <span class="material-symbols-outlined">chevron_left</span>
+          Anterior
+        </button>
+        <span>Página {{ pagina + 1 }} de {{ totalPaginas }}</span>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="pagina = pagina + 1" [disabled]="pagina >= totalPaginas - 1">
+          Siguiente
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+
+      <div class="ct-empty" *ngIf="!pacientesFiltrados.length">
+        <span class="material-symbols-outlined ct-empty__icon">search_off</span>
+        <h3 class="ct-empty__title">Sin resultados</h3>
+        <p class="ct-empty__text">Ningún paciente coincide con "{{ busqueda }}".</p>
+      </div>
+    </ng-container>
     <ng-template #vacio>
-      <p>Todavía no atendiste pacientes</p>
+      <div class="ct-empty">
+        <span class="material-symbols-outlined ct-empty__icon">group_off</span>
+        <h3 class="ct-empty__title">Todavía no atendiste pacientes</h3>
+        <p class="ct-empty__text">Cuando registres una consulta, el paciente va a aparecer acá.</p>
+      </div>
     </ng-template>
   </section>
 
+  <!-- Historia de un paciente -->
   <ng-container *ngIf="pacienteId && perfil">
-    <div class="hce-tabs">
-      <button type="button" class="hce-tab" [class.active]="tab === 'timeline'" (click)="tab = 'timeline'">Línea de tiempo</button>
-      <button type="button" class="hce-tab" [class.active]="tab === 'perfil'" (click)="tab = 'perfil'">Perfil clínico</button>
+    <div class="ct-tabs">
+      <button type="button" class="ct-tab" [class.active]="tab === 'timeline'" (click)="tab = 'timeline'">
+        <span class="material-symbols-outlined">history</span>
+        Línea de tiempo
+        <span class="ct-tab__count">{{ timeline.length }}</span>
+      </button>
+      <button type="button" class="ct-tab" [class.active]="tab === 'perfil'" (click)="tab = 'perfil'">
+        <span class="material-symbols-outlined">medical_information</span>
+        Perfil clínico
+      </button>
     </div>
 
-    <section class="hce-panel" *ngIf="tab === 'timeline'">
-      <div class="hce-filters">
-        <select [(ngModel)]="filtros.tipo">
-          <option value="">Todos los tipos</option>
-          <option value="CONSULTA">Consultas</option>
-          <option value="ENMIENDA">Enmiendas</option>
-          <option value="ADJUNTO">Adjuntos</option>
-          <option value="RECETA">Recetas</option>
-          <option value="ORDEN">Órdenes</option>
-        </select>
-        <input type="number" placeholder="Centro" [(ngModel)]="filtros.centroId" />
-        <input type="number" placeholder="Médico" [(ngModel)]="filtros.medicoId" />
-        <input type="number" placeholder="Especialidad" [(ngModel)]="filtros.especialidadId" />
-        <button type="button" class="btn btn-secondary" (click)="buscarTimeline()">Filtrar</button>
-      </div>
-      <div class="hce-timeline">
-        <button type="button" class="hce-card hce-event" *ngFor="let item of timeline" (click)="abrir(item)">
-          <span class="hce-muted">{{ item.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
-          <span>
-            <strong>{{ item.resumen || item.tipo }}</strong>
-            <div class="hce-muted">{{ item.centroNombre }} · {{ item.medicoNombre }} · {{ item.especialidadNombre }}</div>
-          </span>
-          <span class="hce-badge" [class.cerrada]="item.estado === 'CERRADA'" [class.borrador]="item.estado === 'BORRADOR'">{{ item.tipo }}</span>
-        </button>
-        <p *ngIf="!timeline.length" class="hce-muted">No hay eventos para esos filtros.</p>
-      </div>
-    </section>
-
-    <section class="hce-panel" *ngIf="tab === 'perfil'">
-      <div class="hce-grid">
+    <section class="ct-section" *ngIf="tab === 'timeline'">
+      <div class="ct-form-grid hce-filtros">
         <div>
-          <label>Grupo sanguíneo</label>
-          <select [(ngModel)]="perfil.grupoSanguineo">
-            <option *ngFor="let grupo of grupos" [value]="grupo.value">{{ grupo.label }}</option>
+          <label class="form-label" for="filtroTipo">Tipo</label>
+          <select id="filtroTipo" class="form-select" [(ngModel)]="filtros.tipo" (change)="buscarTimeline()">
+            <option value="">Todos los tipos</option>
+            <option value="CONSULTA">Consultas</option>
+            <option value="ENMIENDA">Enmiendas</option>
+            <option value="ADJUNTO">Adjuntos</option>
+            <option value="RECETA">Recetas</option>
+            <option value="ORDEN">Órdenes</option>
           </select>
         </div>
         <div>
-          <label>Identificador federado</label>
-          <input type="text" [(ngModel)]="perfil.identificadorFederado" />
+          <label class="form-label" for="filtroCentro">Centro</label>
+          <select id="filtroCentro" class="form-select" [(ngModel)]="filtros.centroId" (change)="buscarTimeline()">
+            <option [ngValue]="null">Todos los centros</option>
+            <option *ngFor="let o of opciones.centros" [ngValue]="o.id">{{ o.nombre }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="filtroMedico">Médico</label>
+          <select id="filtroMedico" class="form-select" [(ngModel)]="filtros.medicoId" (change)="buscarTimeline()">
+            <option [ngValue]="null">Todos los médicos</option>
+            <option *ngFor="let o of opciones.medicos" [ngValue]="o.id">{{ o.nombre }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="filtroEspecialidad">Especialidad</label>
+          <select id="filtroEspecialidad" class="form-select" [(ngModel)]="filtros.especialidadId" (change)="buscarTimeline()">
+            <option [ngValue]="null">Todas las especialidades</option>
+            <option *ngFor="let o of opciones.especialidades" [ngValue]="o.id">{{ o.nombre }}</option>
+          </select>
         </div>
       </div>
-      <label>Antecedentes personales</label>
-      <textarea [(ngModel)]="perfil.antecedentesPersonales"></textarea>
-      <label>Antecedentes familiares</label>
-      <textarea [(ngModel)]="perfil.antecedentesFamiliares"></textarea>
-      <label>Antecedentes quirúrgicos</label>
-      <textarea [(ngModel)]="perfil.antecedentesQuirurgicos"></textarea>
-      <label>Hábitos</label>
-      <textarea [(ngModel)]="perfil.habitos"></textarea>
-      <label><input type="checkbox" [(ngModel)]="perfil.comparteEntreCentros" /> El paciente consiente que otros centros lean esta historia</label>
 
-      <h2>Alergias</h2>
-      <div class="hce-list-item" *ngFor="let alergia of perfil.alergias; let i = index">
-        <input type="text" placeholder="Sustancia" [(ngModel)]="alergia.sustancia" [disabled]="!alergia.activa" />
-        <input type="text" placeholder="Reacción" [(ngModel)]="alergia.reaccion" [disabled]="!alergia.activa" />
-        <button type="button" class="btn btn-secondary" (click)="desactivarAlergia(i)">{{ alergia.activa ? 'Inactivar' : 'Inactiva' }}</button>
-      </div>
-      <button type="button" class="btn btn-secondary" (click)="agregarAlergia()">Agregar alergia</button>
-
-      <h2>Medicación habitual</h2>
-      <div class="hce-list-item" *ngFor="let med of perfil.medicaciones; let i = index">
-        <input type="text" placeholder="Fármaco" [(ngModel)]="med.farmaco" [disabled]="!med.activa" />
-        <input type="text" placeholder="Dosis" [(ngModel)]="med.dosis" [disabled]="!med.activa" />
-        <input type="text" placeholder="Frecuencia" [(ngModel)]="med.frecuencia" [disabled]="!med.activa" />
-        <button type="button" class="btn btn-secondary" (click)="desactivarMedicacion(i)">{{ med.activa ? 'Inactivar' : 'Inactiva' }}</button>
-      </div>
-      <button type="button" class="btn btn-secondary" (click)="agregarMedicacion()">Agregar medicación</button>
-
-      <h2>Vacunas</h2>
-      <div class="hce-list-item" *ngFor="let vacuna of perfil.vacunas">
-        <input type="text" placeholder="Nombre" [(ngModel)]="vacuna.nombre" [disabled]="!!vacuna.id" />
-        <input type="date" [(ngModel)]="vacuna.fechaAplicacion" [disabled]="!!vacuna.id" />
-        <input type="text" placeholder="Dosis" [(ngModel)]="vacuna.dosis" [disabled]="!!vacuna.id" />
-      </div>
-      <button type="button" class="btn btn-secondary" (click)="agregarVacuna()">Agregar vacuna</button>
-
-      <div class="hce-actions">
-        <button type="button" class="btn btn-primary" (click)="guardarPerfil()" [disabled]="guardando">Guardar perfil</button>
+      <div class="hce-timeline">
+        <button
+          type="button"
+          class="hce-evento"
+          *ngFor="let item of timeline"
+          (click)="abrir(item)"
+          [class.is-abrible]="!!item.consultaId"
+          >
+          <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--sm">{{ iconoTipo(item.tipo) }}</span>
+          <span class="hce-evento__cuerpo">
+            <strong>{{ item.resumen || item.tipo }}</strong>
+            <span class="hce-evento__detalle">{{ item.centroNombre }} · {{ item.medicoNombre }} · {{ item.especialidadNombre }}</span>
+          </span>
+          <span class="hce-evento__fecha">{{ item.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+          <span
+            class="ct-badge"
+            [class.ct-badge--success]="item.estado === 'CERRADA'"
+            [class.ct-badge--warning]="item.estado === 'BORRADOR'"
+            >{{ item.tipo }}</span>
+        </button>
+        <div class="ct-empty" *ngIf="!timeline.length">
+          <span class="material-symbols-outlined ct-empty__icon">event_busy</span>
+          <h3 class="ct-empty__title">Sin eventos</h3>
+          <p class="ct-empty__text">No hay eventos para esos filtros.</p>
+        </div>
       </div>
     </section>
+
+    <ng-container *ngIf="tab === 'perfil'">
+      <section class="ct-section">
+        <h2 class="ct-section__title">
+          <span class="material-symbols-outlined">medical_information</span>
+          Datos clínicos
+        </h2>
+        <p class="ct-section__description">Antecedentes y datos de base del paciente</p>
+        <div class="ct-form-grid">
+          <div>
+            <label class="form-label" for="grupoSanguineo">Grupo sanguíneo</label>
+            <select id="grupoSanguineo" class="form-select" [(ngModel)]="perfil.grupoSanguineo">
+              <option *ngFor="let grupo of grupos" [value]="grupo.value">{{ grupo.label }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="identificadorFederado">Identificador federado</label>
+            <input id="identificadorFederado" type="text" class="form-control" [(ngModel)]="perfil.identificadorFederado" />
+          </div>
+        </div>
+        <div class="ct-form-grid hce-antecedentes">
+          <div>
+            <label class="form-label" for="antPersonales">Antecedentes personales</label>
+            <textarea id="antPersonales" class="form-control" [(ngModel)]="perfil.antecedentesPersonales"></textarea>
+          </div>
+          <div>
+            <label class="form-label" for="antFamiliares">Antecedentes familiares</label>
+            <textarea id="antFamiliares" class="form-control" [(ngModel)]="perfil.antecedentesFamiliares"></textarea>
+          </div>
+          <div>
+            <label class="form-label" for="antQuirurgicos">Antecedentes quirúrgicos</label>
+            <textarea id="antQuirurgicos" class="form-control" [(ngModel)]="perfil.antecedentesQuirurgicos"></textarea>
+          </div>
+          <div>
+            <label class="form-label" for="habitos">Hábitos</label>
+            <textarea id="habitos" class="form-control" [(ngModel)]="perfil.habitos"></textarea>
+          </div>
+        </div>
+        <div class="hce-consentimiento">
+          <span>El paciente consiente que otros centros lean esta historia</span>
+          <label class="ct-switch" aria-label="Compartir entre centros">
+            <input type="checkbox" [(ngModel)]="perfil.comparteEntreCentros" />
+            <span class="ct-switch__track"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="ct-section">
+        <div class="ct-section__header">
+          <h2 class="ct-section__title">
+            <span class="material-symbols-outlined">warning</span>
+            Alergias
+          </h2>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="agregarAlergia()">
+            <span class="material-symbols-outlined">add</span>
+            Agregar alergia
+          </button>
+        </div>
+        <div class="hce-fila" *ngFor="let alergia of perfil.alergias; let i = index">
+          <input type="text" class="form-control" placeholder="Sustancia" [(ngModel)]="alergia.sustancia" [disabled]="!alergia.activa" />
+          <input type="text" class="form-control" placeholder="Reacción" [(ngModel)]="alergia.reaccion" [disabled]="!alergia.activa" />
+          <button type="button" class="btn btn-secondary btn-sm" (click)="desactivarAlergia(i)" [disabled]="!alergia.activa">{{ alergia.activa ? 'Inactivar' : 'Inactiva' }}</button>
+        </div>
+        <p class="ct-section__description" *ngIf="!perfil.alergias.length">Sin alergias registradas.</p>
+      </section>
+
+      <section class="ct-section">
+        <div class="ct-section__header">
+          <h2 class="ct-section__title">
+            <span class="material-symbols-outlined">healing</span>
+            Medicación habitual
+          </h2>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="agregarMedicacion()">
+            <span class="material-symbols-outlined">add</span>
+            Agregar medicación
+          </button>
+        </div>
+        <div class="hce-fila hce-fila--4" *ngFor="let med of perfil.medicaciones; let i = index">
+          <input type="text" class="form-control" placeholder="Fármaco" [(ngModel)]="med.farmaco" [disabled]="!med.activa" />
+          <input type="text" class="form-control" placeholder="Dosis" [(ngModel)]="med.dosis" [disabled]="!med.activa" />
+          <input type="text" class="form-control" placeholder="Frecuencia" [(ngModel)]="med.frecuencia" [disabled]="!med.activa" />
+          <button type="button" class="btn btn-secondary btn-sm" (click)="desactivarMedicacion(i)" [disabled]="!med.activa">{{ med.activa ? 'Inactivar' : 'Inactiva' }}</button>
+        </div>
+        <p class="ct-section__description" *ngIf="!perfil.medicaciones.length">Sin medicación registrada.</p>
+      </section>
+
+      <section class="ct-section">
+        <div class="ct-section__header">
+          <h2 class="ct-section__title">
+            <span class="material-symbols-outlined">health_and_safety</span>
+            Vacunas
+          </h2>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="agregarVacuna()">
+            <span class="material-symbols-outlined">add</span>
+            Agregar vacuna
+          </button>
+        </div>
+        <div class="hce-fila hce-fila--3" *ngFor="let vacuna of perfil.vacunas">
+          <input type="text" class="form-control" placeholder="Nombre" [(ngModel)]="vacuna.nombre" [disabled]="!!vacuna.id" />
+          <input type="date" class="form-control" [(ngModel)]="vacuna.fechaAplicacion" [disabled]="!!vacuna.id" />
+          <input type="text" class="form-control" placeholder="Dosis" [(ngModel)]="vacuna.dosis" [disabled]="!!vacuna.id" />
+        </div>
+        <p class="ct-section__description" *ngIf="!perfil.vacunas.length">Sin vacunas registradas.</p>
+        <div class="ct-form-actions">
+          <button type="button" class="btn btn-primary" (click)="guardarPerfil()" [disabled]="guardando">
+            <span class="material-symbols-outlined">save</span>
+            {{ guardando ? 'Guardando...' : 'Guardar perfil' }}
+          </button>
+        </div>
+      </section>
+    </ng-container>
   </ng-container>
 </div>

@@ -17,7 +17,7 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './medico-hce.component.html',
-  styleUrl: './hce.css'
+  styleUrl: './medico-hce.component.css'
 })
 export class MedicoHceComponent implements OnInit {
   pacientes: PacienteResumenHce[] = [];
@@ -31,6 +31,43 @@ export class MedicoHceComponent implements OnInit {
   aviso = '';
   grupos = GRUPOS_SANGUINEOS;
   filtros = { tipo: '', centroId: null as number | null, medicoId: null as number | null, especialidadId: null as number | null };
+  busqueda = '';
+  opciones: Record<'centros' | 'medicos' | 'especialidades', { id: number; nombre: string }[]> =
+    { centros: [], medicos: [], especialidades: [] };
+
+  get pacientesFiltrados(): PacienteResumenHce[] {
+    const q = this.normalizar(this.busqueda.trim());
+    if (!q) return this.pacientes;
+    return this.pacientes.filter(p =>
+      this.normalizar(`${p.apellido} ${p.nombre} ${p.apellido} ${p.dni ?? ''}`).includes(q));
+  }
+
+  private normalizar(texto: string): string {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  readonly porPagina = 20;
+  pagina = 0;
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.pacientesFiltrados.length / this.porPagina));
+  }
+
+  get pacientesPagina(): PacienteResumenHce[] {
+    const inicio = Math.min(this.pagina, this.totalPaginas - 1) * this.porPagina;
+    return this.pacientesFiltrados.slice(inicio, inicio + this.porPagina);
+  }
+
+  iniciales(p: { nombre?: string; apellido?: string }): string {
+    return `${p.nombre?.[0] ?? ''}${p.apellido?.[0] ?? ''}`.toUpperCase();
+  }
+
+  iconoTipo(tipo: string): string {
+    const iconos: Record<string, string> = {
+      CONSULTA: 'clinical_notes', ENMIENDA: 'edit', ADJUNTO: 'description', RECETA: 'receipt_long', ORDEN: 'assignment'
+    };
+    return iconos[tipo] ?? 'event';
+  }
 
   constructor(
     private hce: HceService,
@@ -95,7 +132,21 @@ export class MedicoHceComponent implements OnInit {
       medicoId: this.filtros.medicoId,
       especialidadId: this.filtros.especialidadId
     }).subscribe({
-      next: res => { this.timeline = res.data || []; },
+      next: res => {
+        this.timeline = res.data || [];
+        const sinFiltros = !this.filtros.tipo && !this.filtros.centroId && !this.filtros.medicoId && !this.filtros.especialidadId;
+        if (sinFiltros) {
+          const unicos = (id: (t: TimelineItem) => number | undefined, nombre: (t: TimelineItem) => string | undefined) =>
+            [...new Map(this.timeline.filter(t => id(t) != null && nombre(t))
+              .map(t => [id(t)!, { id: id(t)!, nombre: nombre(t)! }])).values()];
+          this.opciones = {
+            centros: unicos(t => t.centroId, t => t.centroNombre),
+            medicos: unicos(t => t.medicoId, t => t.medicoNombre),
+            especialidades: unicos(t => t.especialidadId, t => t.especialidadNombre)
+          };
+        }
+        this.cdr.detectChanges();
+      },
       error: err => this.fallo(err)
     });
   }

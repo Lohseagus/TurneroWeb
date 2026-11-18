@@ -12,4 +12,6 @@ public class PacienteResumenHceDTO {
     private String nombre;
     private String apellido;
     private Long dni;
+    private long consultas;
+    private java.time.LocalDateTime ultimaConsulta;
 }

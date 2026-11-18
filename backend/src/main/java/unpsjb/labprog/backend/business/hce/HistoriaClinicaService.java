@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -140,9 +141,21 @@ public class HistoriaClinicaService {
         for (Paciente paciente : consultaRepository.findPacientesDelMedico(medico.getId())) {
             pacientes.put(paciente.getId(), paciente);
         }
+        Map<Integer, Object[]> consultas = new HashMap<>();
+        for (Object[] fila : consultaRepository.resumenConsultasPorPaciente(medico.getId())) {
+            consultas.put((Integer) fila[0], fila);
+        }
         return pacientes.values().stream()
                 .sorted(Comparator.comparing(Paciente::getApellido, Comparator.nullsLast(String::compareToIgnoreCase)))
-                .map(this::aResumen)
+                .map(paciente -> {
+                    PacienteResumenHceDTO dto = aResumen(paciente);
+                    Object[] fila = consultas.get(paciente.getId());
+                    if (fila != null) {
+                        dto.setConsultas((Long) fila[1]);
+                        dto.setUltimaConsulta((LocalDateTime) fila[2]);
+                    }
+                    return dto;
+                })
                 .toList();
     }
 

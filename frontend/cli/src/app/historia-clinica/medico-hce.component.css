@@ -1,0 +1,160 @@
+/* Historia clínica (médico). Layout y piezas vienen de ct-ui.css; acá solo lo propio. */
+
+.hce-aviso {
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.hce-aviso__texto {
+  flex: 1;
+}
+
+.hce-busqueda {
+  flex: 1;
+  max-width: 420px;
+}
+
+.hce-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  background: var(--gradient-accent-soft);
+  border-radius: var(--border-radius-full);
+}
+
+.hce-avatar--lg {
+  width: 72px;
+  height: 72px;
+  font-size: var(--font-size-2xl);
+}
+
+.hce-paciente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+.hce-paciente:hover {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.hce-col-acciones {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hce-col-acciones .ct-btn-group {
+  flex-wrap: nowrap;
+}
+
+.hce-paginado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.hce-filtros {
+  margin-bottom: var(--space-lg);
+}
+
+.hce-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.hce-evento {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  text-align: left;
+  color: var(--text-main);
+  cursor: default;
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.hce-evento.is-abrible {
+  cursor: pointer;
+}
+
+.hce-evento.is-abrible:hover {
+  border-color: var(--color-accent);
+}
+
+.hce-evento__cuerpo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hce-evento__detalle,
+.hce-evento__fecha {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.hce-antecedentes {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  margin-top: var(--space-md);
+}
+
+.hce-antecedentes textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.hce-consentimiento {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  margin-top: var(--space-lg);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.hce-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.hce-fila--3 {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.hce-fila--4 {
+  grid-template-columns: 2fr 1fr 1fr auto;
+}
+
+@media (max-width: 768px) {
+  .hce-evento,
+  .hce-fila,
+  .hce-fila--3,
+  .hce-fila--4 {
+    grid-template-columns: 1fr;
+  }
+}
