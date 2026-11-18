@@ -10,13 +10,27 @@
 
 <!-- MINI SIDEBAR (visible cuando está cerrado) -->
 <aside class="mini-sidebar">
-  <button
-    class="mini-sidebar__logout"
-    (click)="logout()"
-    title="Cerrar sesión"
-    >
-    <span class="material-symbols-outlined">logout</span>
-  </button>
+  <div class="mini-sidebar__acciones">
+    @if (muestraCambioVista) {
+      <button
+        type="button"
+        class="mini-sidebar__logout"
+        (click)="cambiarVista()"
+        [title]="etiquetaCambioVista"
+        [attr.aria-label]="etiquetaCambioVista"
+        >
+        <span class="material-symbols-outlined">swap_horiz</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="mini-sidebar__logout"
+      (click)="logout()"
+      title="Cerrar sesión"
+      >
+      <span class="material-symbols-outlined">logout</span>
+    </button>
+  </div>
 </aside>
 
 <!-- SIDEBAR PRINCIPAL -->
@@ -127,7 +141,59 @@
 
   <!-- Footer del Sidebar -->
   <div class="sidebar__footer">
+    @if (altaAbierta) {
+      <div class="sidebar__alta" role="region" aria-label="Crear ficha de paciente">
+        @if (camposFaltantes.length === 0) {
+          <p>Tu cuenta no tiene ficha de paciente. ¿La creamos con tus datos?</p>
+        } @else {
+          <p>Completá los datos que faltan para crear tu ficha.</p>
+          @for (campo of camposFaltantes; track campo) {
+            <label [attr.for]="'alta-' + campo">
+              {{ etiquetaCampo(campo) }}
+              <input
+                [id]="'alta-' + campo"
+                [attr.inputmode]="campo === 'dni' ? 'numeric' : null"
+                [attr.autocomplete]="campo === 'telefono' ? 'tel' : 'name'"
+                [value]="altaForm[campo]"
+                (input)="altaForm[campo] = $any($event.target).value"
+                />
+            </label>
+          }
+        }
+        @if (altaError) {
+          <p class="sidebar__alta-error" role="alert">{{ altaError }}</p>
+        }
+        <button
+          type="button"
+          class="sidebar__footer-btn"
+          (click)="confirmarAlta()"
+          [disabled]="altaEnCurso"
+          >
+          <span class="material-symbols-outlined">person_add</span>
+          <span>{{ altaEnCurso ? 'Creando…' : 'Crear mi ficha' }}</span>
+        </button>
+        <button
+          type="button"
+          class="sidebar__footer-btn sidebar__footer-btn--secundario"
+          (click)="cancelarAlta()"
+          [disabled]="altaEnCurso"
+          >
+          <span>Cancelar</span>
+        </button>
+      </div>
+    }
+    @if (muestraCambioVista) {
+      <button
+        type="button"
+        class="sidebar__footer-btn sidebar__footer-btn--vista"
+        (click)="cambiarVista()"
+        >
+        <span class="material-symbols-outlined">swap_horiz</span>
+        <span>{{ etiquetaCambioVista }}</span>
+      </button>
+    }
     <button
+      type="button"
       class="sidebar__footer-btn"
       (click)="logout()"
       title="Cerrar sesión"

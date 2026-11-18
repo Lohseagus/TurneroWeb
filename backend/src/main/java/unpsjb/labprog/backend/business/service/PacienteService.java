@@ -1,5 +1,6 @@
 package unpsjb.labprog.backend.business.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import unpsjb.labprog.backend.business.repository.MedicoRepository;
 import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.PreferenciaHorariaRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
@@ -22,8 +24,11 @@ import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.ObraSocialDTO;
 import unpsjb.labprog.backend.dto.PacienteDTO;
+import unpsjb.labprog.backend.exception.DatosFichaIncompletosException;
+import unpsjb.labprog.backend.exception.FichaAjenaException;
 import unpsjb.labprog.backend.exception.PacienteSinFichaException;
 import unpsjb.labprog.backend.model.AuditLog;
+import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.ObraSocial;
 import unpsjb.labprog.backend.model.Paciente;
 import unpsjb.labprog.backend.model.PreferenciaHoraria;
@@ -57,6 +62,9 @@ public class PacienteService {
 
     @Autowired
     private StaffMedicoRepository staffMedicoRepository;
+
+    @Autowired
+    private MedicoRepository medicoRepository;
 
     /**
      * Obtiene todos los pacientes con filtrado basado en privacidad:
@@ -148,6 +156,134 @@ public class PacienteService {
             dto.setEmail(propio.getEmail());
         }
         return saveOrUpdate(dto, user.getEmail());
+    }
+
+    /**
+     * Crea la ficha de la cuenta autenticada. El email y el id del cuerpo no
+     * eligen a otra persona: el email sale de la sesión. Si ya hay una ficha
+     * con ese email, se vincula y no se duplica. Nombre, apellido, DNI y
+     * teléfono salen de la cuenta y, si faltan, de la ficha de médico.
+     * Lo que sigue faltando lo tiene que completar quien llama.
+     * Un DNI o teléfono que ya pertenece a otra ficha se rechaza.
+     */
+    @Transactional
+    public AltaFichaPropia crearPropio(PacienteDTO dto) {
+        User user = usuarioDeLaSesion();
+        String email = user.getEmail().trim();
+        if (dto != null && texto(dto.getEmail()) != null && !mismoEmail(dto.getEmail(), email)) {
+            throw new FichaAjenaException();
+        }
+
+        Optional<Paciente> existente = repository.findByUserEmail(email);
+        if (existente.isPresent()) {
+            logger.info("Ficha existente vinculada por email para {}", email);
+            return new AltaFichaPropia(toDTO(existente.get()), true);
+        }
+
+        Medico perfil = perfilMedico(email);
+        String nombre = elegir(user.getNombre(), perfil == null ? null : perfil.getNombre(),
+                dto == null ? null : dto.getNombre());
+        String apellido = elegir(user.getApellido(), perfil == null ? null : perfil.getApellido(),
+                dto == null ? null : dto.getApellido());
+        Long dni = elegirDni(user.getDni(), perfil == null ? null : perfil.getDni(),
+                dto == null ? null : dto.getDni());
+        String telefono = elegir(user.getTelefono(), perfil == null ? null : perfil.getTelefono(),
+                dto == null ? null : dto.getTelefono());
+
+        List<String> faltan = new ArrayList<>();
+        if (nombre == null) {
+            faltan.add("nombre");
+        }
+        if (apellido == null) {
+            faltan.add("apellido");
+        }
+        if (dni == null) {
+            faltan.add("dni");
+        }
+        if (telefono == null) {
+            faltan.add("telefono");
+        }
+        if (!faltan.isEmpty()) {
+            throw new DatosFichaIncompletosException(faltan);
+        }
+
+        Optional<Paciente> porDni = repository.findByDni(dni);
+        if (porDni != null && porDni.isPresent() && !mismoEmail(porDni.get().getEmail(), email)) {
+            throw new IllegalStateException("Ya existe un paciente con el DNI " + dni);
+        }
+        Optional<Paciente> porTelefono = repository.findByTelefono(telefono);
+        if (porTelefono != null && porTelefono.isPresent() && !mismoEmail(porTelefono.get().getEmail(), email)) {
+            throw new IllegalStateException("Ya existe un paciente con el teléfono " + telefono);
+        }
+
+        Paciente nuevo = new Paciente();
+        nuevo.setNombre(nombre);
+        nuevo.setApellido(apellido);
+        nuevo.setDni(dni);
+        nuevo.setEmail(email);
+        nuevo.setTelefono(telefono);
+        nuevo.setProfileCompleted(true);
+        Paciente guardado = repository.save(nuevo);
+
+        auditLogService.logGenericAction(
+                AuditLog.EntityTypes.PACIENTE,
+                guardado.getId().longValue(),
+                AuditLog.Actions.CREATE,
+                email,
+                null,
+                "ACTIVO",
+                null,
+                guardado,
+                "Ficha de paciente creada por la propia cuenta");
+
+        return new AltaFichaPropia(toDTO(guardado), false);
+    }
+
+    private Medico perfilMedico(String email) {
+        if (medicoRepository == null || email == null) {
+            return null;
+        }
+        Optional<Medico> encontrado = medicoRepository.findByEmailIgnoreCase(email);
+        return encontrado == null ? null : encontrado.orElse(null);
+    }
+
+    private static String elegir(String cuenta, String perfil, String pedido) {
+        String propio = texto(cuenta);
+        if (propio != null) {
+            return propio;
+        }
+        String delPerfil = texto(perfil);
+        if (delPerfil != null) {
+            return delPerfil;
+        }
+        return texto(pedido);
+    }
+
+    private static Long elegirDni(Long cuenta, Long perfil, Long pedido) {
+        if (cuenta != null && cuenta > 0) {
+            return cuenta;
+        }
+        if (perfil != null && perfil > 0) {
+            return perfil;
+        }
+        if (pedido != null && pedido > 0) {
+            return pedido;
+        }
+        return null;
+    }
+
+    private static boolean mismoEmail(String izquierda, String derecha) {
+        String a = texto(izquierda);
+        String b = texto(derecha);
+        return a != null && b != null && a.equalsIgnoreCase(b);
+    }
+
+    private static String texto(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String recortado = valor.trim();
+        return recortado.isEmpty() ? null : recortado;
     }
 
     private User usuarioDeLaSesion() {

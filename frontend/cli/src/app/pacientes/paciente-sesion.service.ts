@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { catchError, map, shareReplay, tap, timeout } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { DataPackage } from '../data.package';
@@ -19,6 +19,9 @@ export class PacienteSesionService {
 
   private cache: Observable<Paciente | null> | null = null;
   private cacheEmail: string | null = null;
+  private readonly creadaSubject = new Subject<Paciente>();
+  /** Avisa al portal si la ficha se creó con la pantalla de vacío ya abierta. */
+  readonly creada$ = this.creadaSubject.asObservable();
 
   constructor(private http: HttpClient, private usuarios: UserContextService) {
     this.usuarios.userContext$.subscribe(context => {
@@ -40,6 +43,29 @@ export class PacienteSesionService {
 
   tieneFicha(): Observable<boolean> {
     return this.resolver().pipe(map(ficha => ficha != null));
+  }
+
+  /**
+   * Crea la ficha de la cuenta autenticada (POST /api/pacientes/me).
+   * El email lo pone el backend. No manda el de otra persona.
+   */
+  crear(datos: Partial<Paciente> = {}): Observable<Paciente> {
+    return this.http.post<DataPackage<Paciente>>(this.url, datos).pipe(
+      map(respuesta => {
+        const ficha = respuesta?.data;
+        if (!ficha?.id) {
+          throw new Error('La ficha no llegó completa');
+        }
+        return ficha;
+      }),
+      tap(ficha => {
+        const email = (this.usuarios.getCurrentContext().email || '').trim().toLowerCase();
+        this.cacheEmail = email;
+        this.cache = of(ficha);
+        this.recordar(ficha);
+        this.creadaSubject.next(ficha);
+      })
+    );
   }
 
   invalidar(): void {

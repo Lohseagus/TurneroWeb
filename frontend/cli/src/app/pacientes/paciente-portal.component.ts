@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -18,6 +19,7 @@ type EstadoPortal = 'cargando' | 'portal' | 'sin-ficha' | 'error';
   selector: 'app-paciente-portal',
   standalone: true,
   imports: [CommonModule, RouterOutlet],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     @if (estado === 'portal') {
       <router-outlet />
@@ -28,7 +30,7 @@ type EstadoPortal = 'cargando' | 'portal' | 'sin-ficha' | 'error';
             <span class="material-symbols-outlined ct-empty__icon" aria-hidden="true">personal_injury</span>
             <h1 class="ct-empty__title">{{ mensaje }}</h1>
             <p class="ct-empty__text">
-              Si necesitás turnos, tu historia o tus recetas, pedile a un administrador del centro que te asocie una ficha.
+              Usá «Cambiar a paciente», arriba de Cerrar sesión, para crear tu ficha con los datos de tu cuenta.
             </p>
           </div>
         </section>
@@ -55,10 +57,11 @@ type EstadoPortal = 'cargando' | 'portal' | 'sin-ficha' | 'error';
     }
   `
 })
-export class PacientePortalComponent implements OnInit {
+export class PacientePortalComponent implements OnInit, OnDestroy {
   estado: EstadoPortal = 'cargando';
   readonly mensaje = MENSAJE_SIN_FICHA_PACIENTE;
   detalleError = 'Reintentá en un momento.';
+  private creadaSub?: Subscription;
 
   constructor(
     private usuarios: UserContextService,
@@ -66,11 +69,18 @@ export class PacientePortalComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.creadaSub = this.sesion.creada$.subscribe(() => {
+      this.estado = 'portal';
+    });
     if (this.usuarios.getCurrentContext().primaryRole === Role.PACIENTE) {
       this.estado = 'portal';
       return;
     }
     this.consultar();
+  }
+
+  ngOnDestroy(): void {
+    this.creadaSub?.unsubscribe();
   }
 
   reintentar(): void {
