@@ -15,6 +15,7 @@ import { PacienteService } from "../pacientes/paciente.service";
 import { ModalService } from "../modal/modal.service";
 import { UserContextService } from "../services/user-context.service";
 import { clearAllMenuSectionState } from "../config/menu-section-storage";
+import { clearAllVistaPanel } from "../config/vista-panel-storage";
 
 /**
  * Interfaz para los datos de login compatibles con InicioSesionComponent
@@ -428,16 +429,18 @@ export class AuthService {
   }
 
   /**
-   * Borra qué paneles del sidebar quedaron abiertos.
-   * Login y logout empiezan con el panel del rol más alto, no con la sesión anterior.
+   * Borra qué paneles del sidebar quedaron abiertos y la vista paciente/staff.
+   * Login y logout empiezan en el panel del rol, no en la vista de la sesión anterior.
    * El refresh de token no pasa por acá: esa preferencia sigue en sessionStorage.
    */
   private resetSidebarSectionPreferences(): void {
     if (typeof localStorage !== 'undefined') {
       clearAllMenuSectionState(localStorage);
+      clearAllVistaPanel(localStorage);
     }
     if (typeof sessionStorage !== 'undefined') {
       clearAllMenuSectionState(sessionStorage);
+      clearAllVistaPanel(sessionStorage);
     }
   }
 
@@ -1508,6 +1511,7 @@ export class AuthService {
       sessionStorage.removeItem(key);
     });
     clearAllMenuSectionState(sessionStorage);
+    clearAllVistaPanel(sessionStorage);
     
     this.authStateSubject.next(false);
     

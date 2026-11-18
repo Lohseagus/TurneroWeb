@@ -84,4 +84,31 @@ describe('PacienteSesionService', () => {
     expect(localStorage.getItem('pacienteId')).toBeNull();
     http.verify();
   });
+
+  it('crea la ficha propia sin mandar el email de otra persona', () => {
+    let fichaId: number | null = null;
+    service.crear({ telefono: '2804000000' }).subscribe(ficha => fichaId = ficha.id);
+
+    const req = http.expectOne('rest/pacientes/me');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ telefono: '2804000000' });
+    expect(req.request.body.email).toBeUndefined();
+    req.flush({
+      status_code: 201,
+      status_text: 'Creaste tu ficha de paciente',
+      data: {
+        id: 15,
+        nombre: 'Juan',
+        apellido: 'Pérez',
+        email: 'medico@turnero.com',
+        telefono: '2804000000',
+        dni: 33333333,
+        fechaNacimiento: ''
+      }
+    });
+
+    expect(fichaId).toBe(15);
+    expect(localStorage.getItem('pacienteId')).toBe('15');
+    http.verify();
+  });
 });

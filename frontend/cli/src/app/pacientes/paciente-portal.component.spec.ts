@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Role } from '../inicio-sesion/auth.service';
 import { UserContext, UserContextService } from '../services/user-context.service';
@@ -29,6 +29,7 @@ class SesionFalsa {
   falla: HttpErrorResponse | null = null;
   llamadas = 0;
   invalidadas = 0;
+  creada$ = new Subject<Paciente>();
 
   resolver() {
     this.llamadas += 1;
@@ -115,5 +116,26 @@ describe('PacientePortalComponent', () => {
     expect(sesion.invalidadas).toBe(1);
     expect(sesion.llamadas).toBe(2);
     expect(fixture.componentInstance.estado).toBe('sin-ficha');
+  });
+
+  it('si la ficha se crea con el vacío en pantalla, entra al portal', () => {
+    fixture.detectChanges();
+    expect(fixture.componentInstance.estado).toBe('sin-ficha');
+
+    fixture.ngZone!.run(() => {
+      sesion.creada$.next({
+        id: 9,
+        nombre: 'Juan',
+        apellido: 'Pérez',
+        email: 'medico@turnero.com',
+        telefono: '1',
+        dni: 1,
+        fechaNacimiento: ''
+      });
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.estado).toBe('portal');
+    expect(fixture.nativeElement.querySelector('.ct-empty')).toBeNull();
   });
 });

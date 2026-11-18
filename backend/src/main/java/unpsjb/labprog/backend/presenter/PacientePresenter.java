@@ -25,11 +25,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.business.service.AltaFichaPropia;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.dto.CompleteProfileDTO;
 import unpsjb.labprog.backend.dto.PacienteDTO;
+import unpsjb.labprog.backend.exception.DatosFichaIncompletosException;
+import unpsjb.labprog.backend.exception.FichaAjenaException;
 import unpsjb.labprog.backend.exception.PacienteSinFichaException;
 import unpsjb.labprog.backend.model.PreferenciaHoraria;
 import unpsjb.labprog.backend.model.User;
@@ -117,6 +120,43 @@ public class PacientePresenter {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {
             return Response.error(null, "Error al actualizar el paciente: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Crea la ficha de quien está autenticado. Un email o un id ajenos no se usan.
+     * Si ya existe una ficha con el email de la cuenta, se vincula.
+     * POST /api/pacientes/me
+     * La regla de solo lectura SaaS no se exceptúa: si el centro no puede escribir
+     * y saas.enforcement.enabled está prendido, el filtro corta antes de llegar acá.
+     */
+    @PostMapping("/me")
+    public ResponseEntity<Object> crearPropio(@RequestBody(required = false) PacienteDTO pacienteDTO) {
+        try {
+            AltaFichaPropia alta = service.crearPropio(pacienteDTO);
+            HttpStatus status = alta.vinculada() ? HttpStatus.OK : HttpStatus.CREATED;
+            String mensaje = alta.vinculada()
+                    ? "Se vinculó la ficha que ya existía con tu email"
+                    : "Creaste tu ficha de paciente";
+            return ResponseEntity.status(status).body(cuerpo(status, mensaje, alta.ficha()));
+        } catch (FichaAjenaException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(cuerpo(HttpStatus.CONFLICT, e.getMessage()));
+        } catch (DatosFichaIncompletosException e) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("campos", e.getCampos());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(cuerpo(HttpStatus.BAD_REQUEST, e.getMessage(), data));
+        } catch (IllegalStateException e) {
+            if (e.getMessage() != null && e.getMessage().contains("sesión")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(cuerpo(HttpStatus.UNAUTHORIZED, e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(cuerpo(HttpStatus.CONFLICT, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(cuerpo(HttpStatus.BAD_REQUEST, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(cuerpo(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo crear la ficha de paciente"));
         }
     }
 
@@ -434,10 +474,14 @@ public class PacientePresenter {
     }
 
     private Map<String, Object> cuerpo(HttpStatus status, String mensaje) {
+        return cuerpo(status, mensaje, null);
+    }
+
+    private Map<String, Object> cuerpo(HttpStatus status, String mensaje, Object data) {
         Map<String, Object> body = new HashMap<>();
         body.put("status_code", status.value());
         body.put("status_text", mensaje);
-        body.put("data", null);
+        body.put("data", data);
         return body;
     }
 

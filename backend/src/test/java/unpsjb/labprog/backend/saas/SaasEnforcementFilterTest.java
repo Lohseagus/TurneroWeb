@@ -67,6 +67,30 @@ class SaasEnforcementFilterTest {
     }
 
     @Test
+    void laFichaPropiaSigueLaMismaReglaDeSoloLectura() throws Exception {
+        SuscripcionAccessService access = mock(SuscripcionAccessService.class);
+        when(access.evaluarEscritura(1))
+                .thenReturn(ResultadoEscritura.bloquear(
+                        SuscripcionAccessService.mensajeSoloLectura(EstadoSuscripcion.SUSPENDIDA), false));
+        autenticar(Role.MEDICO);
+
+        MockHttpServletResponse bloqueada = new MockHttpServletResponse();
+        AtomicBoolean siguioBloqueada = new AtomicBoolean();
+        filtro(true, access).doFilter(pedido("POST", "/api/pacientes/me"), bloqueada, cadena(siguioBloqueada));
+
+        assertFalse(siguioBloqueada.get());
+        assertEquals(403, bloqueada.getStatus());
+        assertTrue(bloqueada.getContentAsString().contains("SUSCRIPCION_SOLO_LECTURA"));
+
+        MockHttpServletResponse libre = new MockHttpServletResponse();
+        AtomicBoolean siguioLibre = new AtomicBoolean();
+        filtro(false, access).doFilter(pedido("POST", "/api/pacientes/me"), libre, cadena(siguioLibre));
+
+        assertTrue(siguioLibre.get());
+        assertEquals(200, libre.getStatus());
+    }
+
+    @Test
     void elDefaultDelComponenteQuedaApagadoSiNoLoPrenden() {
         assertFalse(new SaasEnforcement(false).habilitado());
         assertTrue(new SaasEnforcement(true).habilitado());
@@ -84,7 +108,11 @@ class SaasEnforcementFilterTest {
     }
 
     private static MockHttpServletRequest pedido() {
-        return new MockHttpServletRequest("POST", "/api/probe");
+        return pedido("POST", "/api/probe");
+    }
+
+    private static MockHttpServletRequest pedido(String metodo, String path) {
+        return new MockHttpServletRequest(metodo, path);
     }
 
     private static void autenticar(Role role) {

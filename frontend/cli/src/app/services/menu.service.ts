@@ -1,16 +1,15 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
-import { catchError, map, startWith, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { UserContextService } from './user-context.service';
-import { PacienteSesionService } from '../pacientes/paciente-sesion.service';
-import { Role } from '../inicio-sesion/auth.service';
+import { VistaPanelService } from './vista-panel.service';
 import { 
   MenuSection, 
   getMenuSectionsForUser,
   filterItemsByPrimaryRole,
-  ocultarPanelPaciente,
   personalizeMenuItem
 } from '../config/menu.config';
+import { seccionesDeLaVista } from '../config/vista-panel';
 
 /**
  * Estado del menú lateral
@@ -52,37 +51,23 @@ export class MenuService {
 
   constructor(
     private userContextService: UserContextService,
-    private pacienteSesion: PacienteSesionService
+    private vistaPanel: VistaPanelService
   ) {
-    
-    // El staff hereda PACIENTE. El panel solo se suma si hay ficha propia.
-    // Mientras llega la respuesta, el panel queda oculto para no mostrarlo de más.
-    const tieneFicha$ = this.userContextService.userContext$.pipe(
-      switchMap(context => {
-        if (!context.isAuthenticated || context.primaryRole === Role.PACIENTE) {
-          return of(context.primaryRole === Role.PACIENTE);
-        }
-        return this.pacienteSesion.tieneFicha().pipe(
-          catchError(() => of(false)),
-          startWith(false)
-        );
-      })
-    );
-
+    // El staff no apila el portal: o ve su panel, o solo Inicio / Mis turnos / Mi salud / Mi cuenta.
     this.menuSections$ = combineLatest([
       this.userContextService.userContext$,
-      tieneFicha$
+      this.vistaPanel.vista$
     ]).pipe(
-      map(([context, tieneFicha]) => {
+      map(([context, vista]) => {
         if (!context.isAuthenticated) {
           return [];
         }
 
         // ADMINISTRADOR no ve Panel de Médico ni Gestión General: lo resuelve getMenuSectionsForUser.
-        return ocultarPanelPaciente(
+        return seccionesDeLaVista(
           getMenuSectionsForUser(context.allRoles, context.primaryRole),
           context.primaryRole,
-          tieneFicha
+          vista
         );
       })
     );

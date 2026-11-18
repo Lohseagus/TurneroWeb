@@ -1,5 +1,7 @@
 import { Role, ROLE_HIERARCHY } from '../inicio-sesion/auth.service';
-import { filterItemsByPrimaryRole, getMenuSectionsForUser, homeRouteForRole, ocultarPanelPaciente, personalizeMenuItem, portalPacienteHabilitado } from './menu.config';
+import { filterItemsByPrimaryRole, getMenuSectionsForUser, homeRouteForRole, personalizeMenuItem, portalPacienteHabilitado } from './menu.config';
+import { etiquetaCambioDeVista, puedeCambiarDeVista, seccionesDeLaVista } from './vista-panel';
+import { clearAllVistaPanel, readVistaPanel, vistaPanelKey, writeVistaPanel } from './vista-panel-storage';
 import {
   clearAllMenuSectionState,
   menuSectionStateKey,
@@ -72,49 +74,72 @@ describe('jerarquía de paneles del sidebar', () => {
   });
 });
 
-describe('panel de paciente según la ficha', () => {
+describe('cambio de vista del sidebar', () => {
   const rolesMedico = [Role.MEDICO, Role.PACIENTE];
 
-  it('oculta el panel del staff que no tiene ficha y lo deja si la tiene', () => {
+  it('el staff ve solo su panel y, al cambiar, solo los cuatro ítems del paciente', () => {
     const secciones = filterItemsByPrimaryRole(getMenuSectionsForUser(rolesMedico, Role.MEDICO), Role.MEDICO);
 
-    expect(portalPacienteHabilitado(Role.MEDICO, false)).toBe(false);
-    expect(ocultarPanelPaciente(secciones, Role.MEDICO, false).map(section => section.id)).toEqual(['medico']);
+    expect(puedeCambiarDeVista(Role.MEDICO)).toBe(true);
+    expect(etiquetaCambioDeVista(Role.MEDICO, 'staff')).toBe('Cambiar a paciente');
+    expect(seccionesDeLaVista(secciones, Role.MEDICO, 'staff').map(section => section.id)).toEqual(['medico']);
 
-    const conFicha = ocultarPanelPaciente(secciones, Role.MEDICO, true);
-    expect(conFicha.map(section => section.id)).toEqual(['medico', 'paciente']);
-    expect(defaultOpenSectionIds(conFicha, '/medico-dashboard')).toEqual(['medico']);
-    expect(conFicha.find(section => section.id === 'paciente')?.items.some(item => item.route === '/paciente-perfil')).toBe(false);
+    const paciente = seccionesDeLaVista(secciones, Role.MEDICO, 'paciente');
+    expect(etiquetaCambioDeVista(Role.MEDICO, 'paciente')).toBe('Cambiar a médico');
+    expect(paciente.map(section => section.id)).toEqual(['paciente']);
+    expect(paciente[0].items.map(item => item.label)).toEqual(['Inicio', 'Mis turnos', 'Mi salud', 'Mi cuenta']);
+    expect(defaultOpenSectionIds(paciente, '/paciente-dashboard')).toEqual(['paciente']);
   });
 
-  it('un PACIENTE primario ve su panel aunque la consulta de ficha diga que no', () => {
-    const secciones = filterItemsByPrimaryRole(getMenuSectionsForUser([Role.PACIENTE], Role.PACIENTE), Role.PACIENTE);
+  it('operador, administración y superadmin vuelven con el texto de su rol', () => {
+    expect(etiquetaCambioDeVista(Role.OPERADOR, 'paciente')).toBe('Cambiar a operador');
+    expect(etiquetaCambioDeVista(Role.ADMINISTRADOR, 'paciente')).toBe('Cambiar a administración');
+    expect(etiquetaCambioDeVista(Role.SUPERADMIN, 'paciente')).toBe('Cambiar a superadmin');
 
-    expect(portalPacienteHabilitado(Role.PACIENTE, false)).toBe(true);
-    expect(ocultarPanelPaciente(secciones, Role.PACIENTE, false).map(section => section.id)).toEqual(['paciente']);
-  });
-
-  it('operador, administrador y superadmin sin ficha no apilan el panel de paciente', () => {
-    expect(ocultarPanelPaciente(
+    expect(seccionesDeLaVista(
       filterItemsByPrimaryRole(getMenuSectionsForUser([Role.OPERADOR, Role.PACIENTE], Role.OPERADOR), Role.OPERADOR),
       Role.OPERADOR,
-      false
+      'staff'
     ).map(section => section.id)).toEqual(['operador']);
 
-    expect(ocultarPanelPaciente(
+    expect(seccionesDeLaVista(
       filterItemsByPrimaryRole(
         getMenuSectionsForUser([Role.ADMINISTRADOR, Role.OPERADOR, Role.MEDICO, Role.PACIENTE], Role.ADMINISTRADOR),
         Role.ADMINISTRADOR
       ),
       Role.ADMINISTRADOR,
-      false
+      'staff'
     ).map(section => section.id)).toEqual(['operador', 'administrador']);
 
-    expect(ocultarPanelPaciente(
+    expect(seccionesDeLaVista(
       filterItemsByPrimaryRole(getMenuSectionsForUser(ALL_ROLES, Role.SUPERADMIN), Role.SUPERADMIN),
       Role.SUPERADMIN,
-      false
+      'staff'
     ).some(section => section.id === 'paciente')).toBe(false);
+  });
+
+  it('un PACIENTE puro no ve el botón y conserva su panel aunque no haya ficha', () => {
+    const secciones = filterItemsByPrimaryRole(getMenuSectionsForUser([Role.PACIENTE], Role.PACIENTE), Role.PACIENTE);
+
+    expect(puedeCambiarDeVista(Role.PACIENTE)).toBe(false);
+    expect(portalPacienteHabilitado(Role.PACIENTE, false)).toBe(true);
+    expect(portalPacienteHabilitado(Role.MEDICO, false)).toBe(false);
+    expect(seccionesDeLaVista(secciones, Role.PACIENTE, 'staff').map(section => section.id)).toEqual(['paciente']);
+  });
+
+  it('recuerda la vista por usuario y la olvida al cerrar sesión', () => {
+    const storage = memoryStorage();
+    writeVistaPanel(storage, 'Medico@CheTurno.test', 'paciente');
+    writeVistaPanel(storage, 'operador@cheturno.test', 'staff');
+
+    expect(readVistaPanel(storage, 'medico@cheturno.test')).toBe('paciente');
+    expect(storage.getItem(vistaPanelKey('medico@cheturno.test'))).toBe('paciente');
+    expect(readVistaPanel(storage, 'operador@cheturno.test')).toBe('staff');
+
+    clearAllVistaPanel(storage);
+
+    expect(readVistaPanel(storage, 'medico@cheturno.test')).toBe('staff');
+    expect(storage.length).toBe(0);
   });
 });
 

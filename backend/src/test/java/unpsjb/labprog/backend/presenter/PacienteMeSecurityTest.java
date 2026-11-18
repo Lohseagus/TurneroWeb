@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -22,12 +24,15 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import unpsjb.labprog.backend.business.service.AltaFichaPropia;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.JwtAuthenticationFilter;
 import unpsjb.labprog.backend.config.JwtTokenProvider;
 import unpsjb.labprog.backend.config.SecurityConfig;
 import unpsjb.labprog.backend.dto.PacienteDTO;
+import unpsjb.labprog.backend.exception.DatosFichaIncompletosException;
+import unpsjb.labprog.backend.exception.FichaAjenaException;
 import unpsjb.labprog.backend.exception.PacienteSinFichaException;
 import unpsjb.labprog.backend.model.Role;
 import unpsjb.labprog.backend.model.User;
@@ -130,6 +135,46 @@ class PacienteMeSecurityTest {
         assertTrue(body.contains("Autenticación requerida"), body);
     }
 
+    @Test
+    void elPersonalCreaSuFichaEnElMismoEndpoint() throws Exception {
+        when(pacienteService.crearPropio(any())).thenReturn(new AltaFichaPropia(ficha(2558, "Ana"), false));
+
+        String body = postCuerpo(201, token(Role.OPERADOR, "ana@turnero.com"),
+                "{\"id\":999,\"email\":\"otro@turnero.com\",\"nombre\":\"Ana\"}");
+        assertTrue(body.contains("\"id\":2558"), body);
+        assertTrue(body.contains("Creaste tu ficha"), body);
+    }
+
+    @Test
+    void unPacienteTambienPuedePedirLaSuya() throws Exception {
+        when(pacienteService.crearPropio(any())).thenReturn(new AltaFichaPropia(ficha(4, "María"), true));
+        String body = postCuerpo(200, token(Role.PACIENTE, "maria@turnero.com"), "{}");
+        assertTrue(body.contains("\"id\":4"), body);
+        assertTrue(body.contains("vinculó"), body);
+    }
+
+    @Test
+    void crearLaFichaDeOtroResponde409() throws Exception {
+        when(pacienteService.crearPropio(any())).thenThrow(new FichaAjenaException());
+        String body = postCuerpo(409, token(Role.MEDICO, "ana@turnero.com"),
+                "{\"email\":\"paciente1.santamaria@turnero.com\"}");
+        assertTrue(body.contains("propia ficha"), body);
+    }
+
+    @Test
+    void faltanDatosResponde400ConLosCampos() throws Exception {
+        when(pacienteService.crearPropio(any())).thenThrow(new DatosFichaIncompletosException(List.of("telefono")));
+        String body = postCuerpo(400, token(Role.ADMINISTRADOR, "admin@turnero.com"), "{}");
+        assertTrue(body.contains("telefono"), body);
+        assertTrue(body.contains("Completá"), body);
+    }
+
+    @Test
+    void anonimoNoCreaSuFicha() throws Exception {
+        String body = postCuerpo(401, null, "{\"nombre\":\"Ana\"}");
+        assertTrue(body.contains("Autenticación requerida"), body);
+    }
+
     private PacienteDTO ficha(int id, String nombre) {
         PacienteDTO dto = new PacienteDTO();
         dto.setId(id);
@@ -152,6 +197,19 @@ class PacienteMeSecurityTest {
             expiration.setLong(jwtTokenProvider, 900_000L);
         }
         return jwtTokenProvider.generateAccessToken(user);
+    }
+
+    private String postCuerpo(int expected, String bearer, String json) throws Exception {
+        var request = post("/api/pacientes/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(json);
+        if (bearer != null) {
+            request.header("Authorization", "Bearer " + bearer);
+        }
+        var respuesta = mvc.perform(request).andReturn().getResponse();
+        assertEquals(expected, respuesta.getStatus(), respuesta.getContentAsString());
+        return respuesta.getContentAsString();
     }
 
     private String cuerpo(int expected, String bearer, String path) throws Exception {

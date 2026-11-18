@@ -1,12 +1,17 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { Subscription, Observable, combineLatest } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { MenuService } from '../services/menu.service';
+import { VistaPanelService } from '../services/vista-panel.service';
 import { UserContextService, UserContext } from '../services/user-context.service';
 import { AuthService } from '../inicio-sesion/auth.service';
 import { MenuItem, MenuSection } from '../config/menu.config';
+import { etiquetaCambioDeVista, puedeCambiarDeVista, VistaPanel } from '../config/vista-panel';
+import { PacienteSesionService } from '../pacientes/paciente-sesion.service';
+import { Paciente } from '../pacientes/paciente';
 import {
   readMenuSectionState,
   writeMenuSectionState
@@ -20,8 +25,8 @@ import { homeRouteForRole } from '../config/menu.config';
 /**
  * Componente del menú lateral (sidebar) dinámico basado en roles.
  *
- * Cada panel de rol es un grupo colapsable. Al entrar se abre solo el del rol
- * de mayor jerarquía, más el grupo de la ruta activa. Lo que el usuario abre
+ * Cada panel de rol es un grupo colapsable. El staff ve un solo panel por vez
+ * y cambia con el botón de arriba de Cerrar sesión. Lo que el usuario abre
  * o cierra a mano queda en sessionStorage hasta el logout o un nuevo login.
  */
 @Component({
@@ -51,12 +56,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   openSectionIds = new Set<string>();
   homeRoute = '/';
+  muestraCambioVista = false;
+  etiquetaCambioVista = 'Cambiar a paciente';
+  altaAbierta = false;
+  altaEnCurso = false;
+  altaError = '';
+  camposFaltantes: CampoFicha[] = [];
+  altaForm: Record<CampoFicha, string> = { nombre: '', apellido: '', dni: '', telefono: '' };
+  private vistaActual: VistaPanel = 'staff';
 
   constructor(
     public menuService: MenuService,
     private userContextService: UserContextService,
+    private vistaPanel: VistaPanelService,
+    private pacienteSesion: PacienteSesionService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private host: ElementRef<HTMLElement>
   ) {}
 
   ngOnInit(): void {
@@ -86,7 +102,18 @@ export class SidebarComponent implements OnInit, OnDestroy {
         }).unsubscribe();
       });
     
-    this.subscriptions.push(menuSub, routeSub);
+    const vistaSub = combineLatest([
+      this.userContextService.userContext$,
+      this.vistaPanel.vista$
+    ]).subscribe(([context, vista]) => {
+      const role = context?.isAuthenticated ? context.primaryRole : null;
+      this.muestraCambioVista = !!context?.isAuthenticated && puedeCambiarDeVista(role);
+      this.vistaActual = this.muestraCambioVista ? vista : 'staff';
+      this.etiquetaCambioVista = etiquetaCambioDeVista(role, this.vistaActual);
+      this.homeRoute = this.destinoInicio(context);
+    });
+
+    this.subscriptions.push(menuSub, routeSub, vistaSub);
   }
 
   ngOnDestroy(): void {
@@ -162,10 +189,85 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Cierra la sesión
+   * Cierra la sesión. AuthService borra la vista guardada.
    */
   logout(): void {
+    this.altaAbierta = false;
     this.authService.logout();
+  }
+
+  cambiarVista(): void {
+    if (!this.muestraCambioVista || this.altaEnCurso) {
+      return;
+    }
+    const context = this.userContextService.getCurrentContext();
+    if (this.vistaActual === 'paciente') {
+      this.cerrarAlta();
+      this.vistaPanel.activar('staff');
+      this.router.navigate([this.destinoInicio(context)]);
+      return;
+    }
+    this.pacienteSesion.tieneFicha().subscribe(tiene => {
+      if (tiene) {
+        this.irAPaciente();
+        return;
+      }
+      this.altaAbierta = true;
+      this.altaError = '';
+      this.camposFaltantes = [];
+      this.mostrarSidebar();
+    });
+  }
+
+  cancelarAlta(): void {
+    this.cerrarAlta();
+  }
+
+  confirmarAlta(): void {
+    if (this.altaEnCurso) {
+      return;
+    }
+    if (this.camposFaltantes.some(campo => !this.altaForm[campo].trim())) {
+      this.altaError = 'Completá los datos que faltan';
+      return;
+    }
+    if (this.camposFaltantes.includes('dni') && !/^\d+$/.test(this.altaForm.dni.trim())) {
+      this.altaError = 'El DNI tiene que ser numérico';
+      return;
+    }
+    this.altaEnCurso = true;
+    this.altaError = '';
+    this.pacienteSesion.crear(this.cuerpoAlta()).subscribe({
+      next: () => {
+        this.altaEnCurso = false;
+        this.cerrarAlta();
+        this.irAPaciente();
+      },
+      error: (error: unknown) => {
+        this.altaEnCurso = false;
+        const campos = camposDeError(error);
+        if (campos.length) {
+          this.camposFaltantes = campos;
+          this.altaError = '';
+          this.mostrarSidebar();
+          return;
+        }
+        this.altaError = mensajeDeError(error);
+      }
+    });
+  }
+
+  etiquetaCampo(campo: CampoFicha): string {
+    switch (campo) {
+      case 'nombre':
+        return 'Nombre';
+      case 'apellido':
+        return 'Apellido';
+      case 'dni':
+        return 'DNI';
+      case 'telefono':
+        return 'Teléfono';
+    }
   }
 
   /**
@@ -183,7 +285,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   private syncUserPreference(context: UserContext | null): void {
-    this.homeRoute = context?.isAuthenticated ? homeRouteForRole(context.primaryRole) : '/';
+    this.homeRoute = this.destinoInicio(context);
     const nextKey = context?.isAuthenticated ? this.userStorageKey(context) : null;
     if (!nextKey) {
       this.userKey = null;
@@ -267,6 +369,49 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  private destinoInicio(context: UserContext | null): string {
+    if (this.vistaActual === 'paciente' && context?.isAuthenticated && puedeCambiarDeVista(context.primaryRole)) {
+      return '/paciente-dashboard';
+    }
+    return context?.isAuthenticated ? homeRouteForRole(context.primaryRole) : '/';
+  }
+
+  private irAPaciente(): void {
+    this.vistaPanel.activar('paciente');
+    this.router.navigate(['/paciente-dashboard']);
+  }
+
+  private cerrarAlta(): void {
+    this.altaAbierta = false;
+    this.altaError = '';
+    this.camposFaltantes = [];
+    this.altaForm = { nombre: '', apellido: '', dni: '', telefono: '' };
+  }
+
+  private cuerpoAlta(): Partial<Paciente> {
+    const cuerpo: Partial<Paciente> = {};
+    for (const campo of this.camposFaltantes) {
+      const valor = this.altaForm[campo].trim();
+      if (campo === 'dni') {
+        cuerpo.dni = Number(valor);
+      } else if (campo === 'nombre') {
+        cuerpo.nombre = valor;
+      } else if (campo === 'apellido') {
+        cuerpo.apellido = valor;
+      } else {
+        cuerpo.telefono = valor;
+      }
+    }
+    return cuerpo;
+  }
+
+  private mostrarSidebar(): void {
+    if (this.host.nativeElement.classList.contains('sidebar-closed')) {
+      this.toggleSidebar.emit();
+    }
+    this.menuService.openSidebar();
+  }
+
   private sessionStorage(): Storage | null {
     try {
       return typeof sessionStorage === 'undefined' ? null : sessionStorage;
@@ -274,4 +419,34 @@ export class SidebarComponent implements OnInit, OnDestroy {
       return null;
     }
   }
+}
+
+type CampoFicha = 'nombre' | 'apellido' | 'dni' | 'telefono';
+
+const CAMPOS_FICHA: CampoFicha[] = ['nombre', 'apellido', 'dni', 'telefono'];
+
+function camposDeError(error: unknown): CampoFicha[] {
+  if (!(error instanceof HttpErrorResponse) || error.status !== 400) {
+    return [];
+  }
+  const campos = error.error?.data?.campos;
+  if (!Array.isArray(campos)) {
+    return [];
+  }
+  return campos.filter((campo): campo is CampoFicha =>
+    CAMPOS_FICHA.includes(campo as CampoFicha)
+  );
+}
+
+function mensajeDeError(error: unknown): string {
+  if (error instanceof HttpErrorResponse) {
+    const texto = error.error?.status_text;
+    if (typeof texto === 'string' && texto.trim()) {
+      return texto;
+    }
+    if (error.status === 0) {
+      return 'No hay conexión con el servidor. Reintentá.';
+    }
+  }
+  return 'No se pudo crear la ficha';
 }

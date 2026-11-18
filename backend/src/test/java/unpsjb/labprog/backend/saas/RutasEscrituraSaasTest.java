@@ -52,6 +52,7 @@ class RutasEscrituraSaasTest {
         assertFalse(RutasEscrituraSaas.estaPermitida("/api/turno/9/completar"));
         assertFalse(RutasEscrituraSaas.estaPermitida("/api/turno/9/reagendar"));
         assertFalse(RutasEscrituraSaas.estaPermitida("/api/pacientes"));
+        assertFalse(RutasEscrituraSaas.estaPermitida("/api/pacientes/me"));
         assertFalse(RutasEscrituraSaas.estaPermitida("/api/hce/consultas"));
         assertFalse(RutasEscrituraSaas.estaPermitida("/api/recetas"));
         assertFalse(RutasEscrituraSaas.estaPermitida("/api/ordenes-estudio"));
