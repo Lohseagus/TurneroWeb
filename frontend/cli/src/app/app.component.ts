@@ -7,7 +7,7 @@ import {
 } from "@angular/router";
 import { NgbDropdownModule } from "@ng-bootstrap/ng-bootstrap";
 
-import { filter, map, combineLatest } from "rxjs/operators";
+import { filter, map, combineLatest, timeout } from "rxjs/operators";
 import { NotificacionService } from "./services/notificacion.service";
 import { Subscription, Observable } from "rxjs";
 import { AuthService, Role } from "./inicio-sesion/auth.service";
@@ -17,6 +17,7 @@ import { MenuService } from "./services/menu.service";
 import { ToastComponent } from "./components/toast/toast.component";
 import { SuscripcionBannerComponent } from "./saas/suscripcion-banner.component";
 import { homeRouteForRole } from "./config/menu.config";
+import { PacienteSesionService } from "./pacientes/paciente-sesion.service";
 
 @Component({
   selector: "app-root",
@@ -50,7 +51,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private notificacionService: NotificacionService,
     private authService: AuthService,
     private userContextService: UserContextService,
-    public menuService: MenuService // Inyectado como public para uso en template
+    public menuService: MenuService, // Inyectado como public para uso en template
+    private pacienteSesion: PacienteSesionService
   ) {
     // Inicializar observables reactivos
     this.userContext$ = this.userContextService.userContext$;
@@ -142,15 +144,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private cargarNotificacionesPaciente() {
-    const pacienteId = this.getPacienteId();
-    if (pacienteId) {
-      this.notificacionService.actualizarContador(pacienteId);
-    }
-  }
-
-  private getPacienteId(): number | null {
-    const pacienteId = localStorage.getItem("pacienteId");
-    return pacienteId ? parseInt(pacienteId) : null;
+    this.pacienteSesion.id().pipe(timeout(15000)).subscribe({
+      next: (pacienteId) => {
+        if (pacienteId) {
+          this.notificacionService.actualizarContador(pacienteId);
+        }
+      },
+      error: () => {
+        // El badge no bloquea la pantalla. Si /me falla, queda en cero.
+      }
+    });
   }
 
   /**

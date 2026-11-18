@@ -103,8 +103,20 @@
     </div>
   }
 
+  @if (!loading && errorCarga) {
+    <div class="text-center py-xl">
+      <span class="material-symbols-outlined mb-md estado-vacio-icon">error</span>
+      <h4 class="mb-sm">No se pudieron cargar las notificaciones</h4>
+      <p class="text-muted">{{ errorCarga }}</p>
+      <button type="button" class="btn btn-primary" (click)="actualizarNotificaciones()">
+        <span class="material-symbols-outlined">refresh</span>
+        Reintentar
+      </button>
+    </div>
+  }
+
   <!-- Sin resultados -->
-  @if (!loading && notificacionesFiltradas.length === 0) {
+  @if (!loading && !errorCarga && notificacionesFiltradas.length === 0) {
     <div class="text-center py-xl">
       <span class="material-symbols-outlined mb-md estado-vacio-icon">
         notifications_off
@@ -117,7 +129,7 @@
   }
 
   <!-- Lista de Notificaciones -->
-  @if (!loading && notificacionesFiltradas.length > 0) {
+  @if (!loading && !errorCarga && notificacionesFiltradas.length > 0) {
     <div class="card">
       <div class="list-group">
         @for (notif of notificacionesFiltradas; track trackByNotificacion($index, notif)) {

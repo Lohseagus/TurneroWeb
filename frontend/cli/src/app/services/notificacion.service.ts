@@ -129,7 +129,11 @@ export class NotificacionService {
    * Actualizar el contador de notificaciones no leídas
    */
   actualizarContador(pacienteId: number): void {
-    this.contarNotificacionesNoLeidas(pacienteId).subscribe();
+    this.contarNotificacionesNoLeidas(pacienteId).subscribe({
+      error: () => {
+        // El badge se queda como estaba. Un error no tiene que romper la vista.
+      }
+    });
   }
 
   /**

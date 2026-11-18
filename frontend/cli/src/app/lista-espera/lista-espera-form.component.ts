@@ -13,6 +13,7 @@ import { ListaEsperaService } from './lista-espera.service';
 import { Router } from '@angular/router';
 import { ModalService } from '../modal/modal.service';
 import { ToastService } from '../services/toast.service';
+import { PacienteSesionService } from '../pacientes/paciente-sesion.service';
 
 
 @Component({
@@ -84,7 +85,8 @@ export class ListaEsperaFormComponent implements OnInit {
     private listaEsperaService: ListaEsperaService, // Inyectar para manejar create/update directamente en modo paciente
     private router: Router, // Inyectar para redirigir después de guardar
     private modalService: ModalService, // Inyectar si el form se usa en modal (opcional, si aplica)
-    private toastService: ToastService // Servicio de notificaciones toast
+    private toastService: ToastService, // Servicio de notificaciones toast
+    private sesion: PacienteSesionService
   ) {
     this.form = this.fb.group({
       pacienteId: ['', Validators.required],
@@ -97,9 +99,9 @@ export class ListaEsperaFormComponent implements OnInit {
     });
   }
 
+  private pacienteIdResuelto: number | null = null;
+
   ngOnInit() {
-
-
     // 🚀 Recargar la página solo una vez para evitar bug de contexto no cargado
     if (!sessionStorage.getItem('reloaded-lista-espera')) {
       sessionStorage.setItem('reloaded-lista-espera', 'true');
@@ -107,46 +109,40 @@ export class ListaEsperaFormComponent implements OnInit {
       return;
     }
 
-    // 🔧 FIX: Determinar modo paciente basado en el contexto de uso.
-    // 
-    // Si operatorContext === true → El formulario se abrió desde el panel de operador
-    //   → Campo de búsqueda habilitado (puede buscar pacientes)
-    // 
-    // Si operatorContext === false (default) → Panel de paciente
-    //   → Campo bloqueado si tiene paciente asociado
-    const pacienteId = this.authService.getCurrentPatientId();
-    
-    // Modo paciente SI:
-    // 1. NO está en contexto de operador Y
-    // 2. El usuario tiene paciente asociado (pacienteId existe) Y
-    // 3. NO se está editando una solicitud existente (data === null/undefined)
+    this.aplicarModo(this.authService.getCurrentPatientId());
+    // El storage del login no existe cuando un médico entra a la vista de paciente.
+    if (!this.operatorContext && !this.data && this.pacienteIdResuelto == null) {
+      this.sesion.id().subscribe({
+        next: (id) => {
+          if (id) {
+            this.aplicarModo(id);
+          }
+        },
+        error: () => {
+          // El formulario sigue usable para el personal que busca un paciente.
+        }
+      });
+    }
+  }
+
+  private aplicarModo(pacienteId: number | null): void {
+    this.pacienteIdResuelto = pacienteId;
     this.isPatientMode = (
-      !this.operatorContext &&        // NO es contexto de operador
-      pacienteId !== null &&           // Tiene paciente asociado
-      !this.data                       // NO está editando
+      !this.operatorContext &&
+      pacienteId !== null &&
+      !this.data
     );
-
-
-    // ✅ Inicializar el formulario correctamente aquí, según el modo
     this.initForm();
-
-    // Cargar datos necesarios (pacientes, especialidades, etc.)
     this.cargarDatos();
-    // Si se pasó data por input, poblar el formulario
     if (this.data) {
-      // convertir fechas si vienen como strings
       const patch = { ...this.data } as any;
       if (patch.fechaDeseadaDesde) patch.fechaDeseadaDesde = this.normalizeDate(patch.fechaDeseadaDesde);
       if (patch.fechaDeseadaHasta) patch.fechaDeseadaHasta = this.normalizeDate(patch.fechaDeseadaHasta);
-
-      // Mapear medicoPreferidoId a medicoId para el formulario
       if (patch.medicoPreferidoId !== undefined) {
         patch.medicoId = patch.medicoPreferidoId;
       }
-
       this.form.patchValue(patch);
     } else if (this.isPatientMode) {
-      // En modo paciente nuevo: precargar el paciente actual
       this.precargarPacienteActual();
     }
   }
@@ -217,17 +213,17 @@ export class ListaEsperaFormComponent implements OnInit {
 
   /** Precarga el paciente actual en el formulario en modo paciente */
   private precargarPacienteActual() {
-    const currentUserId = this.authService.getCurrentPatientId();
+    const currentUserId = this.pacienteIdResuelto;
     if (!currentUserId) {
       console.error('No se pudo obtener el ID del paciente actual');
       return;
     }
 
-    this.pacienteService.get(+currentUserId).subscribe({
+    this.pacienteService.mio().subscribe({
       next: (res: DataPackage<any>) => {
         const pacienteActual = res.data;
         if (!pacienteActual) {
-          console.error('No se encontró el paciente con el ID:', currentUserId);
+          console.error('No se encontró la ficha del paciente');
           return;
         }
 
@@ -235,9 +231,8 @@ export class ListaEsperaFormComponent implements OnInit {
         this.form.patchValue({
           pacienteId: pacienteActual.id
         });
-        // Ya no hace falta llamar a disable() porque lo controla initForm()
       },
-      error: (err) => console.error('Error cargando paciente actual por ID:', err)
+      error: (err) => console.error('Error cargando la ficha del paciente:', err)
     });
   }
 

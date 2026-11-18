@@ -79,8 +79,17 @@
             </div>
           }
 
+          @if (!isLoading && errorCarga) {
+            <div class="no-turnos-content">
+              <span class="material-symbols-outlined empty-icon">error</span>
+              <h4>No se pudo cargar el historial</h4>
+              <p>{{ errorCarga }}</p>
+              <button type="button" class="btn btn-primary" (click)="reintentar()">Reintentar</button>
+            </div>
+          }
+
           <!-- Empty State -->
-          @if (!isLoading && turnos.length === 0) {
+          @if (!isLoading && !errorCarga && turnos.length === 0) {
             <div class="no-turnos-content">
               <span class="material-symbols-outlined empty-icon">event_busy</span>
               <h4>No hay turnos para mostrar</h4>
@@ -89,7 +98,7 @@
           }
 
           <!-- Turnos List -->
-          @if (!isLoading && turnos.length > 0) {
+          @if (!isLoading && !errorCarga && turnos.length > 0) {
             <div class="turnos-grid">
               @for (turno of turnos; track turno) {
                 <div class="turno-card">
@@ -149,7 +158,7 @@
           }
 
           <!-- Paginación -->
-          @if (!isLoading && totalPages > 1) {
+          @if (!isLoading && !errorCarga && totalPages > 1) {
             <div class="paginacion-controles mt-lg">
               <button class="btn btn-secondary btn-paginacion" [disabled]="currentPage === 0"
                 (click)="cambiarPagina(currentPage - 1)" type="button">

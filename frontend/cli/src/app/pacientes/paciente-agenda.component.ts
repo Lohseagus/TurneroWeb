@@ -3,7 +3,7 @@ import { CommonModule, registerLocaleData } from "@angular/common";
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from "@angular/forms";
 import { Router, ActivatedRoute, RouterModule } from "@angular/router";
 import { HttpClient } from "@angular/common/http";
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, timeout } from 'rxjs/operators';
 
 // Services
 import { TurnoService } from "../turnos/turno.service";
@@ -17,6 +17,8 @@ import { UserContextService } from "../services/user-context.service";
 import { ToastService } from "../services/toast.service";
 import { ModalService } from "../modal/modal.service";
 import { SaasService } from "../saas/saas.service";
+import { PacienteSesionService } from "./paciente-sesion.service";
+import { mensajeDeCarga } from "./mensaje-carga";
 import { CentrosMapaModalComponent } from "../modal/centros-mapa-modal.component";
 import { Turno } from "../turnos/turno";
 import { ListaEsperaFormComponent } from "../lista-espera/lista-espera-form.component";
@@ -67,6 +69,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
 
   // Estados de carga
   isLoadingTurnos = false;
+  errorCarga = "";
   isLoadingEspecialidades = false;
   isLoadingStaffMedicos = false;
   isLoadingCentros = false;
@@ -139,7 +142,8 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     private userContextService: UserContextService,
     private toastService: ToastService,
     private modalService: ModalService,
-    private saasService: SaasService
+    private saasService: SaasService,
+    private sesion: PacienteSesionService
   ) { }
 
   // 🎯 GETTERS para mantener compatibilidad con el template durante la migración
@@ -282,6 +286,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
    */
   private cargarTurnos(): void {
     this.isLoadingTurnos = true;
+    this.errorCarga = "";
     const filtros = this.filtrosForm.value;
 
     console.log('� Cargando turnos con filtros:', filtros);
@@ -320,14 +325,14 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
 
     console.log('🔐 Cargando turnos privados con params:', params);
 
-    this.agendaService.obtenerTodosLosEventos(this.semanas, params).subscribe({
+    this.agendaService.obtenerTodosLosEventos(this.semanas, params).pipe(timeout(20000)).subscribe({
       next: (eventos: any[]) => {
         console.log('✅ Turnos privados recibidos:', eventos.length);
         this.procesarEventosRecibidos(eventos);
       },
       error: (err: any) => {
         console.error('❌ Error cargando turnos privados:', err);
-        this.manejarErrorCargaTurnos();
+        this.manejarErrorCargaTurnos(err);
       }
     });
   }
@@ -354,7 +359,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
       params.centroId, 
       params.especialidad, 
       params.staffMedicoId
-    ).subscribe({
+    ).pipe(timeout(20000)).subscribe({
       next: (response: any) => {
         console.log('✅ Turnos públicos recibidos:', response);
         const eventos = response.data || response;
@@ -377,7 +382,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('❌ Error cargando turnos públicos:', err);
-        this.manejarErrorCargaTurnos();
+        this.manejarErrorCargaTurnos(err);
       }
     });
   }
@@ -403,12 +408,13 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
   /**
    * Manejar errores al cargar turnos
    */
-  private manejarErrorCargaTurnos(): void {
+  private manejarErrorCargaTurnos(error?: unknown): void {
     this.isLoadingTurnos = false;
     this.showCalendar = false;
     this.slotsOriginales = [];
     this.slotsDisponibles = [];
     this.turnosDisponibles = [];
+    this.errorCarga = mensajeDeCarga(error, "No se pudieron cargar los turnos disponibles. Reintentá.");
     this.cdr.detectChanges();
   }
 
@@ -516,7 +522,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     this.isLoadingTurnos = true;
 
     // Llamar al servicio sin filtros para obtener todos los eventos
-    this.agendaService.obtenerTodosLosEventos(this.semanas).subscribe({
+    this.agendaService.obtenerTodosLosEventos(this.semanas).pipe(timeout(20000)).subscribe({
       next: (eventosBackend) => {
         // Guardar TODOS los slots sin filtrar
         this.slotsOriginales = this.mapEventosToSlots(eventosBackend);
@@ -540,6 +546,8 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
         this.slotsOriginales = [];
         this.slotsDisponibles = [];
         this.turnosDisponibles = [];
+        this.errorCarga = mensajeDeCarga(err, "No se pudieron cargar los turnos disponibles. Reintentá.");
+        this.cdr.detectChanges();
       },
     });
   }
@@ -552,7 +560,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     this.isLoadingTurnos = true;
 
     // Llamar al servicio público con el centroId si está disponible
-    this.agendaService.getAgendaPublica(this.centroAtencionSeleccionado || undefined).subscribe({
+    this.agendaService.getAgendaPublica(this.centroAtencionSeleccionado || undefined).pipe(timeout(20000)).subscribe({
       next: (response: any) => {
         console.log('📅 Agenda pública recibida:', response);
         
@@ -579,6 +587,8 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
         this.slotsOriginales = [];
         this.slotsDisponibles = [];
         this.turnosDisponibles = [];
+        this.errorCarga = mensajeDeCarga(err, "No se pudieron cargar los turnos disponibles. Reintentá.");
+        this.cdr.detectChanges();
       },
     });
   }
@@ -1152,14 +1162,28 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
   confirmarReservaTurno() {
     if (!this.selectedTurnoDisponible || !this.slotSeleccionado) return;
 
-    const pacienteId = localStorage.getItem("pacienteId");
-    if (!pacienteId) {
-      this.modalService.alert(
-        'Error de Autenticación',
-        "No se encontró la información del paciente. Por favor, inicie sesión nuevamente."
-      );
-      return;
-    }
+    this.sesion.id().subscribe({
+      next: (pacienteId) => {
+        if (!pacienteId) {
+          this.modalService.alert(
+            'Error de Autenticación',
+            "No encontramos tu ficha de paciente. Si recién la creaste, recargá la página."
+          );
+          return;
+        }
+        this.reservarTurno(pacienteId);
+      },
+      error: (error) => {
+        this.modalService.alert(
+          'Error de Autenticación',
+          mensajeDeCarga(error, "No se pudo leer tu ficha de paciente. Reintentá.")
+        );
+      }
+    });
+  }
+
+  private reservarTurno(pacienteId: number) {
+    if (!this.slotSeleccionado) return;
 
     this.isBooking = true;
 
@@ -1168,7 +1192,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
       fecha: this.slotSeleccionado.fecha,
       horaInicio: this.slotSeleccionado.horaInicio,
       horaFin: this.slotSeleccionado.horaFin,
-      pacienteId: parseInt(pacienteId),
+      pacienteId: pacienteId,
       staffMedicoId: this.slotSeleccionado.staffMedicoId,
       staffMedicoNombre: this.slotSeleccionado.staffMedicoNombre,
       staffMedicoApellido: this.slotSeleccionado.staffMedicoApellido,

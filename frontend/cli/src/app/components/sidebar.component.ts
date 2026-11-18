@@ -207,6 +207,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.router.navigate([this.destinoInicio(context)]);
       return;
     }
+    // La caché puede ser el 404 de antes de crear la ficha. Al entrar a la vista se vuelve a pedir.
+    this.pacienteSesion.invalidar();
     this.pacienteSesion.tieneFicha().subscribe(tiene => {
       if (tiene) {
         this.irAPaciente();

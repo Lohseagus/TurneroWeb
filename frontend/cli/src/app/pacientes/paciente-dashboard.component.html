@@ -91,8 +91,20 @@
       </div>
     }
 
+    @if (!isLoadingTurnos && errorCarga) {
+      <div class="empty-state card">
+        <span class="material-symbols-outlined empty-icon">error</span>
+        <h3>No se pudieron cargar los turnos</h3>
+        <p>{{ errorCarga }}</p>
+        <button class="btn btn-primary" type="button" (click)="reintentar()">
+          <span class="material-symbols-outlined">refresh</span>
+          Reintentar
+        </button>
+      </div>
+    }
+
     <!-- Lista de Turnos -->
-    @if (!isLoadingTurnos && turnosVisibles.length > 0) {
+    @if (!isLoadingTurnos && !errorCarga && turnosVisibles.length > 0) {
       <div class="turnos-grid">
         @for (turno of turnosVisibles; track trackByTurno($index, turno)) {
           <article class="turno" [class.is-cancelado]="turno.status === 'cancelado'">
@@ -165,7 +177,7 @@
     }
 
     <!-- Estado vacío -->
-    @if (!isLoadingTurnos && turnosVisibles.length === 0) {
+    @if (!isLoadingTurnos && !errorCarga && turnosVisibles.length === 0) {
       <div class="ct-empty">
         <span class="material-symbols-outlined ct-empty__icon">event_busy</span>
         <h3 class="ct-empty__title">No tenés turnos próximos</h3>

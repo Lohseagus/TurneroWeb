@@ -220,6 +220,23 @@ describe('PacienteDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Luis Pérez');
   });
 
+  it('un error al abrir el perfil propio deja un mensaje y apaga el spinner', async () => {
+    ruta.path = 'perfil';
+    await montar();
+
+    pacientes.propia.error(new HttpErrorResponse({
+      status: 500,
+      error: { status_text: 'No se pudo leer la ficha.' }
+    }));
+    fixture.detectChanges();
+
+    const texto = fixture.nativeElement.textContent as string;
+    expect(fixture.componentInstance.cargando).toBe(false);
+    expect(texto).toContain('No se pudo cargar la ficha');
+    expect(texto).toContain('No se pudo leer la ficha.');
+    expect(texto).not.toContain('Cargando ficha del paciente');
+  });
+
   it('en /pacientes/:id espera la ficha y no abre el alta', async () => {
     ruta.path = 'pacientes/:id';
     ruta.id = '4';
