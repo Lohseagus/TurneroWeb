@@ -1970,3 +1970,119 @@
     border-radius: var(--border-radius-sm);
   }
 }
+
+/* =========================
+   FILTROS: más livianos y en columnas
+   ========================= */
+
+.filtros-header {
+  padding: var(--space-lg) var(--space-lg) 0;
+  color: var(--text-main);
+  background: transparent;
+}
+
+.filtros-header h3 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-main);
+}
+
+.filtros-header .filtros-icon {
+  color: var(--color-accent);
+}
+
+.filtros-body {
+  padding: var(--space-lg);
+}
+
+.buscador-container {
+  padding: 0;
+  border: 0;
+}
+
+.filtros-body form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.filtros-body form > * {
+  grid-column: 1 / -1;
+}
+
+.filtros-body form > .filtro-step:not(.filtro-preferencias) {
+  grid-column: auto;
+}
+
+.filtro-step {
+  padding: var(--space-md);
+  margin-bottom: 0;
+  background: var(--color-background);
+  border-width: 1px;
+}
+
+.step-header {
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.step-header h4 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 900px) {
+  .filtros-body form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Encabezado de resultados: sin banda de color */
+.turnos-header {
+  padding: var(--space-lg);
+  color: var(--text-main);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.turnos-header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-main);
+  text-shadow: none;
+}
+
+.turnos-header h3 .material-symbols-outlined {
+  color: var(--color-accent);
+}
+
+.turnos-header .info-text {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+.filtros-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+@media (max-width: 640px) {
+  .filtros-actions .btn {
+    width: 100%;
+    margin: 0;
+  }
+}

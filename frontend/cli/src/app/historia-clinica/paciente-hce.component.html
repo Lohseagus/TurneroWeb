@@ -13,20 +13,46 @@
   </div>
   <div class="hce-error" *ngIf="error">{{ error }}</div>
   <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
-  <p *ngIf="cargando">Cargando…</p>
+  <div class="ct-loading" *ngIf="cargando">
+    <span class="material-symbols-outlined ct-spin" aria-hidden="true">sync</span>
+    <p>Cargando…</p>
+  </div>
 
   <section class="hce-panel" *ngIf="perfil && !sinFicha && !cargando && muestra('perfil')">
-    <h2>Perfil</h2>
-    <p>Grupo sanguíneo: {{ perfil.grupoSanguineo || 'Desconocido' }}</p>
-    <p>Antecedentes personales: {{ perfil.antecedentesPersonales || '—' }}</p>
-    <p>Antecedentes familiares: {{ perfil.antecedentesFamiliares || '—' }}</p>
-    <p>Antecedentes quirúrgicos: {{ perfil.antecedentesQuirurgicos || '—' }}</p>
-    <p>Hábitos: {{ perfil.habitos || '—' }}</p>
-    <p *ngIf="perfil.alergias?.length">Alergias: {{ alergiasTexto }}</p>
-    <p *ngIf="perfil.medicaciones?.length">Medicación: {{ medicacionTexto }}</p>
-    <label>
+    <h2>Perfil clínico</h2>
+    <div class="ct-grid hce-perfil">
+      <div class="ct-field">
+        <span class="ct-field__label">Grupo sanguíneo</span>
+        <span class="ct-field__value">{{ perfil.grupoSanguineo || 'Desconocido' }}</span>
+      </div>
+      <div class="ct-field">
+        <span class="ct-field__label">Antecedentes personales</span>
+        <span class="ct-field__value">{{ perfil.antecedentesPersonales || '—' }}</span>
+      </div>
+      <div class="ct-field">
+        <span class="ct-field__label">Antecedentes familiares</span>
+        <span class="ct-field__value">{{ perfil.antecedentesFamiliares || '—' }}</span>
+      </div>
+      <div class="ct-field">
+        <span class="ct-field__label">Antecedentes quirúrgicos</span>
+        <span class="ct-field__value">{{ perfil.antecedentesQuirurgicos || '—' }}</span>
+      </div>
+      <div class="ct-field">
+        <span class="ct-field__label">Hábitos</span>
+        <span class="ct-field__value">{{ perfil.habitos || '—' }}</span>
+      </div>
+      <div class="ct-field" *ngIf="perfil.alergias?.length">
+        <span class="ct-field__label">Alergias</span>
+        <span class="ct-field__value">{{ alergiasTexto }}</span>
+      </div>
+      <div class="ct-field" *ngIf="perfil.medicaciones?.length">
+        <span class="ct-field__label">Medicación</span>
+        <span class="ct-field__value">{{ medicacionTexto }}</span>
+      </div>
+    </div>
+    <label class="hce-consentimiento">
       <input type="checkbox" [(ngModel)]="perfil.comparteEntreCentros" (change)="guardarConsentimiento()" />
-      Autorizo a que médicos de otros centros lean mi historia
+      <span>Autorizo a que médicos de otros centros lean mi historia</span>
     </label>
   </section>
 
