@@ -1,6 +1,7 @@
 package unpsjb.labprog.backend.business.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,8 @@ public interface ListaEsperaRepository extends JpaRepository<ListaEspera, Long> 
          * Busca todas las solicitudes por estado
          */
         List<ListaEspera> findByEstado(String estado);
+
+        long countByEstadoAndCentroAtencion_IdIn(String estado, Collection<Integer> centroIds);
 
         /**
          * Busca todas las solicitudes urgentes (ALTA o URGENTE)

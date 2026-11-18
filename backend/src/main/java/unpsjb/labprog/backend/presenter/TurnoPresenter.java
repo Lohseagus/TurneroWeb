@@ -29,6 +29,7 @@ import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ExportService;
 import unpsjb.labprog.backend.business.service.RecordatorioService;
 import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
+import unpsjb.labprog.backend.business.service.OperadorResumenService;
 import unpsjb.labprog.backend.business.service.TurnoService;
 import unpsjb.labprog.backend.config.JwtTokenProvider;
 import unpsjb.labprog.backend.dto.CancelacionDataDTO;
@@ -44,6 +45,9 @@ public class TurnoPresenter {
 
     @Autowired
     private TurnoService service;
+
+    @Autowired
+    private OperadorResumenService operadorResumenService;
 
     @Autowired
     private ExportService exportService;
@@ -86,6 +90,16 @@ public class TurnoPresenter {
     public ResponseEntity<Object> getAll() {
         List<TurnoDTO> turnos = service.findAll();
         return Response.ok(turnos, "Turnos recuperados correctamente");
+    }
+
+    /**
+     * KPIs del centro de la cuenta. El alcance lo define CentroAccessGuard
+     * (el operador no puede pedir el resumen de otro centro).
+     * Queda bajo /api/turno/**, con los mismos roles que el resto de turnos.
+     */
+    @GetMapping("/resumen-operador")
+    public ResponseEntity<Object> resumenOperador() {
+        return Response.ok(operadorResumenService.resumen(), "Resumen del centro");
     }
 
     @GetMapping("/{id}")

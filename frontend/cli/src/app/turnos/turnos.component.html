@@ -9,17 +9,19 @@
       </div>
     </div>
     <div class="d-flex gap-sm">
+      @if (puedeVerAuditoria) {
+        <button
+          class="btn btn-primary"
+          (click)="router.navigate(['/turnos/audit-dashboard'])"
+          title="Dashboard de Auditoría"
+          >
+          <span class="material-symbols-outlined">analytics</span>
+          Dashboard
+        </button>
+      }
       <button
         class="btn btn-primary"
-        (click)="router.navigate(['/turnos/audit-dashboard'])"
-        title="Dashboard de Auditoría"
-        >
-        <span class="material-symbols-outlined">analytics</span>
-        Dashboard
-      </button>
-      <button
-        class="btn btn-primary"
-        (click)="router.navigate(['/turnos/advanced-search'])"
+        (click)="irABusquedaAvanzada()"
         title="Búsqueda Avanzada"
         >
         <span class="material-symbols-outlined">search</span>

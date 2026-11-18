@@ -31,6 +31,7 @@ import { CentroAtencionConsultoriosTabComponent } from './tabs/consultorios/cent
 import { CentroAtencionEspecialidadesTabComponent } from './tabs/especialidades/centro-atencion-especialidades-tab.component';
 import { CentroAtencionStaffMedicoTabComponent } from './tabs/staff-medico/centro-atencion-staff-medico-tab.component';
 import { CentroAtencionOrganigramaTabComponent } from './tabs/organigrama/centro-atencion-organigrama-tab.component';
+import { CentroResumenTabComponent } from './tabs/resumen/centro-resumen-tab.component';
 
 @Component({
   selector: 'app-centro-atencion-detail-refactored',
@@ -43,7 +44,8 @@ import { CentroAtencionOrganigramaTabComponent } from './tabs/organigrama/centro
     CentroAtencionConsultoriosTabComponent,
     CentroAtencionEspecialidadesTabComponent,
     CentroAtencionStaffMedicoTabComponent,
-    CentroAtencionOrganigramaTabComponent
+    CentroAtencionOrganigramaTabComponent,
+    CentroResumenTabComponent
 ],
   templateUrl: './centroAtencion-detail-refactored.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -134,6 +136,17 @@ export class CentroAtencionDetailRefactoredComponent implements AfterViewInit, O
     // SUPERADMIN puede editar cualquier centro
     // ADMIN solo puede VER (no editar) su centro
     this.canEdit = this.isSuperAdmin;
+    if (this.userContextService.isOperador) {
+      this.activeTab = 'resumen';
+      if (!this.route.snapshot.queryParamMap.get('activeTab')) {
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { activeTab: 'resumen' },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+      }
+    }
 
     this.get();
     this.cargarEsquemasParaSemana();
@@ -141,7 +154,10 @@ export class CentroAtencionDetailRefactoredComponent implements AfterViewInit, O
     // Manejar activación de tab desde query params (para navegación de retorno)
     this.route.queryParams.subscribe(params => {
       const activeTabParam = params['activeTab'];
-      if (activeTabParam && ['detalle', 'consultorios', 'especialidades', 'staff'].includes(activeTabParam)) {
+      const permitidas = this.userContextService.isOperador
+        ? ['resumen', 'detalle', 'consultorios', 'especialidades', 'staff', 'organigrama']
+        : ['detalle', 'consultorios', 'especialidades', 'staff', 'organigrama'];
+      if (activeTabParam && permitidas.includes(activeTabParam)) {
         this.activeTab = activeTabParam;
       }
 
@@ -156,6 +172,27 @@ export class CentroAtencionDetailRefactoredComponent implements AfterViewInit, O
       if (medicoIdParam && activeTabParam === 'staff') {
         this.handleMedicoCreado(+medicoIdParam);
       }
+    });
+  }
+
+  get esOperador(): boolean {
+    return this.userContextService.isOperador;
+  }
+
+  /**
+   * El operador deja la solapa en la URL. El administrador solo cambia la solapa
+   * en memoria, igual que antes.
+   */
+  seleccionarTab(tab: string): void {
+    this.activeTab = tab;
+    if (!this.userContextService.isOperador) {
+      return;
+    }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { activeTab: tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
     });
   }
 

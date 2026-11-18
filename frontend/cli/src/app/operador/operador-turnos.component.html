@@ -1,0 +1,78 @@
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_available</span>
+      <div>
+        <h1 class="ct-page-header__title">Turnos</h1>
+        <p class="ct-page-header__subtitle">Confirmá, reservá y revisá los turnos del centro</p>
+      </div>
+    </div>
+    <div class="ct-page-header__actions">
+      <a class="btn btn-primary" routerLink="/turnos/new">
+        <span class="material-symbols-outlined">event_busy</span>
+        Turno extra (sobreturno)
+      </a>
+    </div>
+  </header>
+
+  <div class="portal-tabs" role="tablist" aria-label="Turnos">
+    <a class="portal-tab" role="tab" routerLink="/operador/turnos" [queryParams]="{ tab: 'por-confirmar' }"
+      [class.active]="solapa === 'por-confirmar'" [attr.aria-selected]="solapa === 'por-confirmar'">
+      <span class="material-symbols-outlined">schedule</span>
+      Por confirmar
+    </a>
+    <a class="portal-tab" role="tab" routerLink="/operador/turnos" [queryParams]="{ tab: 'agenda' }"
+      [class.active]="solapa === 'agenda'" [attr.aria-selected]="solapa === 'agenda'">
+      <span class="material-symbols-outlined">event_note</span>
+      Agenda
+    </a>
+    <a class="portal-tab" role="tab" routerLink="/operador/turnos" [queryParams]="{ tab: 'todos' }"
+      [class.active]="solapa === 'todos'" [attr.aria-selected]="solapa === 'todos'">
+      <span class="material-symbols-outlined">list</span>
+      Todos
+    </a>
+    <a class="portal-tab" role="tab" routerLink="/operador/turnos" [queryParams]="{ tab: 'lista-espera' }"
+      [class.active]="solapa === 'lista-espera'" [attr.aria-selected]="solapa === 'lista-espera'">
+      <span class="material-symbols-outlined">pending_actions</span>
+      Lista de espera
+    </a>
+  </div>
+
+  @if (solapa === 'por-confirmar') {
+    <app-operador-dashboard [soloTurnos]="true" />
+  } @else if (solapa === 'agenda') {
+    <app-admin-agenda />
+  } @else if (solapa === 'todos') {
+    @if (vista === 'avanzada') {
+      <div class="solapa-herramientas">
+        <a class="btn btn-secondary" routerLink="/operador/turnos" [queryParams]="{ tab: 'todos' }">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver a la tabla
+        </a>
+      </div>
+      <app-turno-advanced-search />
+    } @else {
+      <app-turnos />
+    }
+  } @else {
+    <div class="solapa-herramientas">
+      @if (vista === 'estadisticas') {
+        <a class="btn btn-secondary" routerLink="/operador/turnos" [queryParams]="{ tab: 'lista-espera' }">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver a la lista
+        </a>
+      } @else {
+        <a class="btn btn-secondary" routerLink="/operador/turnos"
+          [queryParams]="{ tab: 'lista-espera', vista: 'estadisticas' }">
+          <span class="material-symbols-outlined">trending_up</span>
+          Estadísticas
+        </a>
+      }
+    </div>
+    @if (vista === 'estadisticas') {
+      <app-lista-espera-estadisticas />
+    } @else {
+      <app-lista-espera />
+    }
+  }
+</div>

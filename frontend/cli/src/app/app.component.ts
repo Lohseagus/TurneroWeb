@@ -248,7 +248,7 @@ export class AppComponent implements OnInit, OnDestroy {
       case 'MEDICO':
         return '/medico-dashboard';
       case 'OPERADOR':
-        return '/operador-dashboard';
+        return '/mi-centro';
       case 'ADMINISTRADOR':
         return '/admin-dashboard';
       default:

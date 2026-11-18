@@ -4,6 +4,8 @@ import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { TurnoService } from "./turno.service";
+import { UserContextService } from "../services/user-context.service";
+import { Role } from "../inicio-sesion/auth.service";
 import { Turno, TurnoFilter, AuditLog } from "./turno";
 import { DataPackage } from "../data.package";
 import { AgendaService } from "../agenda/agenda.service";
@@ -141,7 +143,8 @@ export class TurnoAdvancedSearchComponent implements OnInit {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private agendaService: AgendaService,
-    private modalService: NgbModal
+    private modalService: NgbModal,
+    private userContext: UserContextService
   ) {}
 
   // === MÉTODOS UTILITARIOS ===
@@ -191,8 +194,12 @@ export class TurnoAdvancedSearchComponent implements OnInit {
 
   ngOnInit(): void {
     this.search();
-    this.loadAuditStatistics();
-    this.loadRecentLogs();
+    // /api/audit/** es solo de administrador. El operador recibía 403
+    // (ok: false) y la consola mostraba estos dos errores. Los datos no se muestran en la pantalla.
+    if (this.userContext.hasRole(Role.ADMINISTRADOR)) {
+      this.loadAuditStatistics();
+      this.loadRecentLogs();
+    }
     this.initializeReportFilters();
   }
 
@@ -518,11 +525,14 @@ export class TurnoAdvancedSearchComponent implements OnInit {
       next: (response: DataPackage<any[]>) => {
         const isSuccessful =
           response.status === 1 || (response as any).status_code === 200;
-        if (isSuccessful) {
+        if (isSuccessful && Array.isArray(response.data)) {
           this.auditStatistics = this.processStatistics(response.data);
         }
       },
       error: (error) => {
+        if (error?.status === 403) {
+          return;
+        }
         console.error("Error al cargar estadísticas:", error);
       },
     });
@@ -539,6 +549,9 @@ export class TurnoAdvancedSearchComponent implements OnInit {
         }
       },
       error: (error) => {
+        if (error?.status === 403) {
+          return;
+        }
         console.error("Error al cargar logs recientes:", error);
       },
     });
@@ -547,6 +560,9 @@ export class TurnoAdvancedSearchComponent implements OnInit {
   /** Procesa las estadísticas para mostrar */
   private processStatistics(data: any[]): any {
     const stats: any = {};
+    if (!Array.isArray(data)) {
+      return stats;
+    }
     data.forEach((item) => {
       if (Array.isArray(item) && item.length >= 2) {
         stats[item[0]] = item[1];

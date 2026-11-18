@@ -575,6 +575,10 @@ export class OperadorAgendaComponent implements OnInit, OnDestroy {
   // ==================== MÉTODOS DE NAVEGACIÓN ====================
 
   goBack() {
+    if (this.userContextService.isOperador) {
+      this.router.navigate(["/operador/turnos"], { queryParams: { tab: "por-confirmar" } });
+      return;
+    }
     this.router.navigate(["/operador-dashboard"]);
   }
 

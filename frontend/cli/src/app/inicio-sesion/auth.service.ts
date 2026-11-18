@@ -696,7 +696,7 @@ export class AuthService {
         this.router.navigate(["/paciente-dashboard"]);
         break;
       case "OPERADOR":
-        this.router.navigate(["/operador-dashboard"]);
+        this.router.navigate(["/mi-centro"]);
         break;
       case "MEDICO":
         this.router.navigate(["/medico-dashboard"]);

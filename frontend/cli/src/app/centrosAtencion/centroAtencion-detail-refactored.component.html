@@ -23,35 +23,47 @@
     </div>
     <!-- Tab Navigation -->
     <ul class="nav nav-tabs modern-tabs mb-4" id="centroTabs" role="tablist">
+      @if (esOperador) {
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'resumen'" (click)="seleccionarTab('resumen')" type="button">
+            <i class="fa fa-chart-pie me-2"></i> Resumen
+          </button>
+        </li>
+      }
       <li class="nav-item" role="presentation">
-        <button class="nav-link" [class.active]="activeTab === 'detalle'" (click)="activeTab = 'detalle'" type="button">
+        <button class="nav-link" [class.active]="activeTab === 'detalle'" (click)="seleccionarTab('detalle')" type="button">
           <i class="icon-centro-atencion me-2"></i> Detalle / Editar
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" [class.active]="activeTab === 'especialidades'" (click)="activeTab = 'especialidades'"
+        <button class="nav-link" [class.active]="activeTab === 'especialidades'" (click)="seleccionarTab('especialidades')"
           type="button">
           <i class="icon-especialidades me-2"></i> Especialidades
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" [class.active]="activeTab === 'consultorios'" (click)="activeTab = 'consultorios'"
+        <button class="nav-link" [class.active]="activeTab === 'consultorios'" (click)="seleccionarTab('consultorios')"
           type="button">
           <i class="icon-consultorios me-2"></i> Consultorios
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" [class.active]="activeTab === 'staff'" (click)="activeTab = 'staff'" type="button">
+        <button class="nav-link" [class.active]="activeTab === 'staff'" (click)="seleccionarTab('staff')" type="button">
           <i class="icon-medicos me-2"></i> Staff Médico
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" [class.active]="activeTab === 'organigrama'" (click)="activeTab = 'organigrama'" type="button">
+        <button class="nav-link" [class.active]="activeTab === 'organigrama'" (click)="seleccionarTab('organigrama')" type="button">
           <i class="fa fa-sitemap me-2"></i> Organigrama
         </button>
       </li>
     </ul>
     <div class="tab-content">
+      @if (esOperador) {
+        <div class="tab-pane fade" [class.show]="activeTab === 'resumen'" [class.active]="activeTab === 'resumen'">
+          <app-centro-resumen-tab />
+        </div>
+      }
       <!-- TAB DETALLE/EDITAR -->
       <div class="tab-pane fade" [class.show]="activeTab === 'detalle'" [class.active]="activeTab === 'detalle'">
         <app-centro-atencion-detalle-tab

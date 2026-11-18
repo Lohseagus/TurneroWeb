@@ -398,7 +398,7 @@ export function homeRouteForRole(role: string | null | undefined): string {
     case Role.ADMINISTRADOR:
       return '/admin-dashboard';
     case Role.OPERADOR:
-      return '/operador-dashboard';
+      return '/mi-centro';
     case Role.MEDICO:
       return '/medico-dashboard';
     case Role.PACIENTE:
@@ -452,14 +452,60 @@ export function getMenuSectionsForRoles(userRoles: Role[]): MenuSection[] {
 }
 
 /**
+ * Menú del operador cuando ese es su rol primario.
+ * Administrador y superadmin siguen viendo los ítems históricos del Panel de Operador.
+ */
+const ITEMS_OPERADOR_PRIMARIO: MenuItem[] = [
+  {
+    label: 'Mi Centro',
+    route: '/mi-centro',
+    icon: 'local_hospital',
+    description: 'Resumen y gestión de mi centro',
+    requiresPrimaryRole: true
+  },
+  {
+    label: 'Turnos',
+    route: '/operador/turnos',
+    icon: 'event',
+    description: 'Por confirmar, agenda, todos y lista de espera',
+    activeOn: ['/turnos', '/lista-espera', '/lista-espera-estadisticas']
+  },
+  {
+    label: 'Pacientes',
+    route: '/pacientes',
+    icon: 'group',
+    description: 'Gestionar pacientes'
+  },
+  {
+    label: 'Ausencias y feriados',
+    route: '/agenda/dias-excepcionales',
+    icon: 'event_busy',
+    description: 'Feriados, mantenimiento y ausencias de profesionales'
+  },
+  {
+    label: 'Mi Perfil',
+    route: '/operador-perfil',
+    icon: 'account_circle',
+    description: 'Configuración personal',
+    requiresPrimaryRole: true
+  }
+];
+
+/**
  * Secciones que el usuario ve. El rol primario ADMINISTRADOR no muestra el Panel de Médico.
+ * El rol primario OPERADOR usa el menú unificado; el resto conserva el panel de operador de siempre.
  */
 export function getMenuSectionsForUser(userRoles: Role[], primaryRole?: string | null): MenuSection[] {
-  const sections = getMenuSectionsForRoles(userRoles);
+  let sections = getMenuSectionsForRoles(userRoles);
   if (primaryRole?.toUpperCase() === Role.ADMINISTRADOR) {
-    return sections.filter(section => section.id !== 'medico');
+    sections = sections.filter(section => section.id !== 'medico');
   }
-  return sections;
+  if (primaryRole?.toUpperCase() !== Role.OPERADOR) {
+    return sections;
+  }
+  return sections.map(section => section.id === 'operador'
+    ? { ...section, items: ITEMS_OPERADOR_PRIMARIO.map(item => ({ ...item })) }
+    : section);
 }
 
 /** Texto del vacío cuando la cuenta no tiene fila Paciente. */

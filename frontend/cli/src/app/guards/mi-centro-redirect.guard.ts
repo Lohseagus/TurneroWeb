@@ -28,7 +28,10 @@ export class MiCentroRedirectGuard implements CanActivate {
     }
 
     console.log(`✅ Redirigiendo a centro de atención ID: ${centroAtencionId}`);
-    this.router.navigate(['/centrosAtencion', centroAtencionId]);
+    const extras = this.userContextService.isOperador
+      ? { queryParams: { activeTab: 'resumen' } }
+      : {};
+    this.router.navigate(['/centrosAtencion', centroAtencionId], extras);
     return false; // Retornar false para cancelar la navegación original y usar la redirección
   }
 }

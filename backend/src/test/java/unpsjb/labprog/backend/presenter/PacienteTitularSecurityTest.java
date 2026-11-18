@@ -44,6 +44,7 @@ import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.business.service.RecordatorioService;
 import unpsjb.labprog.backend.business.service.TurnoAutomationService;
+import unpsjb.labprog.backend.business.service.OperadorResumenService;
 import unpsjb.labprog.backend.business.service.TurnoService;
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.JwtAuthenticationFilter;
@@ -101,6 +102,8 @@ class PacienteTitularSecurityTest {
     private NotificacionService notificacionService;
     @MockitoBean
     private TurnoService turnoService;
+    @MockitoBean
+    private OperadorResumenService operadorResumenService;
     @MockitoBean
     private ExportService exportService;
     @MockitoBean
