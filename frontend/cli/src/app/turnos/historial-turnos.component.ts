@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -14,6 +14,7 @@ import { HistorialTurnoDetalleComponent } from './historial-turno-detalle.compon
   styleUrls: ['./historial-turnos.component.css']
 })
 export class HistorialTurnosComponent implements OnInit {
+  @Input() embebido = false;
   turnos: HistorialTurnoDTO[] = [];
   isLoading = false;
 

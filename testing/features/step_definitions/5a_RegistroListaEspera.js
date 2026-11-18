@@ -195,6 +195,7 @@ When(
       const body = JSON.parse(res.getBody("utf8"));
       lastStatus = body.status_code || res.statusCode;
       this.listaEsperaBody = body;
+      this.listaEsperaId = body.data && body.data.id;
 
       if (lastStatus >= 400) {
         console.log("⚠️ Error Backend (Body):", body);
@@ -221,4 +222,41 @@ Then("el sistema confirma su ingreso a la lista exitosamente", function () {
     `Falló ingreso a lista. Status: ${lastStatus} ${texto}`
   );
   console.log("🎉 Flujo completo verificado correctamente.");
+});
+
+When("consulta sus solicitudes de lista de espera", function () {
+  const res = request("GET", "/api/pacientes/me/lista-espera", {
+    headers: { Authorization: `Bearer ${authToken}` },
+  });
+  const body = JSON.parse(res.getBody("utf8"));
+  this.listaEsperaMias = body;
+  this.listaEsperaMiasStatus = body.status_code || res.statusCode;
+});
+
+Then("ve su solicitud de {string}", function (especialidadNombre) {
+  assert.strictEqual(this.listaEsperaMiasStatus, 200);
+  const solicitudes = (this.listaEsperaMias && this.listaEsperaMias.data) || [];
+  const propia = solicitudes.find(
+    (solicitud) =>
+      solicitud.especialidadNombre &&
+      solicitud.especialidadNombre.toLowerCase() === especialidadNombre.toLowerCase() &&
+      solicitud.estado === "PENDIENTE"
+  );
+  assert.ok(propia, `No apareció la solicitud de ${especialidadNombre}`);
+  this.listaEsperaId = propia.id;
+});
+
+When("cancela esa solicitud de lista de espera", function () {
+  assert.ok(this.listaEsperaId, "No hay id de solicitud para cancelar");
+  const res = request("DELETE", `/api/pacientes/me/lista-espera/${this.listaEsperaId}`, {
+    headers: { Authorization: `Bearer ${authToken}` },
+  });
+  const body = JSON.parse(res.getBody("utf8"));
+  this.listaEsperaCancelacion = body;
+  this.listaEsperaCancelacionStatus = body.status_code || res.statusCode;
+});
+
+Then("la solicitud de lista de espera queda cancelada", function () {
+  assert.strictEqual(this.listaEsperaCancelacionStatus, 200);
+  assert.strictEqual(this.listaEsperaCancelacion.data.estado, "CANCELADA");
 });

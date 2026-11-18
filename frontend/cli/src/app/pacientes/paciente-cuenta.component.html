@@ -1,0 +1,19 @@
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">account_circle</span>
+      <div>
+        <h1 class="ct-page-header__title">Mi cuenta</h1>
+        <p class="ct-page-header__subtitle">Perfil, horarios preferidos y notificaciones</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="portal-tabs" aria-label="Secciones de mi cuenta">
+    <a class="portal-tab" routerLink="perfil" routerLinkActive="active">Perfil</a>
+    <a class="portal-tab" routerLink="horarios" routerLinkActive="active">Horarios preferidos</a>
+    <a class="portal-tab" routerLink="notificaciones" routerLinkActive="active">Notificaciones</a>
+  </nav>
+
+  <router-outlet />
+</div>

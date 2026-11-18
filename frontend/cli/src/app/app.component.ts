@@ -124,7 +124,7 @@ export class AppComponent implements OnInit, OnDestroy {
         (count) => {
           this.patientNotificationCount = count;
           // Actualizar el badge en el menú lateral
-          this.menuService.updateBadge('/paciente-notificaciones', count);
+          this.menuService.updateBadge('/paciente-cuenta', count);
         }
       );
     this.subscriptions.push(notificationSub);
@@ -305,7 +305,7 @@ export class AppComponent implements OnInit, OnDestroy {
     
     switch(role) {
       case 'PACIENTE':
-        this.router.navigate(['/paciente-perfil']);
+        this.router.navigate(['/paciente-cuenta/perfil']);
         break;
       case 'MEDICO':
         this.router.navigate(['/medico-perfil']);

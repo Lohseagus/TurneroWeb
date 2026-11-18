@@ -1,6 +1,7 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
 import { HceService } from './hce.service';
@@ -10,11 +11,13 @@ import { MENSAJE_SIN_FICHA_PACIENTE } from '../config/menu.config';
 @Component({
   selector: 'app-paciente-hce',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './paciente-hce.component.html',
-  styleUrl: './hce.css'
+  styleUrls: ['./hce.css', '../pacientes/paciente-portal.css']
 })
 export class PacienteHceComponent implements OnInit {
+  /** completa conserva la pantalla anterior. Mi salud pide una sección. */
+  @Input() seccion: 'completa' | 'timeline' | 'perfil' | 'pdf' = 'completa';
   perfil: PerfilClinico | null = null;
   timeline: TimelineItem[] = [];
   adjuntos: AdjuntoHce[] = [];
@@ -26,7 +29,11 @@ export class PacienteHceComponent implements OnInit {
   error = '';
   aviso = '';
 
-  constructor(private hce: HceService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private hce: HceService,
+    private cdr: ChangeDetectorRef,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -57,12 +64,64 @@ export class PacienteHceComponent implements OnInit {
     });
   }
 
+  muestra(parte: 'timeline' | 'perfil'): boolean {
+    return this.seccion === 'completa' || this.seccion === parte;
+  }
+
+  etiqueta(tipo: string): string {
+    const etiquetas: Record<string, string> = {
+      CONSULTA: 'Consulta',
+      ENMIENDA: 'Enmienda',
+      ADJUNTO: 'Adjunto',
+      RECETA: 'Receta',
+      ORDEN: 'Orden'
+    };
+    return etiquetas[tipo] || tipo;
+  }
+
+  /**
+   * Cada consulta junta su evolución (el resumen) con la receta u orden
+   * que salió de esa misma consulta.
+   */
+  get eventosTimeline(): { principal: TimelineItem; extra: TimelineItem[] }[] {
+    const items = this.timeline || [];
+    const consultas = items.filter(item => item.tipo === 'CONSULTA');
+    if (!consultas.length) {
+      return items.map(item => ({ principal: item, extra: [] }));
+    }
+    const ids = new Set(consultas.map(item => item.consultaId));
+    const grupos = consultas.map(consulta => ({
+      principal: consulta,
+      extra: items.filter(item => item.tipo !== 'CONSULTA' && item.consultaId === consulta.consultaId)
+    }));
+    const sueltos = items
+      .filter(item => item.tipo !== 'CONSULTA' && !ids.has(item.consultaId))
+      .map(item => ({ principal: item, extra: [] as TimelineItem[] }));
+    return [...grupos, ...sueltos];
+  }
+
   get alergiasTexto(): string {
     return (this.perfil?.alergias || []).filter(item => item.activa).map(item => item.sustancia).join(', ') || '—';
   }
 
   get medicacionTexto(): string {
     return (this.perfil?.medicaciones || []).filter(item => item.activa).map(item => item.farmaco).join(', ') || '—';
+  }
+
+  irAlTurno(item: TimelineItem, event: Event): void {
+    event.stopPropagation();
+    if (!item.consultaId) return;
+    this.hce.obtenerConsulta(item.consultaId).subscribe({
+      next: res => {
+        const turnoId = res.data?.turnoId;
+        if (!turnoId) {
+          this.aviso = 'Esta consulta no tiene un turno vinculado';
+          return;
+        }
+        this.router.navigate(['/paciente-turnos'], { queryParams: { tab: 'pasados', turno: turnoId } });
+      },
+      error: err => this.fallo(err)
+    });
   }
 
   ver(item: TimelineItem): void {

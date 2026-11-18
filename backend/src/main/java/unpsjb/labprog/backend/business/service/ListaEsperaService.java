@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import unpsjb.labprog.backend.business.repository.*;
 import unpsjb.labprog.backend.dto.ListaEsperaDTO;
 import unpsjb.labprog.backend.dto.TurnoDTO;
+import unpsjb.labprog.backend.exception.PacienteSinFichaException;
 import unpsjb.labprog.backend.model.*;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
@@ -43,6 +44,9 @@ public class ListaEsperaService {
 
     @Autowired
     private PacienteRepository pacienteRepository;
+
+    @Autowired
+    private PacienteAccessGuard pacienteAccess;
 
     @Autowired
     private EspecialidadRepository especialidadRepository;
@@ -205,6 +209,37 @@ public class ListaEsperaService {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + id);
         }
         repository.deleteById(id);
+    }
+
+    /**
+     * Solicitudes de la ficha de la cuenta autenticada. No pasa por el listado
+     * del centro: el paciente no puede ver la cola de otras personas.
+     */
+    public List<ListaEsperaDTO> deLaCuenta() {
+        Integer pacienteId = pacienteAccess.fichaPropia()
+                .orElseThrow(PacienteSinFichaException::new);
+        Paciente paciente = pacienteRepository.findById(pacienteId)
+                .orElseThrow(PacienteSinFichaException::new);
+        return repository.findByPaciente(paciente).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * El titular cancela una solicitud propia que sigue pendiente.
+     * No la borra: queda CANCELADA para no ofrecer ese lugar de nuevo.
+     */
+    @Transactional
+    public ListaEsperaDTO cancelarPropia(Long id) {
+        ListaEspera solicitud = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se encontró la solicitud"));
+        Integer pacienteId = solicitud.getPaciente() == null ? null : solicitud.getPaciente().getId();
+        pacienteAccess.exigirTitular(pacienteId);
+        if (!"PENDIENTE".equals(solicitud.getEstado())) {
+            throw new IllegalStateException("Solo se puede cancelar una solicitud pendiente");
+        }
+        solicitud.setEstado("CANCELADA");
+        return convertToDTO(repository.save(solicitud));
     }
 
     /**

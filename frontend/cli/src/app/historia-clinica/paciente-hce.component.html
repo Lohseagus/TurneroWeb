@@ -1,5 +1,5 @@
-<div class="hce-page">
-  <div class="hce-header">
+<div class="hce-page" [class.hce-page--embebida]="seccion !== 'completa'">
+  <div class="hce-header" *ngIf="seccion === 'completa'">
     <div>
       <h1>Mi historia clínica</h1>
       <p *ngIf="perfil">{{ perfil.nombre }} {{ perfil.apellido }} · DNI {{ perfil.dni || '—' }}</p>
@@ -15,7 +15,7 @@
   <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
   <p *ngIf="cargando">Cargando…</p>
 
-  <section class="hce-panel" *ngIf="perfil && !sinFicha && !cargando">
+  <section class="hce-panel" *ngIf="perfil && !sinFicha && !cargando && muestra('perfil')">
     <h2>Perfil</h2>
     <p>Grupo sanguíneo: {{ perfil.grupoSanguineo || 'Desconocido' }}</p>
     <p>Antecedentes personales: {{ perfil.antecedentesPersonales || '—' }}</p>
@@ -30,7 +30,7 @@
     </label>
   </section>
 
-  <section class="hce-panel" *ngIf="!sinFicha && !cargando && !error">
+  <section class="hce-panel" *ngIf="!sinFicha && !cargando && !error && muestra('timeline')">
     <div class="hce-filters">
       <h2>Línea de tiempo</h2>
       <select [(ngModel)]="filtrosTipo" (ngModelChange)="filtrar()">
@@ -43,16 +43,29 @@
       </select>
     </div>
     <div class="hce-timeline">
-      <button type="button" class="hce-card hce-event" *ngFor="let item of timeline" (click)="ver(item)">
-        <span>{{ item.fecha | date:'dd/MM/yyyy' }}</span>
-        <span>{{ item.resumen || item.tipo }}<div class="hce-muted">{{ item.centroNombre }} · {{ item.medicoNombre }}</div></span>
-        <span class="hce-badge">{{ item.tipo }}</span>
+      <button type="button" class="hce-card hce-event" *ngFor="let evento of eventosTimeline" (click)="ver(evento.principal)">
+        <span>{{ evento.principal.fecha | date:'dd/MM/yyyy' }}</span>
+        <span>
+          {{ evento.principal.resumen || etiqueta(evento.principal.tipo) }}
+          <div class="hce-muted">{{ evento.principal.centroNombre }} · {{ evento.principal.medicoNombre }}</div>
+          <div class="hce-relacionados" *ngIf="evento.extra.length">
+            <span class="hce-muted" *ngFor="let extra of evento.extra">{{ etiqueta(extra.tipo) }}: {{ extra.resumen || 'sin detalle' }}</span>
+          </div>
+          <span class="hce-turno-link" *ngIf="evento.principal.tipo === 'CONSULTA'" (click)="irAlTurno(evento.principal, $event)">Ver el turno</span>
+        </span>
+        <span class="hce-badge">{{ etiqueta(evento.principal.tipo) }}</span>
       </button>
       <p *ngIf="!timeline.length" class="hce-muted">Todavía no hay evoluciones registradas.</p>
     </div>
   </section>
 
-  <section class="hce-panel" *ngIf="consulta">
+  <section class="hce-panel" *ngIf="seccion === 'pdf' && !sinFicha && !cargando">
+    <h2>Descargar PDF</h2>
+    <p>Resumen de tu historia clínica para llevar o compartir.</p>
+    <button type="button" class="btn btn-primary" (click)="pdfResumen()">Descargar resumen PDF</button>
+  </section>
+
+  <section class="hce-panel" *ngIf="consulta && !sinFicha && muestra('timeline')">
     <div class="hce-header">
       <h2>Consulta</h2>
       <button type="button" class="btn btn-secondary" (click)="pdfConsulta()">PDF de esta consulta</button>
@@ -63,13 +76,14 @@
     <p><strong>Indicaciones:</strong> {{ consulta.indicaciones || '—' }}</p>
     <p><strong>Plan:</strong> {{ consulta.plan || '—' }}</p>
     <p *ngFor="let diagnostico of consulta.diagnosticos">{{ diagnostico.code }} {{ diagnostico.display }}</p>
+    <a *ngIf="consulta.turnoId" class="btn btn-secondary hce-turno-link" [routerLink]="['/paciente-turnos']" [queryParams]="{ tab: 'pasados', turno: consulta.turnoId }">Ver el turno</a>
     <article *ngFor="let enmienda of consulta.enmiendas">
       <p class="hce-muted">Enmienda {{ enmienda.creadaEn | date:'dd/MM/yyyy HH:mm' }} — {{ enmienda.motivo }}</p>
       <p>{{ enmienda.texto }}</p>
     </article>
   </section>
 
-  <section class="hce-panel" *ngIf="adjuntos.length">
+  <section class="hce-panel" *ngIf="adjuntos.length && !sinFicha && muestra('timeline')">
     <h2>Estudios</h2>
     <div class="hce-list-item" *ngFor="let adjunto of adjuntos">
       <span>{{ adjunto.nombreOriginal }}</span>

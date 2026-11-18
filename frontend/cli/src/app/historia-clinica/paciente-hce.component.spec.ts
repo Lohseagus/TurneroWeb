@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -33,7 +34,7 @@ describe('PacienteHceComponent', () => {
     hce = new HceFalso();
     await TestBed.configureTestingModule({
       imports: [PacienteHceComponent],
-      providers: [{ provide: HceService, useValue: hce }]
+      providers: [provideRouter([]), { provide: HceService, useValue: hce }]
     }).compileComponents();
     fixture = TestBed.createComponent(PacienteHceComponent);
   });

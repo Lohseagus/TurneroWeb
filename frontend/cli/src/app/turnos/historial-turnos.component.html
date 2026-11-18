@@ -1,5 +1,5 @@
-<div class="ct-page">
-  <!-- HEADER -->
+<div [class.ct-page]="!embebido">
+  @if (!embebido) {
     <header class="ct-page-header">
     <div class="ct-page-header__main">
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">history</span>
@@ -8,7 +8,8 @@
         <p class="ct-page-header__subtitle">Consulta tu historial de atenciones médicas</p>
       </div>
     </div>
-  </header>
+    </header>
+  }
 
   <!-- FILTROS -->
   <div class="row mb-lg">

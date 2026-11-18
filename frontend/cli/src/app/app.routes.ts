@@ -30,6 +30,10 @@ import { ObraSocialComponent } from "./obraSocial/obraSocial.component";
 import { ObraSocialDetailComponent } from "./obraSocial/obraSocial-detail.component";
 import { PacienteDashboardComponent } from "./pacientes/paciente-dashboard.component";
 import { PacientePortalComponent } from "./pacientes/paciente-portal.component";
+import { PacienteTurnosComponent } from "./pacientes/paciente-turnos.component";
+import { PacienteSaludComponent } from "./pacientes/paciente-salud.component";
+import { PacienteCuentaComponent } from "./pacientes/paciente-cuenta.component";
+import { ListaEsperaEntradaComponent, redirigirPortal } from "./pacientes/paciente-portal";
 import { PacienteAgendaComponent } from "./pacientes/paciente-agenda.component";
 import { PacienteReagendarTurnoComponent } from "./pacientes/paciente-reagendar-turno.component";
 import { PacienteNotificacionesComponent } from "./pacientes/paciente-notificaciones.component";
@@ -70,15 +74,11 @@ import { AdminListComponent } from "./admin-management/admin-list.component";
 import { AdminDetailComponent } from "./admin-management/admin-detail.component";
 import { DashboardGestionComponent } from "./dashboard-gestion/dashboard-gestion.component";
 import { ReporteAtencionComponent } from "./reporte-atencion/reporte-atencion.component";
-import { HistorialTurnosComponent } from "./turnos/historial-turnos.component";
 import { ListaEsperaComponent } from "./lista-espera/lista-espera.component";
 import { PreferenciasPacienteComponent } from "./pacientes/preferencias-paciente/preferencias-paciente.component";
-import { ListaEsperaFormComponent } from "./lista-espera/lista-espera-form.component";
 import { ListaEsperaEstadisticasComponent } from "./lista-espera/lista-espera-estadisticas.component";
 import { MedicoHceComponent } from "./historia-clinica/medico-hce.component";
 import { MedicoConsultaComponent } from "./historia-clinica/medico-consulta.component";
-import { PacienteHceComponent } from "./historia-clinica/paciente-hce.component";
-import { PacienteRecetasComponent } from "./historia-clinica/paciente-recetas.component";
 import { VerificarPrescripcionComponent } from "./historia-clinica/verificar-prescripcion.component";
 import { PlanesPublicosComponent } from "./saas/planes-publicos.component";
 import { RegistroSaasComponent } from "./saas/registro-saas.component";
@@ -171,19 +171,40 @@ export const routes: Routes = [
   { path: "reset-password", component: RecuperarContrasenaComponent },
   { path: "activate-account", component: ActivacionCuentaComponent },
 
-  // Patient Routes. La agenda queda pública para el banner anónimo.
+  // La agenda queda pública para el banner anónimo. El resto pasa por el portal:
+  // el staff sin ficha ve el vacío y no se monta la pantalla. Las rutas viejas
+  // redirigen a la sección nueva, que también está detrás de ese vacío.
   portalPaciente("paciente-dashboard", PacienteDashboardComponent),
+  portalPaciente("paciente-turnos", PacienteTurnosComponent),
+  portalPaciente("paciente-salud", PacienteSaludComponent),
+  {
+    path: "paciente-cuenta",
+    component: PacientePortalComponent,
+    canActivate: [PatientGuard],
+    children: [
+      {
+        path: "",
+        component: PacienteCuentaComponent,
+        children: [
+          { path: "", pathMatch: "full", redirectTo: "perfil" },
+          { path: "perfil", component: PacienteDetailComponent, data: { embebido: true } },
+          { path: "horarios", component: PreferenciasPacienteComponent, data: { embebido: true } },
+          { path: "notificaciones", component: PacienteNotificacionesComponent, data: { embebido: true } },
+        ],
+      },
+    ],
+  },
   {
     path: "paciente-agenda",
     component: PacienteAgendaComponent,
   },
-  portalPaciente("paciente-notificaciones", PacienteNotificacionesComponent),
-  portalPaciente("paciente-historial", HistorialTurnosComponent),
-  portalPaciente("paciente-historia-clinica", PacienteHceComponent),
-  portalPaciente("paciente-recetas", PacienteRecetasComponent),
-  portalPaciente("paciente-preferencias", PreferenciasPacienteComponent),
+  { path: "paciente-notificaciones", redirectTo: redirigirPortal("paciente-notificaciones") },
+  { path: "paciente-historial", redirectTo: redirigirPortal("paciente-historial") },
+  { path: "paciente-historia-clinica", redirectTo: redirigirPortal("paciente-historia-clinica") },
+  { path: "paciente-recetas", redirectTo: redirigirPortal("paciente-recetas") },
+  { path: "paciente-preferencias", redirectTo: redirigirPortal("paciente-preferencias") },
+  { path: "paciente-perfil", redirectTo: redirigirPortal("paciente-perfil") },
   portalPaciente("paciente/encuesta/:id", EncuestaComponent),
-  portalPaciente("paciente-perfil", PacienteDetailComponent),
   portalPaciente("paciente-reagendar-turno/:id", PacienteReagendarTurnoComponent),
 
   // Medico Routes
@@ -235,7 +256,7 @@ export const routes: Routes = [
     component: ListaEsperaComponent,
     canActivate: [AdminOperadorGuard],
   },
-  portalPaciente("lista-espera-form", ListaEsperaFormComponent),
+  portalPaciente("lista-espera-form", ListaEsperaEntradaComponent),
   {
     path: "lista-espera-estadisticas",
     component: ListaEsperaEstadisticasComponent,

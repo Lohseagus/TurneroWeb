@@ -18,6 +18,7 @@ import { ToastService } from "../services/toast.service";
 import { ModalService } from "../modal/modal.service";
 import { CentrosMapaModalComponent } from "../modal/centros-mapa-modal.component";
 import { Turno } from "../turnos/turno";
+import { ListaEsperaFormComponent } from "../lista-espera/lista-espera-form.component";
 import { Especialidad } from "../especialidades/especialidad";
 import { StaffMedico } from "../staffMedicos/staffMedico";
 import { CentroAtencion } from "../centrosAtencion/centroAtencion";
@@ -48,7 +49,7 @@ registerLocaleData(localeEsAr);
 @Component({
   selector: "app-paciente-agenda",
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, CentrosMapaModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, CentrosMapaModalComponent, ListaEsperaFormComponent],
   templateUrl: "./paciente-agenda.component.html",
   styleUrl: "./paciente-agenda.component.css", 
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -86,6 +87,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
 
   // Slots y calendario
   showCalendar = false;
+  mostrarListaEspera = false;
   filtrosAplicados = false; // Indica si se aplicaron filtros (para mostrar mensajes)
   slotsOriginales: SlotDisponible[] = []; // Slots sin filtrar del backend
   slotsDisponibles: SlotDisponible[] = []; // Slots filtrados que se muestran
@@ -179,6 +181,8 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     console.log('🔐 Estado de autenticación:', this.estaAutenticado ? 'Autenticado' : 'Anónimo');
 
     // PASO 3: Leer parámetro centroId de la URL si existe y actualizar el FORMULARIO
+    this.mostrarListaEspera = this.route.snapshot.queryParamMap.get('espera') === '1';
+
     const centroIdParam = this.route.snapshot.queryParamMap.get('centroId');
     if (centroIdParam) {
       const centroId = parseInt(centroIdParam, 10);
@@ -995,6 +999,15 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
   // Navegación y otros métodos
   goBack() {
     this.router.navigate(["/paciente-dashboard"]);
+  }
+
+  abrirListaEspera(): void {
+    this.mostrarListaEspera = true;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { espera: "1" },
+      queryParamsHandling: "merge",
+    });
   }
 
   // ==================== MÉTODOS DEL MAPA DE CENTROS ====================

@@ -1,0 +1,36 @@
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_available</span>
+      <div>
+        <h1 class="ct-page-header__title">Mis turnos</h1>
+        <p class="ct-page-header__subtitle">Los que vienen y los que ya tuviste</p>
+      </div>
+    </div>
+    <div class="ct-page-header__actions">
+      <a class="btn btn-primary" routerLink="/paciente-agenda">
+        <span class="material-symbols-outlined">add_circle</span>
+        Pedir turno
+      </a>
+    </div>
+  </header>
+
+  <div class="portal-tabs" role="tablist">
+    <button type="button" class="portal-tab" role="tab" [class.active]="tab === 'proximos'" (click)="ir('proximos')">
+      <span class="material-symbols-outlined">schedule</span>
+      Próximos
+    </button>
+    <button type="button" class="portal-tab" role="tab" [class.active]="tab === 'pasados'" (click)="ir('pasados')">
+      <span class="material-symbols-outlined">history</span>
+      Pasados
+    </button>
+  </div>
+
+  @if (tab === "proximos") {
+    <app-paciente-dashboard [embebido]="true" />
+  } @else {
+    <app-historial-turnos [embebido]="true" />
+  }
+
+  <app-paciente-lista-espera />
+</div>

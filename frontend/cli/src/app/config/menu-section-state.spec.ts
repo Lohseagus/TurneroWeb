@@ -198,7 +198,7 @@ describe('apertura por ruta activa', () => {
     const stored = { medico: true, paciente: false };
 
     expect(resolveOpenSectionIds(sections, '/medico-dashboard', stored)).toEqual(['medico']);
-    expect(resolveOpenSectionIds(sections, '/paciente-historial', stored)).toEqual(['medico', 'paciente']);
+    expect(resolveOpenSectionIds(sections, '/paciente-turnos', stored)).toEqual(['medico', 'paciente']);
   });
 
   it('respeta el cierre manual del rol más alto cuando la ruta no es de ese panel', () => {
@@ -283,6 +283,8 @@ describe('Mi Centro e Inicio', () => {
 
     const sections = visibleSections(ALL_ROLES, Role.SUPERADMIN);
     expect(sections.some(section => section.label === 'General' || section.id === 'gestion')).toBe(false);
-    expect(sections.some(section => section.items.some(item => item.label === 'Inicio' || item.route === '/'))).toBe(false);
+    expect(sections.some(section => section.items.some(item => item.route === '/'))).toBe(false);
+    expect(sections.find(section => section.id === 'paciente')?.items.find(item => item.label === 'Inicio')?.route)
+      .toBe('/paciente-dashboard');
   });
 });

@@ -1,0 +1,33 @@
+@if (!cargando && pendientes.length) {
+  <section class="portal-espera card">
+    <h2>
+      <span class="material-symbols-outlined">schedule</span>
+      Lista de espera
+    </h2>
+    <p class="portal-espera__texto">Pediste un lugar porque no había turno. Podés cancelar la solicitud.</p>
+    @if (error) {
+      <p class="portal-espera__error">{{ error }}</p>
+    }
+    <ul class="portal-espera__lista">
+      @for (solicitud of pendientes; track solicitud.id) {
+        <li>
+          <div>
+            <strong>{{ solicitud.especialidadNombre }}</strong>
+            <span>{{ solicitud.centroAtencionNombre }}</span>
+            @if (solicitud.medicoPreferidoNombre) {
+              <span>{{ solicitud.medicoPreferidoNombre }}</span>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn btn-danger btn-sm"
+            (click)="cancelar(solicitud)"
+            [disabled]="cancelandoId === solicitud.id"
+          >
+            Cancelar
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+}
