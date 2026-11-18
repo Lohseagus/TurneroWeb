@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TurnoService } from './turno.service';
+import { UserContextService } from '../services/user-context.service';
+import { Role } from '../inicio-sesion/auth.service';
 import { Turno } from './turno';
 import { ModalService } from '../modal/modal.service';
 import { ResultsPage } from '../results-page';
@@ -47,8 +49,21 @@ export class TurnosComponent {
   constructor(
     private turnoService: TurnoService,
     private modalService: ModalService,
-    public router: Router
+    public router: Router,
+    private userContext: UserContextService
   ) {}
+
+  get puedeVerAuditoria(): boolean {
+    return this.userContext.hasRole(Role.ADMINISTRADOR);
+  }
+
+  irABusquedaAvanzada(): void {
+    if (this.userContext.isOperador) {
+      this.router.navigate(['/operador/turnos'], { queryParams: { tab: 'todos', vista: 'avanzada' } });
+      return;
+    }
+    this.router.navigate(['/turnos/advanced-search']);
+  }
 
   ngOnInit(): void {
     this.searchTurnos();

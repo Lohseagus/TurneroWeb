@@ -60,6 +60,8 @@ import { CentroAtencionAccessGuard } from "./guards/centro-atencion-access.guard
 import { MiCentroRedirectGuard } from "./guards/mi-centro-redirect.guard";
 
 import { OperadorDashboardComponent } from "./operador/operador-dashboard.component";
+import { OperadorTurnosComponent } from "./operador/operador-turnos.component";
+import { redirigirPanelOperador } from "./operador/operador-panel";
 //import { OperadorAgendaComponent } from "./operador/operador-agenda.component";
 import { OperadoresComponent } from "./operador/operadores.component";
 import { OperadorDetailComponent } from "./operador/operador-detail.component";
@@ -125,9 +127,14 @@ export const routes: Routes = [
 
   // Rutas de Operador (protegidas por OperadorGuard)
   {
+    path: "operador/turnos",
+    component: OperadorTurnosComponent,
+    canActivate: [OperadorGuard],
+  },
+  {
     path: "operador-dashboard",
     component: OperadorDashboardComponent,
-    canActivate: [OperadorGuard],
+    canActivate: [OperadorGuard, redirigirPanelOperador],
   },
 
   {
@@ -264,20 +271,20 @@ export const routes: Routes = [
   {
     path: "lista-espera",
     component: ListaEsperaComponent,
-    canActivate: [AdminOperadorGuard],
+    canActivate: [AdminOperadorGuard, redirigirPanelOperador],
   },
   portalPaciente("lista-espera-form", ListaEsperaEntradaComponent),
   {
     path: "lista-espera-estadisticas",
     component: ListaEsperaEstadisticasComponent,
-    canActivate: [AdminOperadorGuard],
+    canActivate: [AdminOperadorGuard, redirigirPanelOperador],
   },
 
   // Admin Routes (protected)
   {
     path: "turnos",
     component: TurnosComponent,
-    canActivate: [AdminOperadorGuard],
+    canActivate: [AdminOperadorGuard, redirigirPanelOperador],
   },
   {
     path: "turnos/new",
@@ -287,7 +294,7 @@ export const routes: Routes = [
   {
     path: "turnos/advanced-search",
     component: TurnoAdvancedSearchComponent,
-    canActivate: [AdminOperadorGuard],
+    canActivate: [AdminOperadorGuard, redirigirPanelOperador],
   },
   {
     path: "turnos/audit-dashboard",
@@ -307,7 +314,7 @@ export const routes: Routes = [
   {
     path: "agenda",
     component: AdminAgendaComponent,
-    canActivate: [AdminOperadorGuard],
+    canActivate: [AdminOperadorGuard, redirigirPanelOperador],
   },
   {
     path: "agenda/dias-excepcionales",

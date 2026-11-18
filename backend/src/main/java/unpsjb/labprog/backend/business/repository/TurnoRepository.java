@@ -2,6 +2,7 @@ package unpsjb.labprog.backend.business.repository;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -199,6 +200,13 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
      * @return Página de turnos del centro con el estado especificado
      */
     Page<Turno> findByCentroAtencion_IdAndEstado(Integer centroId, EstadoTurno estado, Pageable pageable);
+
+    List<Turno> findByCentroAtencion_IdInAndFecha(Collection<Integer> centroIds, LocalDate fecha);
+
+    long countByCentroAtencion_IdInAndEstado(Collection<Integer> centroIds, EstadoTurno estado);
+
+    long countByCentroAtencion_IdInAndEstadoAndFechaBetween(
+            Collection<Integer> centroIds, EstadoTurno estado, LocalDate desde, LocalDate hasta);
 
     List<Turno> findByConsultorio_Id(Integer consultorioId);
 

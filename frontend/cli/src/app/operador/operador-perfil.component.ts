@@ -53,7 +53,7 @@ export class OperadorPerfilComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/operador-dashboard']);
+    this.router.navigate(['/mi-centro']);
   }
 
   getUserRole(): string {

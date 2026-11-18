@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
+import { Component, OnInit, ChangeDetectionStrategy, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -17,6 +17,8 @@ import { OperadorService } from "./operador.service"; // Asumiendo que existe es
   styleUrl: "./operador-dashboard.component.css",
 })
 export class OperadorDashboardComponent implements OnInit {
+  /** Dentro de Turnos solo muestra las tarjetas. El panel completo queda para el administrador. */
+  @Input() soloTurnos = false;
   operatorName: string = "";
   operatorEmail: string = "";
   allTurnos: any[] = [];
@@ -459,7 +461,11 @@ export class OperadorDashboardComponent implements OnInit {
   }
 
   scheduleAppointment() {
-    this.router.navigate(["/turnos"]); // Ruta para agendar turno como operador
+    if (this.soloTurnos) {
+      this.router.navigate(["/operador/turnos"], { queryParams: { tab: "agenda" } });
+      return;
+    }
+    this.router.navigate(["/turnos"]);
   }
 
   goToTurnos() {

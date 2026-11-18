@@ -15,6 +15,10 @@ export class TurnoService {
   private exportUrl = environment.production ? `${environment.apiUrl}/export` : 'rest/export';
   private estadisticasUrl = environment.production ? `${environment.apiUrl}/estadisticas` : 'rest/estadisticas';
 
+  resumenOperador() {
+    return this.http.get<DataPackage<any>>(`${this.url}/resumen-operador`);
+  }
+
   constructor(private http: HttpClient) {
     // DEBUG: Verificar configuración de environment en runtime
     console.log('🔧 DEBUG TurnoService - Environment config:');

@@ -1,0 +1,5 @@
+.solapa-herramientas {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-md);
+}

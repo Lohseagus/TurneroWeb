@@ -1,0 +1,68 @@
+<section class="resumen-centro" aria-label="Resumen del centro">
+  @if (cargando) {
+    <p class="resumen-estado">Cargando el resumen del centro…</p>
+  } @else if (error) {
+    <div class="resumen-estado resumen-estado--error">
+      <p>{{ error }}</p>
+      <button type="button" class="btn btn-secondary" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else if (resumen) {
+    <div class="resumen-kpis">
+      <article class="resumen-kpi">
+        <span class="material-symbols-outlined">today</span>
+        <p class="resumen-kpi__valor">{{ resumen.turnosHoy }}</p>
+        <p class="resumen-kpi__etiqueta">Turnos de hoy</p>
+      </article>
+      <a class="resumen-kpi resumen-kpi--link" routerLink="/operador/turnos" [queryParams]="{ tab: 'por-confirmar' }">
+        <span class="material-symbols-outlined">schedule</span>
+        <p class="resumen-kpi__valor">{{ resumen.pendientesConfirmar }}</p>
+        <p class="resumen-kpi__etiqueta">Pendientes de confirmar</p>
+      </a>
+      <a class="resumen-kpi resumen-kpi--link" routerLink="/operador/turnos" [queryParams]="{ tab: 'lista-espera' }">
+        <span class="material-symbols-outlined">pending_actions</span>
+        <p class="resumen-kpi__valor">{{ resumen.listaEspera }}</p>
+        <p class="resumen-kpi__etiqueta">Personas en lista de espera</p>
+      </a>
+      <article class="resumen-kpi">
+        <span class="material-symbols-outlined">event_busy</span>
+        <p class="resumen-kpi__valor">{{ resumen.cancelacionesSemana }}</p>
+        <p class="resumen-kpi__etiqueta">Cancelaciones de la semana</p>
+      </article>
+    </div>
+
+    <div class="resumen-cuerpo">
+      <section class="resumen-bloque">
+        <h2>Próximos de hoy</h2>
+        @if (resumen.proximosHoy.length === 0) {
+          <p class="resumen-vacio">No quedan turnos para hoy.</p>
+        } @else {
+          <ul class="resumen-lista">
+            @for (turno of resumen.proximosHoy; track turno.id) {
+              <li>
+                <a [routerLink]="['/turnos', turno.id]">
+                  <strong>{{ turno.hora }}</strong>
+                  <span>{{ turno.paciente }}</span>
+                  <span>{{ turno.medico }}@if (turno.especialidad) { · {{ turno.especialidad }} }</span>
+                  <em>{{ etiquetaEstado(turno.estado) }}</em>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="resumen-bloque">
+        <h2>Accesos rápidos</h2>
+        <div class="resumen-accesos">
+          <a class="btn btn-secondary" routerLink="/operador/turnos" [queryParams]="{ tab: 'por-confirmar' }">Por confirmar</a>
+          <a class="btn btn-secondary" routerLink="/operador/turnos" [queryParams]="{ tab: 'agenda' }">Agenda</a>
+          <a class="btn btn-secondary" routerLink="/operador/turnos" [queryParams]="{ tab: 'todos' }">Todos los turnos</a>
+          <a class="btn btn-secondary" routerLink="/operador/turnos" [queryParams]="{ tab: 'lista-espera' }">Lista de espera</a>
+          <a class="btn btn-primary" routerLink="/turnos/new">Turno extra (sobreturno)</a>
+          <a class="btn btn-secondary" routerLink="/pacientes">Pacientes</a>
+          <a class="btn btn-secondary" routerLink="/agenda/dias-excepcionales">Ausencias y feriados</a>
+        </div>
+      </section>
+    </div>
+  }
+</section>
