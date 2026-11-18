@@ -2,6 +2,7 @@ package unpsjb.labprog.backend.business.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
@@ -99,6 +100,9 @@ public class TurnoService {
 
     @Autowired
     private SuscripcionAccessService suscripcionAccessService;
+
+    @Autowired
+    private ConfiguracionExcepcionalService configuracionExcepcionalService;
 
     // === VALIDACIONES DE TRANSICIÓN DE ESTADO ===
 
@@ -453,6 +457,16 @@ public class TurnoService {
 
     @Transactional
     public TurnoDTO cancelarTurno(Integer id, String motivo, String performedBy) {
+        return cancelarTurno(id, motivo, performedBy, true, "CANCELACION");
+    }
+
+    /**
+     * @param reasignarDesdeListaEspera en false el hueco no se ofrece a la lista de espera
+     * @param tipoDeepLink tipo del enlace del correo (CANCELACION o AUSENCIA)
+     */
+    @Transactional
+    public TurnoDTO cancelarTurno(Integer id, String motivo, String performedBy,
+            boolean reasignarDesdeListaEspera, String tipoDeepLink) {
         Optional<Turno> turnoOpt = repository.findById(id);
         if (turnoOpt.isEmpty()) {
             throw new IllegalArgumentException("Turno no encontrado con ID: " + id);
@@ -513,11 +527,13 @@ public class TurnoService {
         }
 
         // Enviar notificación por email si el paciente tiene email verificado
-        enviarNotificacionCancelacionEmail(savedTurno, cancelacionData, validacionContacto, performedBy);
+        enviarNotificacionCancelacionEmail(savedTurno, cancelacionData, validacionContacto, performedBy, tipoDeepLink);
 
-        // Buscar pacientes en lista de espera que coincidan con el turno cancelado
-        boolean buscarPacienteParaReasignar = listaEsperaService.buscarPacienteParaReasignar(savedTurno);
-        System.out.println("Estado buscarPacienteParaReasignar: " + buscarPacienteParaReasignar);
+        // Una ausencia no rellena el hueco: el paciente saca un turno nuevo.
+        if (reasignarDesdeListaEspera) {
+            boolean buscarPacienteParaReasignar = listaEsperaService.buscarPacienteParaReasignar(savedTurno);
+            System.out.println("Estado buscarPacienteParaReasignar: " + buscarPacienteParaReasignar);
+        }
 
         // Cancelar invitaciones a encuesta pendientes para este turno
         try {
@@ -1215,6 +1231,14 @@ public class TurnoService {
                             turno.getStaffMedico().getMedico().getNombre(),
                             turno.getStaffMedico().getMedico().getApellido(),
                             diaSemana.toLowerCase()));
+        }
+
+        Integer consultorioId = turno.getConsultorio() != null ? turno.getConsultorio().getId() : null;
+        LocalTime horaFin = turno.getHoraFin() != null ? turno.getHoraFin() : turno.getHoraInicio();
+        String bloqueo = configuracionExcepcionalService.motivoBloqueoReserva(
+                turno.getFecha(), turno.getHoraInicio(), horaFin, consultorioId, turno.getStaffMedico().getId());
+        if (bloqueo != null) {
+            throw new IllegalArgumentException(bloqueo);
         }
     }
 
@@ -2431,7 +2455,7 @@ public class TurnoService {
      * Solo se envía si el paciente tiene email verificado
      */
     private void enviarNotificacionCancelacionEmail(Turno turno, CancelacionDataDTO cancelacionData,
-            ValidacionContactoDTO validacionContacto, String performedBy) {
+            ValidacionContactoDTO validacionContacto, String performedBy, String tipoDeepLink) {
         try {
             // Solo enviar email si el paciente tiene email verificado
             if (!validacionContacto.isPuedeRecibirEmail()) {
@@ -2468,7 +2492,8 @@ public class TurnoService {
                     patientName,
                     cancellationDetails,
                     pacienteId,
-                    turnoId);
+                    turnoId,
+                    tipoDeepLink);
 
             System.out
                     .println("📧 Email de cancelación enviado a: " + patientEmail + " para turno ID: " + turno.getId());

@@ -5,11 +5,12 @@ import { TurnoService } from '../turnos/turno.service';
 import { EsquemaTurnoService } from '../esquemaTurno/esquemaTurno.service';
 import { CentroAtencionService } from '../centrosAtencion/centroAtencion.service';
 import { DiaExcepcional } from './diaExcepcional';
+import { AusenciasMedicoComponent } from './ausencias-medico.component';
 
 @Component({
   selector: 'app-dias-excepcionales',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AusenciasMedicoComponent],
   templateUrl: './dias-excepcionales.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './dias-excepcionales.component.css'
@@ -83,7 +84,9 @@ export class DiasExcepcionalesComponent implements OnInit {
       this.filtros.centroId ? Number(this.filtros.centroId) : undefined).subscribe({
       next: (response) => {
         // Mapear datos del backend a propiedades de compatibilidad
-        this.diasExcepcionales = (response.data || []).map(dia => this.mapearDiaDesdeBackend(dia));
+        this.diasExcepcionales = (response.data || [])
+          .filter((dia: { tipo?: string }) => String(dia.tipo) !== 'AUSENCIA_MEDICO')
+          .map(dia => this.mapearDiaDesdeBackend(dia));
         this.aplicarFiltros();
       },
       error: (error) => {
@@ -323,6 +326,7 @@ export class DiasExcepcionalesComponent implements OnInit {
       case 'FERIADO': return 'Feriado';
       case 'ATENCION_ESPECIAL': return 'Atención Especial';
       case 'MANTENIMIENTO': return 'Mantenimiento';
+      case 'AUSENCIA_MEDICO': return 'Ausencia del médico';
       default: return tipo;
     }
   }

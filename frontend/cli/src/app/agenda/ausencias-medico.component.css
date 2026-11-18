@@ -1,0 +1,69 @@
+.ausencias__ayuda,
+.ausencias__error,
+.ausencias__ok {
+  margin: 0 0 1rem;
+}
+
+.ausencias__error {
+  color: #9b1c1c;
+}
+
+.ausencias__ok {
+  color: #17663a;
+}
+
+.ausencias__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ausencias__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.ausencias__motivo {
+  grid-column: 1 / -1;
+}
+
+.ausencias__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.ausencias__preview,
+.ausencias__lista {
+  margin-top: 0.5rem;
+}
+
+.ausencias__lista {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ausencias__lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.ausencias__lista span {
+  display: inline-block;
+  margin-right: 0.75rem;
+}
+
+.ausencias__lista-titulo {
+  margin-top: 1.5rem;
+}

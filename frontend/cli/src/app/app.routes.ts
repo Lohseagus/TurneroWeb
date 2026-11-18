@@ -206,6 +206,16 @@ export const routes: Routes = [
   { path: "paciente-perfil", redirectTo: redirigirPortal("paciente-perfil") },
   portalPaciente("paciente/encuesta/:id", EncuestaComponent),
   portalPaciente("paciente-reagendar-turno/:id", PacienteReagendarTurnoComponent),
+  {
+    path: "paciente-reprogramar-ausencia",
+    component: PacientePortalComponent,
+    canActivate: [PatientGuard],
+    children: [{
+      path: ":id",
+      component: PacienteReagendarTurnoComponent,
+      data: { modo: "ausencia" },
+    }],
+  },
 
   // Medico Routes
   {

@@ -68,6 +68,11 @@ export class DeepLinkBridgeComponent implements OnInit {
             setTimeout(() => {
               this.router.navigate(['/paciente/encuesta', context.turnoId]);
             }, 1500);
+          } else if (context && context.turnoId && (context.tipo === 'AUSENCIA' || context.ausencia)) {
+            this.showSuccess();
+            setTimeout(() => {
+              this.router.navigate(['/paciente-reprogramar-ausencia', context.turnoId]);
+            }, 800);
           } else {
             // Para otros tipos (p.ej. ACCESO), redirigir al dashboard del paciente
             this.showSuccess();

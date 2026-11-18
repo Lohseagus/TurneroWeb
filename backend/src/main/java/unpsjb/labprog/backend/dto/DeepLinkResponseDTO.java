@@ -108,7 +108,9 @@ public class DeepLinkResponseDTO {
         private String especialidadNombre;
         private Integer centroAtencionId;
         private String centroAtencionNombre;
-        private String tipo; // CANCELACION, CONFIRMACION, etc.
+        private String tipo; // CANCELACION, CONFIRMACION, AUSENCIA, etc.
+        /** True cuando la cancelación fue por una ausencia del profesional. */
+        private Boolean ausencia;
         
         public TurnoContextDTO() {}
         
@@ -175,6 +177,14 @@ public class DeepLinkResponseDTO {
         
         public void setTipo(String tipo) {
             this.tipo = tipo;
+        }
+
+        public Boolean getAusencia() {
+            return ausencia;
+        }
+
+        public void setAusencia(Boolean ausencia) {
+            this.ausencia = ausencia;
         }
     }
 }

@@ -79,6 +79,7 @@ export class PacienteReagendarTurnoComponent implements OnInit {
   motivoReagendamiento: string = '';
   fechaExpandida: string | null = null; // Para controlar el acordeón
   mostrarModal: boolean = false; // Para controlar el modal
+  modoAusencia = false;
 
   constructor(
     private router: Router,
@@ -89,6 +90,7 @@ export class PacienteReagendarTurnoComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.modoAusencia = this.route.snapshot.data['modo'] === 'ausencia';
     // Cargar días excepcionales primero
     this.cargarDiasExcepcionales();
     
@@ -150,11 +152,15 @@ export class PacienteReagendarTurnoComponent implements OnInit {
         const slots = response.data || response;
         
         this.slotsDisponibles = slots.filter((slot: any) => {
-          // Filtrar slots que no sean el turno actual
           if (!this.currentTurno) return true;
-          
-          // ✅ CORREGIDO: Usar strings de fecha para evitar problemas de zona horaria
-          // Comparar como strings format "YYYY-MM-DD HH:MM:SS" para evitar ambigüedades
+          if (this.modoAusencia) {
+            const mismoCentro = !this.currentTurno.centroId || !slot.centroId
+              || slot.centroId === this.currentTurno.centroId;
+            const mismaEspecialidad = !this.currentTurno.especialidadStaffMedico || !slot.especialidadStaffMedico
+              || slot.especialidadStaffMedico === this.currentTurno.especialidadStaffMedico;
+            return mismoCentro && mismaEspecialidad;
+          }
+
           const currentDateTimeStr = `${this.currentTurno.fecha}T${this.currentTurno.horaInicio}`;
           const slotDateTimeStr = `${slot.fecha}T${slot.horaInicio}`;
           return slotDateTimeStr !== currentDateTimeStr;
@@ -259,6 +265,11 @@ export class PacienteReagendarTurnoComponent implements OnInit {
   confirmarReagendamiento() {
     if (!this.currentTurno || !this.slotSeleccionado) return;
 
+    if (this.modoAusencia) {
+      this.confirmarTurnoNuevo();
+      return;
+    }
+
     // Validar motivo
     if (!this.motivoReagendamiento || this.motivoReagendamiento.trim().length < 5) {
       this.errorMessage = 'Debe ingresar un motivo de al menos 5 caracteres para reagendar el turno';
@@ -303,6 +314,38 @@ export class PacienteReagendarTurnoComponent implements OnInit {
         this.errorMessage = errorMessage;
         
         // Mantener el modal abierto en caso de error para que el usuario pueda reintentar
+      }
+    });
+  }
+
+  private confirmarTurnoNuevo() {
+    if (!this.currentTurno || !this.slotSeleccionado) return;
+    this.isProcessing = true;
+    this.errorMessage = '';
+    const turnoDTO = {
+      fecha: this.slotSeleccionado.fecha,
+      horaInicio: this.slotSeleccionado.horaInicio,
+      horaFin: this.slotSeleccionado.horaFin,
+      pacienteId: this.currentTurno.pacienteId,
+      staffMedicoId: this.slotSeleccionado.staffMedicoId,
+      consultorioId: this.slotSeleccionado.consultorioId,
+      centroId: this.slotSeleccionado.centroId,
+      estado: 'PROGRAMADO'
+    };
+    this.turnoService.asignarTurno(turnoDTO).subscribe({
+      next: (response) => {
+        this.isProcessing = false;
+        if (response.status_code && response.status_code !== 200) {
+          this.errorMessage = response.status_text || 'No se pudo reservar el turno nuevo.';
+          return;
+        }
+        this.mostrarModal = false;
+        alert('Listo. Quedó reservado un turno nuevo con el mismo profesional.');
+        this.router.navigate(['/paciente-dashboard']);
+      },
+      error: (error) => {
+        this.isProcessing = false;
+        this.errorMessage = error?.error?.status_text || 'No se pudo reservar el turno nuevo.';
       }
     });
   }

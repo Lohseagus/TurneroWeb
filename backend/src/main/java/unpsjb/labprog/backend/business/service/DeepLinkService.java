@@ -40,6 +40,9 @@ public class DeepLinkService {
     @Autowired
     private SesionService sesionService;
 
+    @Autowired
+    private NotificacionRepository notificacionRepository;
+
     private static final int TOKEN_LENGTH = 64;
     private static final int EXPIRATION_HOURS = 48; // 48 horas de validez
     private static final SecureRandom secureRandom = new SecureRandom();
@@ -127,12 +130,30 @@ public class DeepLinkService {
         DeepLinkResponseDTO.TurnoContextDTO context = new DeepLinkResponseDTO.TurnoContextDTO();
         context.setTurnoId(deepLinkToken.getTurnoId());
         context.setTipo(deepLinkToken.getTipo());
+        context.setAusencia(esAusencia(deepLinkToken));
 
         // TODO: Implementar carga de información contextual para filtros automáticos
         // Funcionalidad pendiente: cargar médico, especialidad, centro de atención
         // desde el turno para pre-seleccionar filtros en la agenda
 
         return new DeepLinkResponseDTO(tokens, context);
+    }
+
+    private boolean esAusencia(DeepLinkToken deepLinkToken) {
+        if (deepLinkToken == null || deepLinkToken.getTipo() == null) {
+            return false;
+        }
+        if ("AUSENCIA".equals(deepLinkToken.getTipo())) {
+            return true;
+        }
+        if (!"CANCELACION".equals(deepLinkToken.getTipo()) || deepLinkToken.getTurnoId() == null
+                || notificacionRepository == null) {
+            return false;
+        }
+        return notificacionRepository.findByTurnoIdOrderByFechaCreacionDesc(deepLinkToken.getTurnoId())
+                .stream()
+                .anyMatch(notificacion -> notificacion.getMensaje() != null
+                        && notificacion.getMensaje().contains(AusenciaMedicoService.PREFIJO_MOTIVO.trim()));
     }
 
     /**

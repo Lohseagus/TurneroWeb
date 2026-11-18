@@ -29,6 +29,9 @@ public class ConfiguracionExcepcional {
     private Integer id;
 
     private LocalDate fecha;
+
+    /** Fin inclusive. Si es null, la excepción es solo {@link #fecha}. */
+    private LocalDate fechaFin;
     
     @Enumerated(EnumType.STRING)
     private TipoExcepcion tipo;
@@ -51,12 +54,20 @@ public class ConfiguracionExcepcional {
     
     @ManyToOne(optional = true)
     private EsquemaTurno esquemaTurno;      // Para excepciones de esquemas específicos
+
+    @ManyToOne(optional = true)
+    private StaffMedico staffMedico;        // Para una ausencia de un profesional
     
     private boolean activo = true;
+
+    public LocalDate finInclusive() {
+        return fechaFin != null ? fechaFin : fecha;
+    }
 
     public enum TipoExcepcion {
         FERIADO,           // Aplica a todo el sistema
         MANTENIMIENTO,     // Aplica a un consultorio específico
-        ATENCION_ESPECIAL  // Horarios especiales para un esquema específico
+        ATENCION_ESPECIAL, // Horarios especiales para un esquema específico
+        AUSENCIA_MEDICO    // El profesional no atiende en el rango
     }
 }

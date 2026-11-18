@@ -18,6 +18,7 @@ public class ConfiguracionExcepcionalDTO {
 
     private Integer id;
     private LocalDate fecha;
+    private LocalDate fechaFin;
     private String tipo;
     private String descripcion;
     private LocalTime horaInicio;
@@ -46,6 +47,8 @@ public class ConfiguracionExcepcionalDTO {
     private String medicoApellido;
     private String especialidadNombre;
 
+    private Integer staffMedicoId;
+
     /**
      * Convierte una entidad ConfiguracionExcepcional a DTO
      */
@@ -57,6 +60,7 @@ public class ConfiguracionExcepcionalDTO {
         ConfiguracionExcepcionalDTO dto = new ConfiguracionExcepcionalDTO();
         dto.setId(entity.getId());
         dto.setFecha(entity.getFecha());
+        dto.setFechaFin(entity.getFechaFin());
         dto.setTipo(entity.getTipo() != null ? entity.getTipo().name() : null);
         dto.setDescripcion(entity.getDescripcion());
         dto.setHoraInicio(entity.getHoraInicio());
@@ -110,6 +114,17 @@ public class ConfiguracionExcepcionalDTO {
                     horario.getDia()
                 );
                 dto.setEsquemaTurnoDescripcion(descripcion.trim());
+            }
+        }
+
+        if (entity.getStaffMedico() != null) {
+            dto.setStaffMedicoId(entity.getStaffMedico().getId());
+            if (entity.getStaffMedico().getMedico() != null) {
+                dto.setMedicoNombre(entity.getStaffMedico().getMedico().getNombre());
+                dto.setMedicoApellido(entity.getStaffMedico().getMedico().getApellido());
+            }
+            if (dto.getEspecialidadNombre() == null && entity.getStaffMedico().getEspecialidad() != null) {
+                dto.setEspecialidadNombre(entity.getStaffMedico().getEspecialidad().getNombre());
             }
         }
 
