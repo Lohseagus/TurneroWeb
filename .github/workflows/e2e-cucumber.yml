@@ -49,6 +49,7 @@ jobs:
           DB_USERNAME: APP
           DB_PASSWORD: APP
           SECURITY_DEV_MODE: "true"
+          SAAS_ENFORCEMENT_ENABLED: "true"
           MAIL_HOST: 127.0.0.1
           MAIL_PORT: "1025"
           MAIL_USERNAME: test@localhost

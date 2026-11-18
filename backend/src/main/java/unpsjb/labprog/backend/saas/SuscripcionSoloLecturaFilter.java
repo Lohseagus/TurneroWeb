@@ -29,17 +29,25 @@ public class SuscripcionSoloLecturaFilter extends OncePerRequestFilter {
 
     private final ObjectProvider<SuscripcionAccessService> accessProvider;
     private final ObjectProvider<CentroObjetivoResolver> resolverProvider;
+    private final ObjectProvider<SaasEnforcement> enforcementProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SuscripcionSoloLecturaFilter(ObjectProvider<SuscripcionAccessService> accessProvider,
-            ObjectProvider<CentroObjetivoResolver> resolverProvider) {
+            ObjectProvider<CentroObjetivoResolver> resolverProvider,
+            ObjectProvider<SaasEnforcement> enforcementProvider) {
         this.accessProvider = accessProvider;
         this.resolverProvider = resolverProvider;
+        this.enforcementProvider = enforcementProvider;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        SaasEnforcement enforcement = enforcementProvider == null ? null : enforcementProvider.getIfAvailable();
+        if (enforcement == null || !enforcement.habilitado()) {
+            chain.doFilter(request, response);
+            return;
+        }
         SuscripcionAccessService access = accessProvider == null ? null : accessProvider.getIfAvailable();
         if (access == null) {
             chain.doFilter(request, response);

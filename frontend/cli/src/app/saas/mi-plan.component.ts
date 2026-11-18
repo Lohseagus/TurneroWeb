@@ -107,7 +107,7 @@ export class MiPlanComponent implements OnInit {
 
   get puedeAgregarSede(): boolean {
     const uso = this.suscripcion?.uso;
-    if (!uso || this.suscripcion?.soloLectura) return false;
+    if (!uso || (this.suscripcion?.enforcementEnabled && this.suscripcion?.soloLectura)) return false;
     return uso.maxCentros === null || uso.centros < uso.maxCentros;
   }
 

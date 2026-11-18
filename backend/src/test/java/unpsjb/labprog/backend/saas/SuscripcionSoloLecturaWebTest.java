@@ -39,13 +39,14 @@ import unpsjb.labprog.backend.model.User;
 
 @WebMvcTest(controllers = ProbeEscrituraController.class)
 @AutoConfigureMockMvc
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenProvider.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenProvider.class, SaasEnforcement.class})
 @ImportAutoConfiguration(SecurityFilterAutoConfiguration.class)
 @TestPropertySource(properties = {
         "security.dev.mode=false",
         "jwt.secret=BIKxlr6HZ0lJtDo0GAAWww+bJF7cyNHwj1XrLGjdgQg=",
         "jwt.access-token-expiration=900000",
         "app.allowed.origins=http://localhost:4200",
+        "saas.enforcement.enabled=true",
         "DB_URL=jdbc:h2:mem:sololectura",
         "DB_USERNAME=sa",
         "DB_PASSWORD=sa"

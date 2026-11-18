@@ -49,7 +49,7 @@ export class SuscripcionBannerComponent implements OnInit, OnDestroy {
       this.avisoSub = this.saas.aviso().subscribe({
         next: (resp) => {
           if (resp.status_code !== 200 || !resp.data) return;
-          if (resp.data.soloLectura) {
+          if (resp.data.enforcementEnabled && resp.data.soloLectura) {
             this.soloLectura = true;
             this.mensaje = resp.data.mensaje
               || `La suscripción está ${etiquetaEstado(resp.data.estado || '').toLowerCase()}. La cuenta es de solo lectura: no podés crear turnos ni recursos nuevos.`;

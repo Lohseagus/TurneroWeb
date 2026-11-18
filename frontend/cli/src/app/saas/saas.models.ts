@@ -1,4 +1,5 @@
 export interface AvisoSuscripcion {
+  enforcementEnabled: boolean;
   soloLectura: boolean;
   sinSuscripcion: boolean;
   estado: string | null;
@@ -109,6 +110,7 @@ export interface PagoSaas {
 export interface SuscripcionSaas {
   id: number;
   estado: string;
+  enforcementEnabled: boolean;
   soloLectura: boolean;
   heredada: boolean;
   soportePrioritario: boolean;

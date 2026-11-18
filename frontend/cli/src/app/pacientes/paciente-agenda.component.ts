@@ -957,7 +957,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
       this.saasService.aviso(centroId).subscribe({
         next: (resp) => {
           if (this.slotSeleccionado?.centroId !== centroId) return;
-          if (resp.status_code === 200 && resp.data?.soloLectura) {
+          if (resp.status_code === 200 && resp.data?.enforcementEnabled && resp.data.soloLectura) {
             this.mensajeReservaBloqueada = resp.data.mensaje
               || 'Este centro no está tomando turnos. Podés ver lo que ya tenías, pero no reservar.';
             this.cdr.markForCheck();

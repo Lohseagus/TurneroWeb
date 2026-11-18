@@ -29,6 +29,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.saas.CentroObjetivoResolver;
+import unpsjb.labprog.backend.saas.SaasEnforcement;
 import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.saas.SuscripcionSoloLecturaFilter;
 
@@ -95,8 +96,9 @@ public class SecurityConfig {
     @Bean
     public SuscripcionSoloLecturaFilter suscripcionSoloLecturaFilter(
             ObjectProvider<SuscripcionAccessService> access,
-            ObjectProvider<CentroObjetivoResolver> resolver) {
-        return new SuscripcionSoloLecturaFilter(access, resolver);
+            ObjectProvider<CentroObjetivoResolver> resolver,
+            ObjectProvider<SaasEnforcement> enforcement) {
+        return new SuscripcionSoloLecturaFilter(access, resolver, enforcement);
     }
 
     @Bean

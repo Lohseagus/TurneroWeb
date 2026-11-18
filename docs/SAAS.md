@@ -19,9 +19,19 @@ El anual aplica el descuento sobre el neto de 12 meses y después suma el IVA. C
 
 WhatsApp y SMS son complementos opcionales con precio de referencia. No envían mensajes: quedan marcados como placeholder para enchufar un proveedor después.
 
+## Cuándo se aplican los límites
+
+`saas.enforcement.enabled` (`SAAS_ENFORCEMENT_ENABLED`) arranca en **false**. Mientras esté apagado, la suscripción se calcula y se guarda igual (trial, vencimiento, mora, pagos) pero no se rechaza ninguna escritura y la interfaz no muestra el modo solo lectura ni le impide reservar al paciente. `GET /api/saas/aviso` y la ficha de Mi plan traen `enforcementEnabled` para que el frontend decida.
+
+Con `true` vale la regla de solo lectura de abajo. Los pasos que siguen (compuerta de features por plan, cupos y el selector de sede de la red) tienen que consultar la misma bandera antes de bloquear: si está apagada, no aplican el límite.
+
+La suite Cucumber y `docker-compose.e2e.yml` levantan el backend con `SAAS_ENFORCEMENT_ENABLED=true` para que los escenarios de solo lectura sigan viendo el 403. Producción y el compose de desarrollo quedan en false hasta el día del cobro real.
+
 ## Estados y solo lectura
 
 `TRIAL`, `ACTIVA`, `VENCIDA`, `MOROSA`, `SUSPENDIDA`, `CANCELADA`.
+
+Esta sección describe el comportamiento con la bandera prendida.
 
 - `VENCIDA`: se acabó la prueba y nadie pagó.
 - `MOROSA`: el período pago venció.

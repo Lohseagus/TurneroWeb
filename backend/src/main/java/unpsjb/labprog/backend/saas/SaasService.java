@@ -104,6 +104,8 @@ public class SaasService {
     private PasarelaPago pasarelaPago;
     @Autowired
     private SuscripcionAccessService access;
+    @Autowired
+    private SaasEnforcement enforcement;
 
     public CatalogoPublico catalogoPublico() {
         asegurarDatosIniciales();
@@ -748,6 +750,7 @@ public class SaasService {
         boolean paciente = user != null && user.getRole() == Role.PACIENTE;
         Integer centroId = paciente ? centroPedido : TenantContext.getCurrentCentroId();
         SaasDtos.AvisoSuscripcion dto = new SaasDtos.AvisoSuscripcion();
+        dto.enforcementEnabled = enforcement != null && enforcement.habilitado();
         dto.soloLectura = false;
         dto.sinSuscripcion = false;
         dto.mensaje = "";
@@ -1093,6 +1096,7 @@ public class SaasService {
         SuscripcionDetalle dto = new SuscripcionDetalle();
         dto.id = suscripcion.getId();
         dto.estado = suscripcion.getEstado().name();
+        dto.enforcementEnabled = enforcement != null && enforcement.habilitado();
         dto.soloLectura = !suscripcion.getEstado().permiteEscribir();
         dto.heredada = suscripcion.isHeredada();
         dto.soportePrioritario = suscripcion.getPlan().isSoportePrioritario();

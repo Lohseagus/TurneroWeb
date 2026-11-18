@@ -29,7 +29,7 @@
     </div>
     <p class="mb-3"><span class="badge-estado" [ngClass]="claseEstado(s.estado)">{{ etiquetaEstado(s.estado) }}</span> {{ s.plan.nombre }} · {{ etiquetaCiclo(s.ciclo) }}</p>
 
-    @if (s.soloLectura) {
+    @if (s.enforcementEnabled && s.soloLectura) {
       <div class="alert alert-warning" role="status">
         La cuenta está en solo lectura ({{ etiquetaEstado(s.estado).toLowerCase() }}). No podés crear turnos ni recursos nuevos. Los datos de los pacientes siguen disponibles.
       </div>

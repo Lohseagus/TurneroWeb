@@ -42,6 +42,7 @@ describe('SuscripcionBannerComponent', () => {
       status_code: 200,
       status_text: 'ok',
       data: {
+        enforcementEnabled: true,
         soloLectura: true,
         sinSuscripcion: false,
         estado: 'MOROSA',
@@ -62,6 +63,7 @@ describe('SuscripcionBannerComponent', () => {
       status_code: 200,
       status_text: 'ok',
       data: {
+        enforcementEnabled: true,
         soloLectura: true,
         sinSuscripcion: true,
         estado: null,
@@ -72,6 +74,26 @@ describe('SuscripcionBannerComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('a[href="/mi-plan"]')?.textContent).toContain('Ir a Mi plan');
+  });
+
+  it('no muestra solo lectura si los límites todavía no están prendidos', () => {
+    contexto.next(usuario(Role.OPERADOR, true));
+    fixture.detectChanges();
+    http.expectOne('rest/saas/aviso').flush({
+      status_code: 200,
+      status_text: 'ok',
+      data: {
+        enforcementEnabled: false,
+        soloLectura: true,
+        sinSuscripcion: false,
+        estado: 'VENCIDA',
+        mensaje: 'La suscripción está vencida. La cuenta es de solo lectura.',
+        diasTrialRestantes: null
+      }
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('solo lectura');
   });
 
   it('avisa los días de prueba al médico', () => {
