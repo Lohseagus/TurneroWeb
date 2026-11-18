@@ -12,7 +12,7 @@ import { RecetasConsultaComponent } from './recetas-consulta.component';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, RecetasConsultaComponent],
   templateUrl: './medico-consulta.component.html',
-  styleUrl: './hce.css'
+  styleUrl: './medico-consulta.component.css'
 })
 export class MedicoConsultaComponent implements OnInit {
   consulta: ConsultaHce = this.vacia();
@@ -144,19 +144,22 @@ export class MedicoConsultaComponent implements OnInit {
     });
   }
 
+  // Cerrar guarda primero lo que está en pantalla (o crea la consulta si es nueva).
   cerrar(): void {
-    if (!this.consulta.id) {
-      this.error = 'Guardá el borrador antes de cerrarlo';
-      return;
-    }
     this.guardando = true;
-    this.hce.actualizarConsulta(this.consulta.id, this.consulta).subscribe({
-      next: () => {
-        this.hce.cerrarConsulta(this.consulta.id as number).subscribe({
+    this.error = '';
+    const guardado = this.consulta.id
+      ? this.hce.actualizarConsulta(this.consulta.id, this.consulta)
+      : this.hce.crearConsulta(this.consulta);
+    guardado.subscribe({
+      next: guardada => {
+        const id = (this.consulta.id || guardada.data?.id) as number;
+        this.hce.cerrarConsulta(id).subscribe({
           next: res => {
             this.consulta = this.normalizar(res.data);
             this.guardando = false;
             this.aviso = 'Consulta cerrada. A partir de ahora las correcciones son enmiendas.';
+            this.router.navigate(['/medico-consulta', id], { replaceUrl: true });
           },
           error: err => this.fallo(err)
         });

@@ -1,106 +1,233 @@
-<div class="hce-page">
-  <div class="hce-header">
-    <div>
-      <h1>{{ consulta.id ? 'Consulta' : 'Nueva consulta' }}</h1>
-      <p>
-        {{ consulta.pacienteApellido }} {{ consulta.pacienteNombre }}
-        <span *ngIf="consulta.dni"> · DNI {{ consulta.dni }}</span>
-        <span *ngIf="consulta.centroNombre"> · {{ consulta.centroNombre }}</span>
-        <span *ngIf="consulta.especialidadNombre"> · {{ consulta.especialidadNombre }}</span>
-      </p>
+<div class="ct-page ct-page--narrow">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">stethoscope</span>
+      <div>
+        <h1 class="ct-page-header__title">
+          {{ consulta.id ? 'Consulta' : 'Nueva consulta' }}
+          <span class="ct-badge" [class.ct-badge--success]="cerrada" [class.ct-badge--warning]="!cerrada">
+            {{ cerrada ? 'Cerrada' : 'Borrador' }}
+          </span>
+        </h1>
+        <p class="ct-page-header__subtitle" *ngIf="consulta.pacienteApellido || consulta.pacienteNombre">
+          <strong>{{ consulta.pacienteApellido }}, {{ consulta.pacienteNombre }}</strong>
+          <span *ngIf="consulta.dni"> · DNI {{ consulta.dni }}</span>
+          <span *ngIf="consulta.centroNombre"> · {{ consulta.centroNombre }}</span>
+          <span *ngIf="consulta.especialidadNombre"> · {{ consulta.especialidadNombre }}</span>
+        </p>
+      </div>
     </div>
-    <div class="hce-actions">
-      <a class="btn btn-secondary" *ngIf="consulta.pacienteId" [routerLink]="['/medico-hce', consulta.pacienteId]">Historia</a>
-      <button type="button" class="btn btn-secondary" *ngIf="consulta.id" (click)="pdf()">PDF</button>
+    <div class="ct-page-header__actions">
+      <a class="btn btn-secondary" *ngIf="consulta.pacienteId" [routerLink]="['/medico-hce', consulta.pacienteId]">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Historia clínica
+      </a>
+      <button type="button" class="btn btn-secondary" *ngIf="consulta.id" (click)="pdf()">
+        <span class="material-symbols-outlined">picture_as_pdf</span>
+        PDF
+      </button>
     </div>
+  </header>
+
+  <div class="ct-alert ct-alert--danger" *ngIf="error">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
+  </div>
+  <div class="ct-alert ct-alert--success" *ngIf="aviso">
+    <span class="material-symbols-outlined">check_circle</span>
+    <span>{{ aviso }}</span>
   </div>
 
-  <div class="hce-error" *ngIf="error">{{ error }}</div>
-  <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
-  <p class="hce-badge" [class.cerrada]="cerrada" [class.borrador]="!cerrada">{{ consulta.estado || 'BORRADOR' }}</p>
-
-  <section class="hce-panel">
-    <label>Motivo de consulta</label>
-    <textarea [(ngModel)]="consulta.motivoConsulta" [disabled]="cerrada"></textarea>
-    <label>Anamnesis</label>
-    <textarea [(ngModel)]="consulta.anamnesis" [disabled]="cerrada"></textarea>
-    <label>Examen físico</label>
-    <textarea [(ngModel)]="consulta.examenFisico" [disabled]="cerrada"></textarea>
-
-    <h2>Signos vitales</h2>
-    <div class="hce-signos">
-      <div><label>TA sistólica</label><input type="number" [(ngModel)]="consulta.tensionSistolica" [disabled]="cerrada" /></div>
-      <div><label>TA diastólica</label><input type="number" [(ngModel)]="consulta.tensionDiastolica" [disabled]="cerrada" /></div>
-      <div><label>FC</label><input type="number" [(ngModel)]="consulta.frecuenciaCardiaca" [disabled]="cerrada" /></div>
-      <div><label>Temperatura</label><input type="number" [(ngModel)]="consulta.temperatura" [disabled]="cerrada" /></div>
-      <div><label>Peso (kg)</label><input type="number" [(ngModel)]="consulta.pesoKg" [disabled]="cerrada" /></div>
-      <div><label>Talla (cm)</label><input type="number" [(ngModel)]="consulta.tallaCm" [disabled]="cerrada" /></div>
-      <div><label>IMC</label><input type="text" [value]="consulta.imc || imc" disabled /></div>
+  <section class="ct-section" *ngIf="cargando">
+    <div class="ct-loading">
+      <span class="material-symbols-outlined ct-spin">sync</span>
+      <p>Cargando consulta...</p>
     </div>
+  </section>
 
-    <h2>Diagnósticos CIE-10</h2>
-    <div *ngIf="!cerrada">
-      <input type="search" placeholder="Buscar código o descripción" [(ngModel)]="busqueda" (ngModelChange)="buscarCie()" />
-      <div class="hce-sugerencias" *ngIf="sugerencias.length">
-        <button type="button" *ngFor="let codigo of sugerencias" (click)="agregarDiagnostico(codigo)">
-          {{ codigo.code }} — {{ codigo.display }}
+  <ng-container *ngIf="!cargando">
+    <section class="ct-section">
+      <h2 class="ct-subtitle">
+        <span class="material-symbols-outlined">clinical_notes</span>
+        Motivo y evaluación
+      </h2>
+      <div class="consulta-campo">
+        <label class="form-label" for="motivo">Motivo de consulta</label>
+        <textarea id="motivo" class="form-control" rows="2" placeholder="¿Por qué consulta el paciente?"
+          [(ngModel)]="consulta.motivoConsulta" [disabled]="cerrada"></textarea>
+      </div>
+      <div class="ct-grid ct-grid--2">
+        <div class="consulta-campo">
+          <label class="form-label" for="anamnesis">Anamnesis</label>
+          <textarea id="anamnesis" class="form-control" rows="4" placeholder="Antecedentes y evolución"
+            [(ngModel)]="consulta.anamnesis" [disabled]="cerrada"></textarea>
+        </div>
+        <div class="consulta-campo">
+          <label class="form-label" for="examen">Examen físico</label>
+          <textarea id="examen" class="form-control" rows="4" placeholder="Hallazgos del examen"
+            [(ngModel)]="consulta.examenFisico" [disabled]="cerrada"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="ct-section">
+      <h2 class="ct-subtitle">
+        <span class="material-symbols-outlined">monitoring</span>
+        Signos vitales
+      </h2>
+      <div class="consulta-signos">
+        <div>
+          <label class="form-label" for="tas">Tensión arterial <small>mmHg</small></label>
+          <div class="consulta-ta">
+            <input id="tas" type="number" class="form-control" placeholder="120" aria-label="Sistólica"
+              [(ngModel)]="consulta.tensionSistolica" [disabled]="cerrada" />
+            <span>/</span>
+            <input type="number" class="form-control" placeholder="80" aria-label="Diastólica"
+              [(ngModel)]="consulta.tensionDiastolica" [disabled]="cerrada" />
+          </div>
+        </div>
+        <div>
+          <label class="form-label" for="fc">Frec. cardíaca <small>lpm</small></label>
+          <input id="fc" type="number" class="form-control" [(ngModel)]="consulta.frecuenciaCardiaca" [disabled]="cerrada" />
+        </div>
+        <div>
+          <label class="form-label" for="temp">Temperatura <small>°C</small></label>
+          <input id="temp" type="number" step="0.1" class="form-control" [(ngModel)]="consulta.temperatura" [disabled]="cerrada" />
+        </div>
+        <div>
+          <label class="form-label" for="peso">Peso <small>kg</small></label>
+          <input id="peso" type="number" step="0.1" class="form-control" [(ngModel)]="consulta.pesoKg" [disabled]="cerrada" />
+        </div>
+        <div>
+          <label class="form-label" for="talla">Talla <small>cm</small></label>
+          <input id="talla" type="number" class="form-control" [(ngModel)]="consulta.tallaCm" [disabled]="cerrada" />
+        </div>
+        <div class="consulta-imc">
+          <span class="form-label">IMC</span>
+          <strong>{{ consulta.imc || imc }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="ct-section">
+      <h2 class="ct-subtitle">
+        <span class="material-symbols-outlined">medical_information</span>
+        Diagnósticos (CIE-10)
+      </h2>
+      <div class="consulta-buscador" *ngIf="!cerrada">
+        <input type="search" class="form-control" placeholder="Buscar por código o descripción (mínimo 2 letras)"
+          aria-label="Buscar diagnóstico" [(ngModel)]="busqueda" (ngModelChange)="buscarCie()" />
+        <div class="consulta-sugerencias" *ngIf="sugerencias.length">
+          <button type="button" *ngFor="let codigo of sugerencias" (click)="agregarDiagnostico(codigo)">
+            <strong>{{ codigo.code }}</strong> {{ codigo.display }}
+          </button>
+        </div>
+      </div>
+      <p class="consulta-vacio" *ngIf="!consulta.diagnosticos.length">Todavía no hay diagnósticos cargados.</p>
+      <div class="consulta-diagnostico" *ngFor="let diagnostico of consulta.diagnosticos; let i = index">
+        <span class="ct-badge ct-badge--accent">{{ diagnostico.code }}</span>
+        <span class="consulta-diagnostico__texto">{{ diagnostico.display }}</span>
+        <select class="form-select" aria-label="Tipo de diagnóstico" [(ngModel)]="diagnostico.tipo" [disabled]="cerrada">
+          <option value="PRESUNTIVO">Presuntivo</option>
+          <option value="DEFINITIVO">Definitivo</option>
+        </select>
+        <button type="button" class="btn btn-danger btn-sm" *ngIf="!cerrada" (click)="quitarDiagnostico(i)"
+          title="Quitar diagnóstico" aria-label="Quitar diagnóstico">
+          <span class="material-symbols-outlined">delete</span>
         </button>
       </div>
-    </div>
-    <div class="hce-list-item" *ngFor="let diagnostico of consulta.diagnosticos; let i = index">
-      <span>{{ diagnostico.code }} {{ diagnostico.display }}</span>
-      <select [(ngModel)]="diagnostico.tipo" [disabled]="cerrada">
-        <option value="PRESUNTIVO">Presuntivo</option>
-        <option value="DEFINITIVO">Definitivo</option>
-      </select>
-      <button type="button" class="btn btn-secondary" *ngIf="!cerrada" (click)="quitarDiagnostico(i)">Quitar</button>
-    </div>
+    </section>
 
-    <label>Indicaciones</label>
-    <textarea [(ngModel)]="consulta.indicaciones" [disabled]="cerrada"></textarea>
-    <label>Plan</label>
-    <textarea [(ngModel)]="consulta.plan" [disabled]="cerrada"></textarea>
-    <label>Próximo control</label>
-    <input type="date" [(ngModel)]="consulta.proximoControl" [disabled]="cerrada" />
-
-    <div class="hce-actions" *ngIf="!cerrada">
-      <button type="button" class="btn btn-secondary" (click)="guardar()" [disabled]="guardando">Guardar borrador</button>
-      <button type="button" class="btn btn-primary" (click)="cerrar()" [disabled]="guardando">Cerrar consulta</button>
-    </div>
-  </section>
-
-  <app-recetas-consulta *ngIf="consulta.id" [consulta]="consulta"></app-recetas-consulta>
-
-  <section class="hce-panel" *ngIf="consulta.id">
-    <h2>Estudios e imágenes</h2>
-    <div class="hce-actions" *ngIf="!cargando">
-      <select [(ngModel)]="tipoAdjunto">
-        <option value="ESTUDIO">Estudio</option>
-        <option value="IMAGEN">Imagen</option>
-        <option value="DOCUMENTO">PDF</option>
-        <option value="OTRO">Otro</option>
-      </select>
-      <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" (change)="onArchivo($event)" />
-    </div>
-    <p class="hce-muted">PDF o imagen, hasta 10 MB. No se borran.</p>
-    <div class="hce-list">
-      <div class="hce-list-item" *ngFor="let adjunto of adjuntos">
-        <span>{{ adjunto.nombreOriginal }} · {{ adjunto.tipo }}</span>
+    <section class="ct-section">
+      <h2 class="ct-subtitle">
+        <span class="material-symbols-outlined">assignment</span>
+        Indicaciones y plan
+      </h2>
+      <div class="ct-grid ct-grid--2">
+        <div class="consulta-campo">
+          <label class="form-label" for="indicaciones">Indicaciones</label>
+          <textarea id="indicaciones" class="form-control" rows="4" placeholder="Lo que tiene que hacer el paciente"
+            [(ngModel)]="consulta.indicaciones" [disabled]="cerrada"></textarea>
+        </div>
+        <div class="consulta-campo">
+          <label class="form-label" for="plan">Plan</label>
+          <textarea id="plan" class="form-control" rows="4" placeholder="Estudios, derivaciones y seguimiento"
+            [(ngModel)]="consulta.plan" [disabled]="cerrada"></textarea>
+        </div>
       </div>
-    </div>
-  </section>
+      <div class="consulta-control">
+        <label class="form-label" for="control">Próximo control</label>
+        <input id="control" type="date" class="form-control" [(ngModel)]="consulta.proximoControl" [disabled]="cerrada" />
+      </div>
 
-  <section class="hce-panel" *ngIf="cerrada">
-    <h2>Enmiendas</h2>
-    <article *ngFor="let enmienda of consulta.enmiendas">
-      <p><strong>{{ enmienda.medicoNombre }}</strong> · {{ enmienda.creadaEn | date:'dd/MM/yyyy HH:mm' }}</p>
-      <p class="hce-muted">Motivo: {{ enmienda.motivo }}</p>
-      <p>{{ enmienda.texto }}</p>
-    </article>
-    <label>Motivo de la corrección</label>
-    <input type="text" [(ngModel)]="enmiendaMotivo" />
-    <label>Texto de la enmienda</label>
-    <textarea [(ngModel)]="enmiendaTexto"></textarea>
-    <button type="button" class="btn btn-primary" (click)="agregarEnmienda()" [disabled]="guardando">Registrar enmienda</button>
-  </section>
+      <div class="ct-form-actions" *ngIf="!cerrada">
+        <p class="consulta-ayuda">Una consulta cerrada no se puede editar: las correcciones se registran como enmiendas.</p>
+        <button type="button" class="btn btn-secondary" (click)="guardar()" [disabled]="guardando">
+          <span class="material-symbols-outlined">save</span>
+          Guardar borrador
+        </button>
+        <button type="button" class="btn btn-primary" (click)="cerrar()" [disabled]="guardando">
+          <span class="material-symbols-outlined">task_alt</span>
+          Cerrar consulta
+        </button>
+      </div>
+    </section>
+
+    <div class="ct-alert" *ngIf="!consulta.id">
+      <span class="material-symbols-outlined">info</span>
+      <span>Guardá el borrador para poder agregar recetas, órdenes y estudios.</span>
+    </div>
+
+    <app-recetas-consulta *ngIf="consulta.id" [consulta]="consulta"></app-recetas-consulta>
+
+    <section class="ct-section" *ngIf="consulta.id">
+      <h2 class="ct-subtitle">
+        <span class="material-symbols-outlined">description</span>
+        Estudios e imágenes
+      </h2>
+      <div class="consulta-adjuntar">
+        <select class="form-select" aria-label="Tipo de archivo" [(ngModel)]="tipoAdjunto">
+          <option value="ESTUDIO">Estudio</option>
+          <option value="IMAGEN">Imagen</option>
+          <option value="DOCUMENTO">PDF</option>
+          <option value="OTRO">Otro</option>
+        </select>
+        <input type="file" class="form-control" aria-label="Archivo"
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" (change)="onArchivo($event)" />
+      </div>
+      <p class="consulta-ayuda">PDF o imagen, hasta 10 MB. Los archivos no se pueden borrar.</p>
+      <p class="consulta-vacio" *ngIf="!adjuntos.length">No hay archivos adjuntos.</p>
+      <div class="consulta-diagnostico" *ngFor="let adjunto of adjuntos">
+        <span class="ct-badge">{{ adjunto.tipo }}</span>
+        <span class="consulta-diagnostico__texto">{{ adjunto.nombreOriginal }}</span>
+      </div>
+    </section>
+
+    <section class="ct-section" *ngIf="cerrada">
+      <h2 class="ct-subtitle">
+        <span class="material-symbols-outlined">history</span>
+        Enmiendas
+      </h2>
+      <p class="consulta-vacio" *ngIf="!consulta.enmiendas.length">Esta consulta no tiene enmiendas.</p>
+      <article class="consulta-enmienda" *ngFor="let enmienda of consulta.enmiendas">
+        <p><strong>{{ enmienda.medicoNombre }}</strong> · {{ enmienda.creadaEn | date:'dd/MM/yyyy HH:mm' }}</p>
+        <p class="consulta-ayuda">Motivo: {{ enmienda.motivo }}</p>
+        <p>{{ enmienda.texto }}</p>
+      </article>
+      <div class="consulta-campo">
+        <label class="form-label" for="enmiendaMotivo">Motivo de la corrección</label>
+        <input id="enmiendaMotivo" type="text" class="form-control" [(ngModel)]="enmiendaMotivo" />
+      </div>
+      <div class="consulta-campo">
+        <label class="form-label" for="enmiendaTexto">Texto de la enmienda</label>
+        <textarea id="enmiendaTexto" class="form-control" rows="3" [(ngModel)]="enmiendaTexto"></textarea>
+      </div>
+      <div class="ct-form-actions">
+        <button type="button" class="btn btn-primary" (click)="agregarEnmienda()" [disabled]="guardando">
+          <span class="material-symbols-outlined">add</span>
+          Registrar enmienda
+        </button>
+      </div>
+    </section>
+  </ng-container>
 </div>

@@ -1,0 +1,164 @@
+/* Consulta del médico. Layout y piezas vienen de ct-ui.css; acá solo lo propio. */
+
+.ct-page-header__title .ct-badge {
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+}
+
+.ct-section,
+.ct-alert {
+  margin-bottom: var(--space-lg);
+}
+
+.consulta-campo {
+  margin-bottom: var(--space-md);
+}
+
+.consulta-campo textarea {
+  resize: vertical;
+}
+
+.form-label small {
+  font-weight: var(--font-weight-normal, 400);
+  color: var(--text-secondary);
+}
+
+.consulta-signos {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(4, 1fr) auto;
+  align-items: end;
+  gap: var(--space-md);
+}
+
+.consulta-ta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text-secondary);
+}
+
+.consulta-imc {
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.consulta-imc .form-label {
+  margin: 0;
+}
+
+.consulta-imc strong {
+  font-size: var(--font-size-lg);
+  color: var(--text-main);
+}
+
+.consulta-buscador {
+  position: relative;
+  margin-bottom: var(--space-md);
+}
+
+.consulta-sugerencias {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: var(--space-2xs, 4px);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.consulta-sugerencias button {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  color: var(--text-main);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.consulta-sugerencias button:hover,
+.consulta-sugerencias button:focus {
+  background: var(--color-background);
+}
+
+.consulta-diagnostico {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.consulta-diagnostico__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.consulta-diagnostico .form-select {
+  width: auto;
+  min-width: 150px;
+}
+
+.consulta-control {
+  max-width: 240px;
+}
+
+.consulta-adjuntar {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.consulta-ayuda,
+.consulta-vacio {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.ct-form-actions .consulta-ayuda {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+  align-self: center;
+}
+
+.consulta-enmienda {
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.consulta-enmienda p {
+  margin: 0 0 var(--space-xs) 0;
+}
+
+@media (max-width: 900px) {
+  .consulta-signos {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .consulta-adjuntar {
+    grid-template-columns: 1fr;
+  }
+
+  .consulta-diagnostico {
+    flex-wrap: wrap;
+  }
+}
