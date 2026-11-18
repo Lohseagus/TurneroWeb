@@ -85,7 +85,7 @@
               <label class="form-label" for="cambiarCentro">Cambiar a otro centro:</label>
               <select id="cambiarCentro" class="form-select" (change)="onCambiarCentro($event)">
                 <option value="">Seleccionar centro...</option>
-                @for (centro of getCentrosUnicos(); track centro) {
+                @for (centro of getCentrosUnicos(); track centro.nombre) {
                   <option [value]="centro.nombre">{{ centro.nombre }}</option>
                 }
               </select>
@@ -126,7 +126,7 @@
       }
 
       @if (!cargando && getEspecialidadesDelCentroActual().length > 0) {
-        @for (especialidad of getEspecialidadesDelCentroActual(); track especialidad) {
+        @for (especialidad of getEspecialidadesDelCentroActual(); track especialidad.id) {
           <article class="especialidad">
             <div class="ct-section__header">
               <div class="ct-section__heading">
@@ -168,7 +168,7 @@
 
             @if (especialidadTieneDisponibilidades(especialidad.id)) {
               <div class="ct-grid ct-grid--wide">
-                @for (disponibilidad of disponibilidadesPorEspecialidad[especialidad.id]; track disponibilidad) {
+                @for (disponibilidad of disponibilidadesPorEspecialidad[especialidad.id]; track disponibilidad.id) {
                   <div class="disponibilidad">
                     <div class="disponibilidad__header">
                       <div>
@@ -297,7 +297,7 @@
             [disabled]="modoEdicion"
             >
             <option value="">Seleccionar especialidad...</option>
-            @for (especialidad of getEspecialidadesDelCentroActual(); track especialidad) {
+            @for (especialidad of getEspecialidadesDelCentroActual(); track especialidad.id) {
               <option [value]="especialidad.id">
                 {{ especialidad.nombre }}
                 @if (especialidadTieneDisponibilidades(especialidad.id) && !modoEdicion) {
