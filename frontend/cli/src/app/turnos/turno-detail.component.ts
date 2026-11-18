@@ -1,3 +1,4 @@
+import { HceService } from '../historia-clinica/hce.service';
 import { Component, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -63,7 +64,8 @@ export class TurnoDetailComponent {
     private consultorioService: ConsultorioService,
     private modalService: ModalService,
     private authService: AuthService,
-    private medicoSesion: MedicoSesionService
+    private medicoSesion: MedicoSesionService,
+    private hceService: HceService
   ) { }
 
   // Importar lazymente el componente de modal con tabla (evita problemas de bundling)
@@ -96,6 +98,13 @@ export class TurnoDetailComponent {
         consultorioId: 0,
         observaciones: "",
       } as Turno;
+      // Desde "Mi semana" un turno libre llega con el horario ya elegido.
+      const q = this.route.snapshot.queryParamMap;
+      this.turno.fecha = q.get("fecha") || "";
+      this.turno.horaInicio = q.get("horaInicio") || "";
+      this.turno.horaFin = q.get("horaFin") || "";
+      this.turno.staffMedicoId = Number(q.get("staffMedicoId")) || 0;
+      this.turno.consultorioId = Number(q.get("consultorioId")) || 0;
     } else if (path === "turnos/:id") {
       // Detalle o edición
       this.modoEdicion =
@@ -122,20 +131,35 @@ export class TurnoDetailComponent {
 
   loadDropdownData(): void {
     // Cargar pacientes
-    this.pacienteService
-      .all()
-      .subscribe((dataPackage: DataPackage<Paciente[]>) => {
+    // El médico no tiene permiso sobre el padrón completo: elige entre sus pacientes.
+    this.pacienteService.all().subscribe({
+      next: (dataPackage: DataPackage<Paciente[]>) => {
         this.pacientes = dataPackage.data || [];
-      });
+      },
+      error: () => {
+        this.hceService.misPacientes().subscribe({
+          next: res => { this.pacientes = (res.data || []) as unknown as Paciente[]; },
+          error: () => { this.pacientes = []; }
+        });
+      }
+    });
 
     this.cargarStaff();
 
     // Cargar consultorios
-    this.consultorioService
-      .getAll()
-      .subscribe((dataPackage: DataPackage<Consultorio[]>) => {
+    this.consultorioService.getAll().subscribe({
+      next: (dataPackage: DataPackage<Consultorio[]>) => {
         this.consultorios = dataPackage.data || [];
-      });
+      },
+      error: () => {
+        // Sin permiso sobre el catálogo: queda el consultorio del horario elegido.
+        const q = this.route.snapshot.queryParamMap;
+        const id = Number(q.get("consultorioId"));
+        this.consultorios = id
+          ? [{ id, nombre: q.get("consultorioNombre") || "Consultorio" } as unknown as Consultorio]
+          : [];
+      }
+    });
   }
 
   reintentarStaff(): void {

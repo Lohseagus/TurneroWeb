@@ -116,21 +116,28 @@
           <div class="semana__turnos">
             @for (turno of dia.items; track (turno.libre ? 'L' : 'T') + turno.id + turno.horaInicio) {
               @if (turno.libre) {
-                <div class="semana__turno is-libre" [title]="(turno.nombreCentro || '') + ' · ' + (turno.consultorioNombre || '')">
+                <button type="button" class="semana__turno is-libre is-accion" (click)="asignarLibre(turno)"
+                  [title]="'Asignar este turno a un paciente · ' + (turno.nombreCentro || '') + ' · ' + (turno.consultorioNombre || '')">
                   <span class="semana__hora">{{ turno.horaInicio | slice : 0 : 5 }}</span>
                   <span class="semana__paciente">Libre</span>
                   @if (variosCentros) {
                     <span class="semana__centro">{{ turno.nombreCentro }}</span>
                   }
-                </div>
+                </button>
               } @else {
               <div
                 class="semana__turno"
                 [class.is-cancelado]="turno.estado === 'CANCELADO'"
-                [title]="(turno.nombreCentro || '') + ' · ' + (turno.consultorioNombre || '') + ' · ' + getStatusText(turno.estado)"
+                [class.is-accion]="turno.estado !== 'CANCELADO'"
+                [attr.role]="turno.estado !== 'CANCELADO' ? 'button' : null"
+                [attr.tabindex]="turno.estado !== 'CANCELADO' ? 0 : null"
+                (click)="abrirConsultaSemana(turno)"
+                (keydown.enter)="abrirConsultaSemana(turno)"
+                [title]="(turno.estado !== 'CANCELADO' ? 'Iniciar consulta · ' : '') + (turno.nombreCentro || '') + ' · ' + (turno.consultorioNombre || '') + ' · ' + getStatusText(turno.estado)"
                 >
                 <span class="semana__hora">{{ turno.horaInicio | slice : 0 : 5 }}</span>
-                <span class="semana__paciente">{{ turno.nombrePaciente }} {{ turno.apellidoPaciente }}</span>
+                <a class="semana__paciente semana__paciente--link" href="#" title="Ver historia clínica"
+                  (click)="verHistoriaSemana(turno, $event)">{{ turno.nombrePaciente }} {{ turno.apellidoPaciente }}</a>
                 @if (variosCentros) {
                   <span class="semana__centro">{{ turno.nombreCentro }}</span>
                 }

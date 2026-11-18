@@ -832,6 +832,33 @@ Posible problema de configuración. Verifique:
     }
   }
 
+  /** Clic en el cuadro de un turno de la semana: abre la consulta de ese turno. */
+  abrirConsultaSemana(turno: { id: number; estado?: string }): void {
+    if (turno.estado === 'CANCELADO') return;
+    this.iniciarConsulta(turno);
+  }
+
+  /** Clic en el nombre del paciente: abre su historia clínica sin disparar la consulta. */
+  verHistoriaSemana(turno: { id: number; pacienteId?: number }, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.verHistoria(turno);
+  }
+
+  /** Clic en un turno libre: abre el alta de turno con el horario ya cargado. */
+  asignarLibre(slot: any): void {
+    this.router.navigate(['/turnos/new'], {
+      queryParams: {
+        fecha: slot.fecha,
+        horaInicio: (slot.horaInicio || '').slice(0, 5),
+        horaFin: (slot.horaFin || '').slice(0, 5),
+        staffMedicoId: slot.staffMedicoId,
+        consultorioId: slot.consultorioId,
+        consultorioNombre: slot.consultorioNombre
+      }
+    });
+  }
+
   private cargarSlotsLibres(): void {
     if (!this.staffIds.length) return;
     forkJoin(this.staffIds.map(id => this.agendaService.obtenerSlotsDisponiblesPorMedico(id, 8))).subscribe({

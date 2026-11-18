@@ -1098,6 +1098,31 @@ input:disabled + .slider {
   color: var(--color-success);
 }
 
+.semana__turno.is-accion {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.semana__turno.is-accion:hover,
+.semana__turno.is-accion:focus-visible {
+  background: var(--color-background);
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.semana__paciente--link {
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.semana__paciente--link:hover,
+.semana__paciente--link:focus-visible {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .semana__turno.is-cancelado {
   border-left-color: var(--color-danger);
   opacity: 0.6;
