@@ -62,7 +62,9 @@
         <span class="material-symbols-outlined">calendar_month</span>
         Mi semana
       </h2>
-      <p class="ct-section__description">{{ semanaRango }} · {{ semanaTotal }} {{ semanaTotal === 1 ? 'turno' : 'turnos' }}</p>
+      <p class="ct-section__description">
+        {{ semanaRango }} · {{ semanaTotal }} {{ semanaTotal === 1 ? 'turno' : 'turnos' }} · {{ semanaLibres }} {{ semanaLibres === 1 ? 'libre' : 'libres' }}
+      </p>
     </div>
     <div class="ct-btn-group">
       <button type="button" class="btn btn-secondary btn-sm" (click)="cambiarSemana(-1)" aria-label="Semana anterior">
@@ -89,7 +91,16 @@
             <span class="semana__numero">{{ dia.numero }}</span>
           </div>
           <div class="semana__turnos">
-            @for (turno of dia.turnos; track turno.id) {
+            @for (turno of dia.items; track (turno.libre ? 'L' : 'T') + turno.id + turno.horaInicio) {
+              @if (turno.libre) {
+                <div class="semana__turno is-libre" [title]="(turno.nombreCentro || '') + ' · ' + (turno.consultorioNombre || '')">
+                  <span class="semana__hora">{{ turno.horaInicio | slice : 0 : 5 }}</span>
+                  <span class="semana__paciente">Libre</span>
+                  @if (variosCentros) {
+                    <span class="semana__centro">{{ turno.nombreCentro }}</span>
+                  }
+                </div>
+              } @else {
               <div
                 class="semana__turno"
                 [class.is-cancelado]="turno.estado === 'CANCELADO'"
@@ -97,7 +108,11 @@
                 >
                 <span class="semana__hora">{{ turno.horaInicio | slice : 0 : 5 }}</span>
                 <span class="semana__paciente">{{ turno.nombrePaciente }} {{ turno.apellidoPaciente }}</span>
+                @if (variosCentros) {
+                  <span class="semana__centro">{{ turno.nombreCentro }}</span>
+                }
               </div>
+              }
             } @empty {
               <div class="semana__vacio">—</div>
             }

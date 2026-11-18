@@ -1,3 +1,4 @@
+import { AgendaService } from '../agenda/agenda.service';
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +13,7 @@ import { DisponibilidadMedico } from '../disponibilidadMedicos/disponibilidadMed
 import { Medico } from './medico';
 import { AuthService } from '../inicio-sesion/auth.service';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
-import { MedicoSesionService, comoMedico, mensajeMedico } from './medico-sesion.service';
+import { MedicoSesionService, StaffMedicoSesion, comoMedico, mensajeMedico } from './medico-sesion.service';
 import { AusenciaModalComponent } from '../modal/ausencia-modal.component';
 import { ModalService } from '../modal/modal.service';
 
@@ -51,7 +52,20 @@ export class MedicoDashboardComponent implements OnInit {
   // === NUEVA FUNCIONALIDAD: GESTIÓN COMPLETA DE TURNOS ===
   allTurnos: any[] = [];          // Todos los turnos del médico
   filteredTurnos: any[] = [];     // Turnos filtrados según el tab activo
-  semana: { nombre: string; fecha: string; numero: number; esHoy: boolean; turnos: any[] }[] = [];
+  semana: { nombre: string; fecha: string; numero: number; esHoy: boolean; turnos: any[]; libres: any[]; items: any[] }[] = [];
+  slotsLibres: any[] = [];
+  staffSesion: StaffMedicoSesion[] = [];
+
+  /** Todos los vínculos médico-centro del usuario: la semana junta los turnos de todos sus centros. */
+  private get staffIds(): number[] {
+    const ids = this.staffSesion.map(s => s.id);
+    return ids.length ? ids : (this.staffMedicoId ? [this.staffMedicoId] : []);
+  }
+
+  get variosCentros(): boolean {
+    return new Set(this.staffSesion.map(s => s.centroId)).size > 1;
+  }
+  semanaLibres = 0;
   semanaOffset = 0;
   semanaRango = '';
   semanaTotal = 0;
@@ -70,7 +84,8 @@ export class MedicoDashboardComponent implements OnInit {
     private staffMedicoService: StaffMedicoService,
     private modalService: NgbModal,
     private notificationService: ModalService,
-    private medicoSesion: MedicoSesionService
+    private medicoSesion: MedicoSesionService,
+    private agendaService: AgendaService
   ) {
     this.initializeParticles();
   }
@@ -144,6 +159,7 @@ export class MedicoDashboardComponent implements OnInit {
       next: sesion => {
         this.medicoIdResuelto = sesion.id;
         this.staffMedicoId = sesion.staffMedicoId;
+        this.staffSesion = sesion.staff || [];
         this.medicoActual = comoMedico(sesion);
         this.cargandoMedico = false;
         if (!sesion.staffMedicoId) {
@@ -536,25 +552,28 @@ Posible problema de configuración. Verifique:
     domingoAnterior.setDate(domingoAnterior.getDate() - 1);
     const finSemanaAnterior = domingoAnterior.toISOString().split('T')[0];
 
-    const proximos$ = this.turnoService.searchWithFilters({
-      staffMedicoId: this.staffMedicoId,
-      fechaDesde: inicioSemana,
-      sortBy: 'fecha',
-      sortDirection: 'ASC',
-      size: 100
-    });
-    const anteriores$ = this.turnoService.searchWithFilters({
-      staffMedicoId: this.staffMedicoId,
-      fechaHasta: finSemanaAnterior,
-      sortBy: 'fecha',
-      sortDirection: 'DESC',
-      size: 100
-    });
+    const consultas$ = this.staffIds.flatMap(staffMedicoId => [
+      this.turnoService.searchWithFilters({
+        staffMedicoId,
+        fechaHasta: finSemanaAnterior,
+        sortBy: 'fecha',
+        sortDirection: 'DESC',
+        size: 100
+      }),
+      this.turnoService.searchWithFilters({
+        staffMedicoId,
+        fechaDesde: inicioSemana,
+        sortBy: 'fecha',
+        sortDirection: 'ASC',
+        size: 100
+      })
+    ]);
 
-    forkJoin([anteriores$, proximos$]).pipe(timeout(20000)).subscribe({
-      next: ([anteriores, proximos]) => {
+    forkJoin(consultas$).pipe(timeout(20000)).subscribe({
+      next: (respuestas: any[]) => {
         const contenido = (response: any): any[] => response.data?.content || response.data || [];
-        const todosTurnos = [...contenido(anteriores).reverse(), ...contenido(proximos)];
+        const todosTurnos = respuestas.flatMap(contenido).sort((a: any, b: any) =>
+          `${a.fecha} ${a.horaInicio}`.localeCompare(`${b.fecha} ${b.horaInicio}`));
         console.log('✅ TODOS los turnos del médico cargados:', todosTurnos.length);
         console.log('✅ Datos completos:', todosTurnos);
 
@@ -603,6 +622,7 @@ Posible problema de configuración. Verifique:
 
         this.applyTurnosFilter();
         this.actualizarSemana();
+        this.cargarSlotsLibres();
         console.log('🎯 NUEVA SECCIÓN: Todos los turnos cargados para gestión completa:', this.allTurnos.length);
 
         // Log detallado de turnos de hoy
@@ -800,6 +820,20 @@ Posible problema de configuración. Verifique:
     }
   }
 
+  private cargarSlotsLibres(): void {
+    if (!this.staffIds.length) return;
+    forkJoin(this.staffIds.map(id => this.agendaService.obtenerSlotsDisponiblesPorMedico(id, 8))).subscribe({
+      next: (respuestas: any[]) => {
+        const slots: any[] = respuestas.flatMap(res => res?.data || []);
+        this.slotsLibres = slots.filter(s => !s.ocupado && !s.enMantenimiento);
+        this.actualizarSemana();
+      },
+      error: () => {
+        this.slotsLibres = [];
+      }
+    });
+  }
+
   cambiarSemana(delta: number): void {
     this.semanaOffset = delta === 0 ? 0 : this.semanaOffset + delta;
     this.actualizarSemana();
@@ -818,16 +852,14 @@ Posible problema de configuración. Verifique:
     this.semana = nombres.map((nombre, i) => {
       const d = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + i);
       const fecha = this.fechaLocal(d);
-      return {
-        nombre,
-        fecha,
-        numero: d.getDate(),
-        esHoy: fecha === hoyStr,
-        turnos: this.allTurnos
-          .filter(t => t.fecha === fecha)
-          .sort((a, b) => (a.horaInicio || '').localeCompare(b.horaInicio || ''))
-      };
+      const turnos = this.allTurnos.filter(t => t.fecha === fecha);
+      const ocupadas = new Set(turnos.filter(t => t.estado !== 'CANCELADO').map(t => (t.horaInicio || '').slice(0, 5)));
+      const libres = this.slotsLibres.filter(s => s.fecha === fecha && !ocupadas.has((s.horaInicio || '').slice(0, 5)));
+      const items = [...turnos, ...libres.map(s => ({ ...s, libre: true }))]
+        .sort((a, b) => (a.horaInicio || '').localeCompare(b.horaInicio || ''));
+      return { nombre, fecha, numero: d.getDate(), esHoy: fecha === hoyStr, turnos, libres, items };
     });
+    this.semanaLibres = this.semana.reduce((n, dia) => n + dia.libres.length, 0);
     const domingo = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6);
     const f = (d: Date) => `${d.getDate()} ${this.formatMonth(this.fechaLocal(d)).toLowerCase()}`;
     this.semanaRango = `${f(lunes)} – ${f(domingo)} ${domingo.getFullYear()}`;
