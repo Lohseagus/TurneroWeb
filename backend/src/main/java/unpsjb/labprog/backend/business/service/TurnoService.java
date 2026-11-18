@@ -45,7 +45,6 @@ import unpsjb.labprog.backend.model.Turno;
 import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.business.repository.OperadorRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
-import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
 import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.exception.TenantAccessException;
@@ -140,21 +139,13 @@ public class TurnoService {
      * @return Lista de DTOs de turnos según permisos del usuario
      */
     public List<TurnoDTO> findAll() {
-        Integer centroId = TenantContext.getFilteredCentroId();
-        
-        if (centroId != null) {
-            // Usuario restringido a un centro (ADMIN/MEDICO/OPERADOR)
-            return repository.findByCentroAtencion_Id(centroId, Sort.by(Sort.Direction.DESC, "fecha", "horaInicio"))
-                .stream()
+        Sort orden = Sort.by(Sort.Direction.DESC, "fecha", "horaInicio");
+        List<Turno> turnos = centroAccess.centrosPermitidos() == null
+                ? repository.findAll(orden)
+                : repository.findAll(soloCentrosPermitidos(null, null), orden);
+        return turnos.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
-        } else {
-            // Usuario con acceso global (SUPERADMIN o PACIENTE)
-            return repository.findAll(Sort.by(Sort.Direction.DESC, "fecha", "horaInicio"))
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-        }
     }
 
     // Obtener un turno por ID como DTO
@@ -323,18 +314,11 @@ public class TurnoService {
 
     // Obtener turnos paginados como DTOs con filtrado automático de multi-tenencia
     public Page<TurnoDTO> findByPage(int page, int size) {
-        Integer centroId = TenantContext.getFilteredCentroId();
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fecha", "horaInicio"));
-        
-        if (centroId != null) {
-            // Usuario restringido a un centro
-            return repository.findByCentroAtencion_Id(centroId, pageable)
-                .map(this::toDTO);
-        } else {
-            // Usuario con acceso global
-            return repository.findAll(pageable)
-                .map(this::toDTO);
-        }
+        Page<Turno> turnos = centroAccess.centrosPermitidos() == null
+                ? repository.findAll(pageable)
+                : repository.findAll(soloCentrosPermitidos(null, null), pageable);
+        return turnos.map(this::toDTO);
     }
 
     /**
@@ -404,8 +388,19 @@ public class TurnoService {
             }
         }
 
-        // MULTI-TENENCIA: Obtener centro del usuario actual
-        Integer centroId = TenantContext.getFilteredCentroId();
+        // MULTI-TENENCIA: centros de la cuenta (un médico puede tener varios)
+        java.util.Set<Integer> centros = centroAccess.centrosPermitidos();
+        if (centros != null && centros.size() != 1) {
+            // Ninguno o varios centros: la consulta filtra por uno solo, así que se
+            // trae sin paginar, se recorta a los centros de la cuenta y se pagina acá.
+            List<Turno> todos = centros.isEmpty() ? List.of()
+                    : centroAccess.filtrar(repository.findByFiltrosWithCentro(null, paciente, medico, consultorio,
+                            estadoEnum, fechaDesdeParsed, fechaHastaParsed,
+                            org.springframework.data.domain.Pageable.unpaged(sort)).getContent(),
+                            CentroAccessGuard::centroDe);
+            return createPageFromList(todos, pageable).map(this::toDTO);
+        }
+        Integer centroId = centros == null ? null : centros.iterator().next();
 
         // Ejecutar consulta con filtros incluyendo tenant
         Page<Turno> result = repository.findByFiltrosWithCentro(
@@ -2030,6 +2025,10 @@ public class TurnoService {
         if (filter == null) {
             filter = new TurnoFilterDTO();
         }
+
+        // centroId es un alias que las búsquedas no aplican: igual se rechaza si
+        // nombra un centro que no es de la cuenta, en vez de ignorarlo en silencio.
+        centroAccess.exigirCentroSiViene(filter.getCentroId());
 
         // Crear una copia limpia del filtro
         TurnoFilterDTO cleanFilter = new TurnoFilterDTO();
