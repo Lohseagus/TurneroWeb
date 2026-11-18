@@ -1,5 +1,5 @@
 import { Role, ROLE_HIERARCHY } from '../inicio-sesion/auth.service';
-import { filterItemsByPrimaryRole, getMenuSectionsForUser, homeRouteForRole, personalizeMenuItem } from './menu.config';
+import { filterItemsByPrimaryRole, getMenuSectionsForUser, homeRouteForRole, ocultarPanelPaciente, personalizeMenuItem, portalPacienteHabilitado } from './menu.config';
 import {
   clearAllMenuSectionState,
   menuSectionStateKey,
@@ -69,6 +69,52 @@ describe('jerarquía de paneles del sidebar', () => {
     expect(ROLE_HIERARCHY[Role.ADMINISTRADOR]).toEqual(
       expect.arrayContaining([Role.OPERADOR, Role.MEDICO, Role.PACIENTE])
     );
+  });
+});
+
+describe('panel de paciente según la ficha', () => {
+  const rolesMedico = [Role.MEDICO, Role.PACIENTE];
+
+  it('oculta el panel del staff que no tiene ficha y lo deja si la tiene', () => {
+    const secciones = filterItemsByPrimaryRole(getMenuSectionsForUser(rolesMedico, Role.MEDICO), Role.MEDICO);
+
+    expect(portalPacienteHabilitado(Role.MEDICO, false)).toBe(false);
+    expect(ocultarPanelPaciente(secciones, Role.MEDICO, false).map(section => section.id)).toEqual(['medico']);
+
+    const conFicha = ocultarPanelPaciente(secciones, Role.MEDICO, true);
+    expect(conFicha.map(section => section.id)).toEqual(['medico', 'paciente']);
+    expect(defaultOpenSectionIds(conFicha, '/medico-dashboard')).toEqual(['medico']);
+    expect(conFicha.find(section => section.id === 'paciente')?.items.some(item => item.route === '/paciente-perfil')).toBe(false);
+  });
+
+  it('un PACIENTE primario ve su panel aunque la consulta de ficha diga que no', () => {
+    const secciones = filterItemsByPrimaryRole(getMenuSectionsForUser([Role.PACIENTE], Role.PACIENTE), Role.PACIENTE);
+
+    expect(portalPacienteHabilitado(Role.PACIENTE, false)).toBe(true);
+    expect(ocultarPanelPaciente(secciones, Role.PACIENTE, false).map(section => section.id)).toEqual(['paciente']);
+  });
+
+  it('operador, administrador y superadmin sin ficha no apilan el panel de paciente', () => {
+    expect(ocultarPanelPaciente(
+      filterItemsByPrimaryRole(getMenuSectionsForUser([Role.OPERADOR, Role.PACIENTE], Role.OPERADOR), Role.OPERADOR),
+      Role.OPERADOR,
+      false
+    ).map(section => section.id)).toEqual(['operador']);
+
+    expect(ocultarPanelPaciente(
+      filterItemsByPrimaryRole(
+        getMenuSectionsForUser([Role.ADMINISTRADOR, Role.OPERADOR, Role.MEDICO, Role.PACIENTE], Role.ADMINISTRADOR),
+        Role.ADMINISTRADOR
+      ),
+      Role.ADMINISTRADOR,
+      false
+    ).map(section => section.id)).toEqual(['operador', 'administrador']);
+
+    expect(ocultarPanelPaciente(
+      filterItemsByPrimaryRole(getMenuSectionsForUser(ALL_ROLES, Role.SUPERADMIN), Role.SUPERADMIN),
+      Role.SUPERADMIN,
+      false
+    ).some(section => section.id === 'paciente')).toBe(false);
   });
 });
 

@@ -8,7 +8,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 // Services
 import { TurnoService } from "../turnos/turno.service";
 import { EspecialidadService } from "../especialidades/especialidad.service";
-import { StaffMedicoService } from "../staffMedicos/staffMedico.service";
 import { CentroAtencionService } from "../centrosAtencion/centroAtencion.service";
 import { AgendaService } from "../agenda/agenda.service";
 import { DiasExcepcionalesService } from "../agenda/dias-excepcionales.service";
@@ -124,7 +123,6 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private turnoService: TurnoService,
     private especialidadService: EspecialidadService,
-    private staffMedicoService: StaffMedicoService,
     private centroAtencionService: CentroAtencionService,
     private agendaService: AgendaService,
     private diasExcepcionalesService: DiasExcepcionalesService,
@@ -191,7 +189,6 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     // PASO 4: Cargar todos los datos necesarios al inicio
     this.cargarDiasExcepcionales();
     this.cargarEspecialidades();
-    this.cargarTodosLosStaffMedicos();
     this.cargarCentrosAtencion();
     
     // PASO 5: Cargar turnos - MÉTODO CENTRALIZADO
@@ -359,6 +356,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
 
         // Guardar y mostrar resultados
         this.slotsOriginales = eventosMapeados;
+        this.incorporarMedicosDeSlots(eventosMapeados);
         this.slotsDisponibles = eventosMapeados;
         this.turnosDisponibles = eventosMapeados;
         this.showCalendar = eventosMapeados.length > 0;
@@ -387,6 +385,7 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     this.showCalendar = this.slotsDisponibles.length > 0;
     this.filtrosAplicados = true;
 
+    this.incorporarMedicosDeSlots(this.slotsOriginales);
     this.agruparSlotsPorFecha();
     this.isLoadingTurnos = false;
     this.cdr.detectChanges();
@@ -411,9 +410,8 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
    */
   private actualizarListasFiltradasPorCentro(centroId: number | null): void {
     if (!centroId) {
-      // Si no hay centro seleccionado, mostrar todas las opciones
       this.especialidades = [...this.especialidadesCompletas];
-      this.staffMedicos = [...this.staffMedicosCompletos];
+      this.refrescarMedicosVisibles();
       return;
     }
 
@@ -421,18 +419,60 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     // especialidades y médicos específicos del centro
     // Por ahora, usamos las listas completas
     this.especialidades = [...this.especialidadesCompletas];
-    this.staffMedicos = [...this.staffMedicosCompletos];
+    this.refrescarMedicosVisibles();
+  }
+
+  /**
+   * El listado de staff es de administración. Acá el médico sale de los turnos
+   * que la agenda ya devolvió, que un paciente y un médico sí pueden leer.
+   */
+  private incorporarMedicosDeSlots(slots: SlotDisponible[]): void {
+    const porId = new Map(this.staffMedicosCompletos.map(staff => [staff.id, staff]));
+    for (const slot of slots) {
+      if (!slot.staffMedicoId || porId.has(slot.staffMedicoId)) {
+        continue;
+      }
+      porId.set(slot.staffMedicoId, {
+        id: slot.staffMedicoId,
+        medico: {
+          id: 0,
+          nombre: slot.staffMedicoNombre || "",
+          apellido: slot.staffMedicoApellido || "",
+          dni: "",
+          matricula: "",
+        },
+        centro: slot.centroId
+          ? { id: slot.centroId, nombre: slot.nombreCentro || "Sin centro" }
+          : undefined,
+        especialidad: slot.especialidadStaffMedico
+          ? { id: 0, nombre: slot.especialidadStaffMedico }
+          : undefined,
+      });
+    }
+    this.staffMedicosCompletos = Array.from(porId.values());
+    this.refrescarMedicosVisibles();
+    this.isLoadingStaffMedicos = false;
+  }
+
+  private refrescarMedicosVisibles(): void {
+    const centro = this.centroAtencionSeleccionado;
+    const especialidad = this.especialidadSeleccionada;
+    this.staffMedicos = this.staffMedicosCompletos.filter(staff => {
+      if (centro && staff.centro?.id && Number(staff.centro.id) !== Number(centro)) {
+        return false;
+      }
+      if (especialidad && staff.especialidad?.nombre && staff.especialidad.nombre !== especialidad) {
+        return false;
+      }
+      return true;
+    });
   }
 
   /**
    * Actualizar lista de médicos basado en centro y especialidad
    */
   private actualizarListaMedicos(): void {
-    const filtros = this.filtrosForm.value;
-    
-    // TODO: Filtrar médicos según especialidad y centro
-    // Por ahora, mostrar todos
-    this.staffMedicos = [...this.staffMedicosCompletos];
+    this.refrescarMedicosVisibles();
   }
 
   ngOnDestroy() {
@@ -464,22 +504,6 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Cargar TODOS los staff médicos al inicio (sin filtrar por especialidad)
-  cargarTodosLosStaffMedicos() {
-    this.isLoadingStaffMedicos = true;
-    this.staffMedicoService.all().subscribe({
-      next: (dataPackage: DataPackage<StaffMedico[]>) => {
-        this.staffMedicosCompletos = dataPackage.data || [];
-        this.staffMedicos = [...this.staffMedicosCompletos]; // Inicialmente mostrar todos
-
-        this.isLoadingStaffMedicos = false;
-      },
-      error: (error) => {
-        console.error("Error cargando staff médicos:", error);
-        this.isLoadingStaffMedicos = false;
-      },
-    });
-  }
   // Cargar TODOS los turnos disponibles al inicio (sin filtros)
   cargarTodosLosTurnos() {
     this.isLoadingTurnos = true;
@@ -569,45 +593,6 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     console.log('🔄 Redirigiendo a login...');
     this.router.navigate(['/ingresar'], {
       queryParams: { returnUrl: '/paciente-agenda' }
-    });
-  }
-
-  // Cargar staff médicos filtrados por especialidad
-  cargarStaffMedicosPorEspecialidad() {
-    if (!this.especialidadSeleccionada) return;
-
-    this.isLoadingStaffMedicos = true;
-    this.staffMedicoService.all().subscribe({
-      next: (dataPackage: DataPackage<StaffMedico[]>) => {
-        // Filtrar staff médicos que tengan la especialidad seleccionada
-        this.staffMedicos = (dataPackage.data || []).filter(
-          (staff) =>
-            staff.especialidad?.nombre === this.especialidadSeleccionada
-        );
-
-        console.log(
-          "🏥 Staff médicos cargados para especialidad:",
-          this.especialidadSeleccionada
-        );
-        console.log(
-          "- Total staff médicos filtrados:",
-          this.staffMedicos.length
-        );
-        console.log(
-          "- IDs de staff médicos:",
-          this.staffMedicos.map((s) => ({
-            id: s.id,
-            nombre: s.medico?.nombre,
-            apellido: s.medico?.apellido,
-          }))
-        );
-
-        this.isLoadingStaffMedicos = false;
-      },
-      error: (error) => {
-        console.error("Error cargando staff médicos:", error);
-        this.isLoadingStaffMedicos = false;
-      },
     });
   }
 

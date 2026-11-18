@@ -4,14 +4,18 @@
       <h1>Mi historia clínica</h1>
       <p *ngIf="perfil">{{ perfil.nombre }} {{ perfil.apellido }} · DNI {{ perfil.dni || '—' }}</p>
     </div>
-    <button type="button" class="btn btn-primary" (click)="pdfResumen()">Descargar resumen PDF</button>
+    <button type="button" class="btn btn-primary" *ngIf="perfil && !sinFicha" (click)="pdfResumen()">Descargar resumen PDF</button>
   </div>
 
+  <div class="ct-empty" *ngIf="sinFicha">
+    <span class="material-symbols-outlined ct-empty__icon" aria-hidden="true">personal_injury</span>
+    <h2 class="ct-empty__title">{{ mensajeSinFicha }}</h2>
+  </div>
   <div class="hce-error" *ngIf="error">{{ error }}</div>
   <div class="hce-ok" *ngIf="aviso">{{ aviso }}</div>
   <p *ngIf="cargando">Cargando…</p>
 
-  <section class="hce-panel" *ngIf="perfil">
+  <section class="hce-panel" *ngIf="perfil && !sinFicha && !cargando">
     <h2>Perfil</h2>
     <p>Grupo sanguíneo: {{ perfil.grupoSanguineo || 'Desconocido' }}</p>
     <p>Antecedentes personales: {{ perfil.antecedentesPersonales || '—' }}</p>
@@ -26,7 +30,7 @@
     </label>
   </section>
 
-  <section class="hce-panel">
+  <section class="hce-panel" *ngIf="!sinFicha && !cargando && !error">
     <div class="hce-filters">
       <h2>Línea de tiempo</h2>
       <select [(ngModel)]="filtrosTipo" (ngModelChange)="filtrar()">

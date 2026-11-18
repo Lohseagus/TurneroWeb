@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
 import { HceService } from './hce.service';
 import { AdjuntoHce, ConsultaHce, PerfilClinico, TimelineItem } from './hce.models';
+import { MENSAJE_SIN_FICHA_PACIENTE } from '../config/menu.config';
 
 @Component({
   selector: 'app-paciente-hce',
@@ -19,10 +21,12 @@ export class PacienteHceComponent implements OnInit {
   consulta: ConsultaHce | null = null;
   filtrosTipo = '';
   cargando = false;
+  sinFicha = false;
+  readonly mensajeSinFicha = MENSAJE_SIN_FICHA_PACIENTE;
   error = '';
   aviso = '';
 
-  constructor(private hce: HceService) {}
+  constructor(private hce: HceService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -30,12 +34,16 @@ export class PacienteHceComponent implements OnInit {
 
   cargar(): void {
     this.cargando = true;
-    this.hce.miHistoria().subscribe({
+    this.sinFicha = false;
+    this.error = '';
+    this.hce.miHistoria().pipe(finalize(() => {
+      this.cargando = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: res => {
         this.perfil = res.data.perfil;
         this.timeline = res.data.timeline || [];
         this.adjuntos = res.data.adjuntos || [];
-        this.cargando = false;
       },
       error: err => this.fallo(err)
     });
@@ -112,7 +120,12 @@ export class PacienteHceComponent implements OnInit {
   }
 
   private fallo(err: HttpErrorResponse): void {
-    this.cargando = false;
-    this.error = err.error?.status_text || 'No se pudo leer la historia clínica';
+    const texto = err.error?.status_text || '';
+    if (err.status === 404 && /ficha de paciente/i.test(texto)) {
+      this.sinFicha = true;
+      this.error = '';
+      return;
+    }
+    this.error = texto || 'No se pudo leer la historia clínica';
   }
 }

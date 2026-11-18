@@ -472,6 +472,34 @@ export function getMenuSectionsForUser(userRoles: Role[], primaryRole?: string |
   return sections;
 }
 
+/** Texto del vacío cuando la cuenta no tiene fila Paciente. */
+export const MENSAJE_SIN_FICHA_PACIENTE = 'Tu cuenta no tiene ficha de paciente';
+
+/**
+ * El panel de paciente se apila por la jerarquía. Para el staff solo corresponde
+ * si GET /api/pacientes/me devolvió una ficha. El rol primario PACIENTE no cambia.
+ */
+export function portalPacienteHabilitado(
+  primaryRole: string | null | undefined,
+  tieneFichaPaciente: boolean
+): boolean {
+  if ((primaryRole ?? '').toUpperCase() === Role.PACIENTE) {
+    return true;
+  }
+  return tieneFichaPaciente;
+}
+
+export function ocultarPanelPaciente(
+  sections: MenuSection[],
+  primaryRole: string | null | undefined,
+  tieneFichaPaciente: boolean
+): MenuSection[] {
+  if (portalPacienteHabilitado(primaryRole, tieneFichaPaciente)) {
+    return sections;
+  }
+  return sections.filter(section => section.id !== 'paciente');
+}
+
 /**
  * Oculta ítems marcados como `requiresPrimaryRole` cuando el rol primario no es el de la sección.
  */

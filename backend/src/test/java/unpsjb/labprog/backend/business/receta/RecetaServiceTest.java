@@ -77,8 +77,8 @@ class RecetaServiceTest {
         properties.setPublicBaseUrl("http://localhost:4200");
         properties.setVerificacionPorMinuto(30);
         DatosDocumento datos = new DatosDocumento(guard, pacienteRepository, diagnosticoRepository, properties);
-        service = new RecetaService(recetaRepository, consultaRepository, catalogoRepository, pacienteRepository,
-                guard, auditoria, datos, properties, plataforma, new LimiteVerificacion());
+        service = new RecetaService(recetaRepository, consultaRepository, catalogoRepository, guard, auditoria, datos,
+                properties, plataforma, new LimiteVerificacion());
         medico = medico();
         usuarioMedico = new User("Juan", "Pérez", 33333333L, "medico@turnero.com", "x", "+5492804000001", Role.MEDICO);
         consulta = consulta();
