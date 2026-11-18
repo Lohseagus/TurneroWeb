@@ -143,13 +143,6 @@ export const MENU_CONFIG: MenuSection[] = [
         route: '/turnos/new',
         icon: 'event_busy',
         description: 'Registrar un turno extra fuera de la agenda'
-      },
-      {
-        label: 'Mi Perfil',
-        route: '/medico-perfil',
-        icon: 'account_circle',
-        description: 'Datos profesionales',
-        requiresPrimaryRole: true // Solo visible si el usuario es MEDICO como rol primario
       }
     ]
   },
