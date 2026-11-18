@@ -161,9 +161,31 @@ public class TurnoService {
 
     // Obtener turnos por paciente ID
     public List<TurnoDTO> findByPacienteId(Integer pacienteId) {
+        return findByPacienteId(pacienteId, null);
+    }
+
+    /** Turnos de un paciente; con centroId, solo los de ese centro. */
+    public List<TurnoDTO> findByPacienteId(Integer pacienteId, Integer centroId) {
         return repository.findByPaciente_Id(pacienteId).stream()
+                .filter(turno -> centroId == null || centroId.equals(centroDe(turno)))
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Optional<Integer> pacienteIdDelTurno(Integer turnoId) {
+        return repository.findById(turnoId)
+                .map(Turno::getPaciente)
+                .map(Paciente::getId);
+    }
+
+    private static Integer centroDe(Turno turno) {
+        if (turno.getCentroAtencion() != null) {
+            return turno.getCentroAtencion().getId();
+        }
+        if (turno.getConsultorio() != null && turno.getConsultorio().getCentroAtencion() != null) {
+            return turno.getConsultorio().getCentroAtencion().getId();
+        }
+        return null;
     }
 
     @Transactional

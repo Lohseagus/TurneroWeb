@@ -257,6 +257,8 @@ public class SecurityConfig {
                                 .requestMatchers("/api/notificaciones/**").hasRole("PACIENTE")
                                 .requestMatchers("/api/encuestas/**").hasRole("PACIENTE")
                                 .requestMatchers("/api/turno/historial/**").hasRole("PACIENTE")
+                                // El paciente lee sus turnos; PacienteAccessGuard exige que el id sea el suyo.
+                                .requestMatchers(HttpMethod.GET, "/api/turno/paciente/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.POST, "/api/turno/asignar").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.POST, "/api/lista-espera").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/**").hasRole("PACIENTE")

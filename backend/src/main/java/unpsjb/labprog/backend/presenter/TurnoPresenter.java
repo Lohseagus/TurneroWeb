@@ -26,6 +26,7 @@ import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.exception.TenantAccessException;
 import unpsjb.labprog.backend.business.service.ExportService;
 import unpsjb.labprog.backend.business.service.RecordatorioService;
+import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.business.service.TurnoService;
 import unpsjb.labprog.backend.config.JwtTokenProvider;
 import unpsjb.labprog.backend.config.TenantContext;
@@ -45,6 +46,9 @@ public class TurnoPresenter {
 
     @Autowired
     private ExportService exportService;
+
+    @Autowired
+    private PacienteAccessGuard pacienteAccess;
 
     @Autowired
     private RecordatorioService recordatorioService;
@@ -87,7 +91,10 @@ public class TurnoPresenter {
 
     @GetMapping("/paciente/{pacienteId}")
     public ResponseEntity<Object> getByPacienteId(@PathVariable Integer pacienteId) {
-        List<TurnoDTO> turnos = service.findByPacienteId(pacienteId);
+        pacienteAccess.exigirTitularOPersonal(pacienteId);
+        // El titular ve todos sus turnos; el personal, solo los de su centro.
+        Integer centroId = pacienteAccess.esTitular(pacienteId) ? null : TenantContext.getFilteredCentroId();
+        List<TurnoDTO> turnos = service.findByPacienteId(pacienteId, centroId);
         return Response.ok(turnos, "Turnos del paciente recuperados correctamente");
     }
 
@@ -809,6 +816,7 @@ public class TurnoPresenter {
             @PathVariable Integer pacienteId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             Page<unpsjb.labprog.backend.dto.HistorialTurnoDTO> historial = service.getHistorialPaciente(pacienteId,
                     page, size);
@@ -846,6 +854,7 @@ public class TurnoPresenter {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "fecha") String sortBy,
             @RequestParam(defaultValue = "DESC") String sortDir) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             // Parsear fechas
             LocalDate fechaDesdeDate = fechaDesde != null && !fechaDesde.trim().isEmpty()
@@ -892,6 +901,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> buscarHistorialPaciente(
             @PathVariable Integer pacienteId,
             @RequestBody unpsjb.labprog.backend.dto.HistorialFilterDTO filter) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             Page<unpsjb.labprog.backend.dto.HistorialTurnoDTO> historial = service.getHistorialPacienteFiltrado(
                     pacienteId,
@@ -928,6 +938,7 @@ public class TurnoPresenter {
      */
     @GetMapping("/historial/{pacienteId}/estadisticas")
     public ResponseEntity<Object> getEstadisticasHistorial(@PathVariable Integer pacienteId) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             Map<String, Object> estadisticas = service.getEstadisticasHistorialPaciente(pacienteId);
             return Response.ok(estadisticas, "Estadísticas del historial recuperadas correctamente");
@@ -946,6 +957,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> getTurnosProximos(
             @PathVariable Integer pacienteId,
             @RequestParam(defaultValue = "30") Integer dias) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             List<unpsjb.labprog.backend.dto.HistorialTurnoDTO> turnosProximos = service
                     .getTurnosProximosPaciente(pacienteId, dias);
@@ -972,6 +984,7 @@ public class TurnoPresenter {
             @PathVariable Integer pacienteId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             Page<unpsjb.labprog.backend.dto.HistorialTurnoDTO> turnosCancelados = service
                     .getTurnosCanceladosPaciente(pacienteId, page, size);
@@ -997,6 +1010,7 @@ public class TurnoPresenter {
      */
     @GetMapping("/historial/{pacienteId}/tiene-pendientes")
     public ResponseEntity<Object> tieneTurnosPendientes(@PathVariable Integer pacienteId) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             boolean tienePendientes = service.tieneTurnosPendientes(pacienteId);
 
@@ -1022,6 +1036,7 @@ public class TurnoPresenter {
             @RequestParam(required = false) String estado,
             @RequestParam(required = false) String fechaDesde,
             @RequestParam(required = false) String fechaHasta) {
+        pacienteAccess.exigirTitular(pacienteId);
         try {
             // Parsear fechas
             LocalDate fechaDesdeDate = fechaDesde != null && !fechaDesde.trim().isEmpty()
@@ -1077,6 +1092,7 @@ public class TurnoPresenter {
      */
     @GetMapping("/historial/detalle/{turnoId}")
     public ResponseEntity<Object> getDetalleHistorial(@PathVariable Integer turnoId) {
+        service.pacienteIdDelTurno(turnoId).ifPresent(pacienteAccess::exigirTitular);
         try {
             unpsjb.labprog.backend.dto.HistorialTurnoDTO detalle = service.getHistorialTurnoById(turnoId);
             return Response.ok(detalle, "Detalle del historial recuperado correctamente");

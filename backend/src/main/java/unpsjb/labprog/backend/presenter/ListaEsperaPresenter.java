@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.ListaEsperaService;
+import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.dto.ListaEsperaDTO;
 
 @RestController
@@ -20,6 +21,9 @@ public class ListaEsperaPresenter {
 
     @Autowired
     private ListaEsperaService service;
+
+    @Autowired
+    private PacienteAccessGuard pacienteAccess;
 
     // Listar toda la lista de espera
     @GetMapping
@@ -41,6 +45,9 @@ public class ListaEsperaPresenter {
     // Agregar nueva solicitud a lista de espera
     @PostMapping
     public ResponseEntity<Object> add(@RequestBody ListaEsperaDTO dto) {
+        dto.setPacienteId(pacienteAccess.pacienteParaAlta(dto.getPacienteId()));
+        // Un alta no puede traer id: con id, save() pisaría la solicitud de otro.
+        dto.setId(null);
         try {
             ListaEsperaDTO saved = service.save(dto);
             return Response.ok(saved, "Solicitud agregada exitosamente");

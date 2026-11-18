@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.business.service.NotificacionService;
+import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.dto.NotificacionDTO;
 
 @RestController
@@ -25,6 +26,9 @@ public class NotificacionPresenter {
     @Autowired
     private NotificacionService notificacionService;
 
+    @Autowired
+    private PacienteAccessGuard pacienteAccess;
+
     /**
      * Obtener todas las notificaciones de un paciente (paginadas)
      */
@@ -33,7 +37,7 @@ public class NotificacionPresenter {
             @PathVariable Integer pacienteId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+        pacienteAccess.exigirTitular(pacienteId);
         Page<NotificacionDTO> notificaciones = notificacionService.obtenerNotificacionesPorPaciente(pacienteId, page, size);
         return ResponseEntity.ok(notificaciones);
     }
@@ -43,6 +47,7 @@ public class NotificacionPresenter {
      */
     @GetMapping("/paciente/{pacienteId}/no-leidas")
     public ResponseEntity<List<NotificacionDTO>> obtenerNotificacionesNoLeidas(@PathVariable Integer pacienteId) {
+        pacienteAccess.exigirTitular(pacienteId);
         List<NotificacionDTO> notificaciones = notificacionService.obtenerNotificacionesNoLeidas(pacienteId);
         return ResponseEntity.ok(notificaciones);
     }
@@ -52,6 +57,7 @@ public class NotificacionPresenter {
      */
     @GetMapping("/paciente/{pacienteId}/count-no-leidas")
     public ResponseEntity<Long> contarNotificacionesNoLeidas(@PathVariable Integer pacienteId) {
+        pacienteAccess.exigirTitular(pacienteId);
         Long count = notificacionService.contarNotificacionesNoLeidas(pacienteId);
         return ResponseEntity.ok(count);
     }
@@ -63,7 +69,7 @@ public class NotificacionPresenter {
     public ResponseEntity<Void> marcarComoLeida(
             @PathVariable Long notificacionId,
             @RequestParam Integer pacienteId) {
-        
+        pacienteAccess.exigirTitular(pacienteId);
         notificacionService.marcarComoLeida(notificacionId, pacienteId);
         return ResponseEntity.ok().build();
     }
@@ -73,6 +79,7 @@ public class NotificacionPresenter {
      */
     @PutMapping("/paciente/{pacienteId}/marcar-todas-leidas")
     public ResponseEntity<Void> marcarTodasComoLeidas(@PathVariable Integer pacienteId) {
+        pacienteAccess.exigirTitular(pacienteId);
         notificacionService.marcarTodasComoLeidas(pacienteId);
         return ResponseEntity.ok().build();
     }
@@ -84,7 +91,7 @@ public class NotificacionPresenter {
     public ResponseEntity<Void> eliminarNotificacion(
             @PathVariable Long notificacionId,
             @RequestParam Integer pacienteId) {
-        
+        pacienteAccess.exigirTitular(pacienteId);
         notificacionService.eliminarNotificacion(notificacionId, pacienteId);
         return ResponseEntity.ok().build();
     }
