@@ -10,11 +10,12 @@ import { Medico } from './medico';
 import { Especialidad } from '../especialidades/especialidad';
 import { StaffMedicoService } from '../staffMedicos/staffMedico.service';
 import { MedicoSesionService, comoMedico, mensajeMedico, staffComoLista } from './medico-sesion.service';
+import { AusenciasMedicoComponent } from '../agenda/ausencias-medico.component';
 
 @Component({
   selector: 'app-medico-horarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AusenciasMedicoComponent],
   templateUrl: './medico-horarios.component.html', 
   animations: [
     trigger('slideInOut', [

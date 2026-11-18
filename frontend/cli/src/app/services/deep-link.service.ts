@@ -26,6 +26,7 @@ export interface DeepLinkResponse {
     centroAtencionId?: number;
     centroAtencionNombre?: string;
     tipo?: string;
+    ausencia?: boolean;
   };
 }
 

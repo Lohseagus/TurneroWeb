@@ -135,7 +135,16 @@ public class AgendaService {
                 slotOcupado = true;
             }
 
-            String titulo = determinarTitulo(slotOcupado, enMantenimiento);
+            boolean enAusencia = esquemaTurno.getStaffMedico() != null
+                && configuracionExcepcionalService.cubreAusencia(
+                    esquemaTurno.getStaffMedico().getId(), fecha, slotStart, slotStart.plusMinutes(intervalo));
+            if (enAusencia) {
+                slotOcupado = true;
+            }
+
+            String titulo = enAusencia && !enMantenimiento
+                ? "Ausencia"
+                : determinarTitulo(slotOcupado, enMantenimiento);
             
             return new SlotInfo(slotOcupado, enMantenimiento, titulo);
         }
@@ -181,6 +190,11 @@ public class AgendaService {
         public boolean validarDisponibilidad(LocalDate fecha, LocalTime horaInicio, Integer consultorioId,
                 Integer staffMedicoId) {
             if (configuracionExcepcionalService.esFeriado(fecha)) {
+                return false;
+            }
+
+            if (configuracionExcepcionalService.cubreAusencia(staffMedicoId, fecha, horaInicio,
+                    horaInicio != null ? horaInicio.plusMinutes(20) : null)) {
                 return false;
             }
 
@@ -402,6 +416,12 @@ public class AgendaService {
                         return new ExceptionalSlotInfo("MANTENIMIENTO", mant.getDescripcion(), true, true);
                     }
                 }
+            }
+
+            if (esquemaTurno.getStaffMedico() != null
+                    && configuracionExcepcionalService.cubreAusencia(
+                            esquemaTurno.getStaffMedico().getId(), fecha, slotStart, nextSlot)) {
+                return new ExceptionalSlotInfo("Ausencia", "Ausencia del médico", true, false);
             }
             
             if (context.atencionEspecial.isPresent()) {

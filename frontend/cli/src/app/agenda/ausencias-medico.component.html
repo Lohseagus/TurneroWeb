@@ -1,0 +1,123 @@
+<section class="ct-section ausencias">
+  <div class="ct-section__header">
+    <h2 class="ct-section__title">
+      <span class="material-symbols-outlined">event_busy</span>
+      Ausencias y vacaciones
+    </h2>
+  </div>
+  <p class="ausencias__ayuda">
+    Marcá un rango en el que no vas a atender. Los turnos futuros de ese rango se cancelan
+    y el paciente recibe un enlace para reservar uno nuevo con el mismo profesional.
+    Los de hoy, o los que ya pasaron, quedan para resolverlos a mano.
+  </p>
+
+  @if (error) {
+    <p class="ausencias__error" role="alert">{{ error }}</p>
+  }
+  @if (mensaje) {
+    <p class="ausencias__ok" role="status">{{ mensaje }}</p>
+  }
+
+  <form class="ausencias__form" (ngSubmit)="previsualizar()">
+    @if (modo === 'admin') {
+      <label>
+        Centro
+        <select class="form-select" name="centro" [(ngModel)]="centroId" (ngModelChange)="alCambiarCentro()">
+          <option [ngValue]="null">Todos los de mi centro</option>
+          @for (centro of centros; track centro.id) {
+            <option [ngValue]="centro.id">{{ centro.nombre }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    <label>
+      Profesional
+      <select class="form-select" name="staff" [(ngModel)]="staffMedicoId" (ngModelChange)="alElegirStaff()" required>
+        <option [ngValue]="null">Elegí una agenda</option>
+        @for (opcion of staff; track opcion.id) {
+          <option [ngValue]="opcion.id">{{ opcion.etiqueta }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Desde
+      <input class="form-control" type="date" name="desde" [(ngModel)]="fechaInicio" (ngModelChange)="alEditar()" required />
+    </label>
+    <label>
+      Hasta
+      <input class="form-control" type="date" name="hasta" [(ngModel)]="fechaFin" (ngModelChange)="alEditar()" required />
+    </label>
+    <label>
+      Desde la hora (opcional)
+      <input class="form-control" type="time" name="horaInicio" [(ngModel)]="horaInicio" (ngModelChange)="alEditar()" />
+    </label>
+    <label>
+      Hasta la hora (opcional)
+      <input class="form-control" type="time" name="horaFin" [(ngModel)]="horaFin" (ngModelChange)="alEditar()" />
+    </label>
+    <label class="ausencias__motivo">
+      Motivo (opcional)
+      <input class="form-control" type="text" name="motivo" maxlength="500" [(ngModel)]="motivo"
+        (ngModelChange)="alEditar()" placeholder="Vacaciones, congreso, licencia" />
+    </label>
+
+    <div class="ausencias__acciones">
+      <button class="btn btn-secondary" type="submit" [disabled]="guardando">Ver turnos afectados</button>
+      <button class="btn btn-primary" type="button" (click)="confirmar()" [disabled]="guardando || !vistaPrevia">
+        Confirmar ausencia
+      </button>
+    </div>
+  </form>
+
+  @if (vistaPrevia) {
+    <div class="ausencias__preview">
+      <p>{{ vistaPrevia.mensaje }}</p>
+      @if (vistaPrevia.cancelados.length) {
+        <h3>Se cancelan</h3>
+        <ul>
+          @for (turno of vistaPrevia.cancelados; track turno.id) {
+            <li>{{ turno.fecha }} {{ turno.horaInicio }} — {{ nombrePaciente(turno) }}</li>
+          }
+        </ul>
+      }
+      @if (vistaPrevia.requierenGestionManual.length) {
+        <h3>Hay que resolverlos a mano</h3>
+        <ul>
+          @for (turno of vistaPrevia.requierenGestionManual; track turno.id) {
+            <li>{{ turno.fecha }} {{ turno.horaInicio }} — {{ nombrePaciente(turno) }} ({{ turno.estado }})</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <h3 class="ausencias__lista-titulo">Ausencias cargadas</h3>
+  @if (cargando) {
+    <p>Cargando…</p>
+  } @else if (!ausencias.length) {
+    <p>No hay ausencias cargadas.</p>
+  } @else {
+    <ul class="ausencias__lista">
+      @for (ausencia of ausencias; track ausencia.id) {
+        <li>
+          <div>
+            <strong>{{ rango(ausencia) }}</strong>
+            <span>{{ horario(ausencia) }}</span>
+            @if (ausencia.medicoApellido || ausencia.medicoNombre) {
+              <span>{{ ausencia.medicoApellido }} {{ ausencia.medicoNombre }}</span>
+            }
+            @if (ausencia.especialidadNombre) {
+              <span>{{ ausencia.especialidadNombre }}</span>
+            }
+            @if (ausencia.descripcion) {
+              <span>{{ ausencia.descripcion }}</span>
+            }
+          </div>
+          <button type="button" class="btn btn-secondary" (click)="eliminar(ausencia)">Eliminar</button>
+        </li>
+      }
+    </ul>
+  }
+</section>

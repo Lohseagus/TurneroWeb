@@ -300,6 +300,10 @@ public class SecurityConfig {
                                         "/api/turno/{id:\\d+}/cancelar",
                                         "/api/turno/{id:\\d+}/reagendar").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.POST, "/api/lista-espera").hasRole("PACIENTE")
+                                // Ausencias: el médico solo las suyas, admin y operador las de su centro.
+                                // Va antes del GET general de agenda, que no incluye al operador.
+                                .requestMatchers("/api/agenda/ausencias", "/api/agenda/ausencias/**")
+                                        .hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/especialidades", "/api/especialidades/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/obra-social", "/api/obra-social/**").hasRole("PACIENTE")

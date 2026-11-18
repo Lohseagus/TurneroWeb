@@ -44,6 +44,20 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
     // Buscar turnos por fecha y staff médico
     List<Turno> findByFechaAndStaffMedico_Id(LocalDate fecha, Integer staffMedicoId);
 
+    @Query("""
+        SELECT t FROM Turno t
+        WHERE t.staffMedico.id = :staffId
+          AND t.fecha >= :desde
+          AND t.fecha <= :hasta
+          AND t.estado IN :estados
+        ORDER BY t.fecha, t.horaInicio
+        """)
+    List<Turno> findAfectablesPorAusencia(
+        @Param("staffId") Integer staffId,
+        @Param("desde") LocalDate desde,
+        @Param("hasta") LocalDate hasta,
+        @Param("estados") java.util.Collection<EstadoTurno> estados);
+
     // === CONSULTAS AVANZADAS PARA FILTROS ===
 
     // Filtros básicos

@@ -4,8 +4,12 @@
     <div class="ct-page-header__main">
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_repeat</span>
       <div>
-        <h1 class="ct-page-header__title">Reagendar Turno</h1>
-        <p class="ct-page-header__subtitle">Selecciona un nuevo horario disponible con el mismo médico</p>
+        <h1 class="ct-page-header__title">{{ modoAusencia ? 'Elegí un nuevo turno' : 'Reagendar Turno' }}</h1>
+        <p class="ct-page-header__subtitle">
+          {{ modoAusencia
+            ? 'El turno se canceló por una ausencia del profesional. Elegí otro horario con el mismo médico, la misma especialidad y el mismo centro.'
+            : 'Selecciona un nuevo horario disponible con el mismo médico' }}
+        </p>
       </div>
     </div>
     <div class="ct-page-header__actions">
@@ -23,7 +27,7 @@
         <div class="card">
           <div class="card-header-custom">
             <span class="material-symbols-outlined">info</span>
-            <h2>Turno Actual</h2>
+            <h2>{{ modoAusencia ? 'Turno cancelado' : 'Turno Actual' }}</h2>
           </div>
           <div class="card-body">
             <div class="appointment-info">
@@ -304,6 +308,7 @@
         </div>
         <!-- Separador -->
         <div class="modal-divider"></div>
+        @if (!modoAusencia) {
         <!-- Formulario de Motivo -->
         <div class="motivo-form-modal">
           <label for="motivoReagendamientoModal" class="form-label-modal">
@@ -333,6 +338,7 @@
             </div>
           }
         </div>
+        }
       </div>
       <!-- Footer del Modal -->
       <div class="modal-footer-custom">
@@ -348,7 +354,7 @@
         <button
           type="button"
           class="btn btn-primary btn-modal"
-          [disabled]="isProcessing || !motivoReagendamiento || motivoReagendamiento.length < 5"
+          [disabled]="isProcessing || (!modoAusencia && (!motivoReagendamiento || motivoReagendamiento.length < 5))"
           (click)="confirmarReagendamiento()"
           >
           @if (!isProcessing) {
@@ -357,7 +363,7 @@
           @if (isProcessing) {
             <span class="material-symbols-outlined spinning">progress_activity</span>
           }
-          {{ isProcessing ? 'Procesando...' : 'Confirmar Reagendamiento' }}
+          {{ isProcessing ? 'Procesando...' : (modoAusencia ? 'Confirmar nuevo turno' : 'Confirmar Reagendamiento') }}
         </button>
       </div>
     </div>

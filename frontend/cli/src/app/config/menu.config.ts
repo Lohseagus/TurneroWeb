@@ -61,7 +61,7 @@ export const MENU_CONFIG: MenuSection[] = [
         route: '/paciente-turnos',
         icon: 'event_available',
         description: 'Próximos, pasados y pedir un turno',
-        activeOn: ['/paciente-agenda', '/paciente-reagendar-turno', '/paciente/encuesta']
+        activeOn: ['/paciente-agenda', '/paciente-reagendar-turno', '/paciente-reprogramar-ausencia', '/paciente/encuesta']
       },
       {
         label: 'Mi salud',
@@ -186,6 +186,12 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Reservar un nuevo turno médico'
       },
       {
+        label: 'Ausencias y feriados',
+        route: '/agenda/dias-excepcionales',
+        icon: 'event_busy',
+        description: 'Feriados, mantenimiento y ausencias de profesionales'
+      },
+      {
         label: 'Lista de Espera',
         route: '/lista-espera',
         icon: 'pending_actions',
@@ -235,6 +241,12 @@ export const MENU_CONFIG: MenuSection[] = [
         route: '/medicos',
         icon: 'medical_services',
         description: 'Administrar médicos'
+      },
+      {
+        label: 'Ausencias y feriados',
+        route: '/agenda/dias-excepcionales',
+        icon: 'event_busy',
+        description: 'Feriados, mantenimiento y ausencias de profesionales'
       },
       {
         label: 'Staff Médico',

@@ -244,6 +244,10 @@ public class ConfiguracionExcepcionalService {
     public void eliminarConfiguracion(Integer configId) {
         Optional<ConfiguracionExcepcional> config = repository.findById(configId);
         if (config.isPresent()) {
+            if (config.get().getTipo() == ConfiguracionExcepcional.TipoExcepcion.AUSENCIA_MEDICO) {
+                throw new IllegalArgumentException(
+                        "Las ausencias se eliminan desde Ausencias y vacaciones");
+            }
             config.get().setActivo(false);
             repository.save(config.get());
         } else {
@@ -537,5 +541,52 @@ public class ConfiguracionExcepcionalService {
                                                                    LocalTime horaFin, Integer duracion) {
         ConfiguracionExcepcional entity = actualizarAtencionEspecial(configId, fecha, descripcion, esquemaTurnoId, horaInicio, horaFin, duracion);
         return ConfiguracionExcepcionalDTO.fromEntity(entity);
+    }
+
+    /**
+     * La ausencia cubre el horario del profesional. Sin ventana horaria, cubre el día.
+     */
+    public boolean cubreAusencia(Integer staffMedicoId, LocalDate fecha, LocalTime inicio, LocalTime fin) {
+        if (staffMedicoId == null || fecha == null) {
+            return false;
+        }
+        return repository.findAusenciasVigentes(staffMedicoId, fecha,
+                ConfiguracionExcepcional.TipoExcepcion.AUSENCIA_MEDICO)
+                .stream()
+                .anyMatch(ausencia -> horarioCubierto(ausencia, inicio, fin));
+    }
+
+    /**
+     * Motivo para rechazar una reserva nueva. No cambia lo que ya está agendado
+     * en un feriado: solo impide crear otra.
+     */
+    public String motivoBloqueoReserva(LocalDate fecha, LocalTime horaInicio, LocalTime horaFin,
+            Integer consultorioId, Integer staffMedicoId) {
+        if (fecha == null) {
+            return null;
+        }
+        if (esFeriado(fecha)) {
+            return "No se pueden reservar turnos en un feriado";
+        }
+        LocalTime fin = horaFin != null ? horaFin : horaInicio;
+        if (consultorioId != null && horaInicio != null
+                && tieneMantenimientoEnHorario(fecha, consultorioId, horaInicio, fin)) {
+            return "No se pueden reservar turnos: el consultorio está en mantenimiento";
+        }
+        if (staffMedicoId != null && cubreAusencia(staffMedicoId, fecha, horaInicio, fin)) {
+            return "No se pueden reservar turnos: el médico está ausente en ese horario";
+        }
+        return null;
+    }
+
+    private boolean horarioCubierto(ConfiguracionExcepcional ausencia, LocalTime inicio, LocalTime fin) {
+        if (ausencia.getHoraInicio() == null || ausencia.getHoraFin() == null) {
+            return true;
+        }
+        if (inicio == null) {
+            return true;
+        }
+        LocalTime slotFin = fin != null ? fin : inicio;
+        return hayConflictoHorario(inicio, slotFin, ausencia.getHoraInicio(), ausencia.getHoraFin());
     }
 }

@@ -221,13 +221,23 @@ public class EmailService {
     @Async
     public CompletableFuture<Void> sendAppointmentCancellationEmail(String to, String patientName,
             String cancellationDetails, Integer pacienteId, Integer turnoId) {
+        return sendAppointmentCancellationEmail(to, patientName, cancellationDetails, pacienteId, turnoId,
+                "CANCELACION");
+    }
 
-        // Generar deep link token para reagendar
-        String deepLinkToken = deepLinkService.generarDeepLinkToken(pacienteId, turnoId, "CANCELACION");
+    @Async
+    public CompletableFuture<Void> sendAppointmentCancellationEmail(String to, String patientName,
+            String cancellationDetails, Integer pacienteId, Integer turnoId, String tipoDeepLink) {
+
+        String tipo = tipoDeepLink == null || tipoDeepLink.isBlank() ? "CANCELACION" : tipoDeepLink;
+        String deepLinkToken = deepLinkService.generarDeepLinkToken(pacienteId, turnoId, tipo);
         String rescheduleUrl = appUrl + "/link-verificacion?token=" + deepLinkToken;
+        String pista = "AUSENCIA".equals(tipo)
+                ? "El enlace abre los horarios libres del mismo profesional, en la misma especialidad y el mismo centro, para reservar un turno nuevo."
+                : "El enlace te llevará directamente a la agenda de turnos.";
 
         String subject = appName + " - Turno cancelado";
-        String htmlBody = buildAppointmentCancellationEmailBody(patientName, cancellationDetails, rescheduleUrl);
+        String htmlBody = buildAppointmentCancellationEmailBody(patientName, cancellationDetails, rescheduleUrl, pista);
         sendHtmlEmail(to, subject, htmlBody);
         return CompletableFuture.completedFuture(null);
     }
@@ -507,7 +517,7 @@ public class EmailService {
     }
 
     private String buildAppointmentCancellationEmailBody(String patientName, String cancellationDetails,
-            String rescheduleUrl) {
+            String rescheduleUrl, String pista) {
         return String.format(
                 """
                         <!DOCTYPE html>
@@ -529,8 +539,7 @@ public class EmailService {
                                     <a href="%s" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">Agendar nuevo turno</a>
                                 </div>
                                 <p style="font-size: 14px; color: #666;">
-                                    <!-- TODO: Aplicar filtros automáticos para misma especialidad y centro médico del turno original -->
-                                    El enlace te llevará directamente a la agenda de turnos.
+                                    %s
                                 </p>
                                 <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
                                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
@@ -539,7 +548,7 @@ public class EmailService {
                         </body>
                         </html>
                         """,
-                appName, patientName, cancellationDetails, rescheduleUrl);
+                appName, patientName, cancellationDetails, rescheduleUrl, pista);
     }
 
     /**
