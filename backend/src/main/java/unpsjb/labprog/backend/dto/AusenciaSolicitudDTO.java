@@ -32,4 +32,7 @@ public class AusenciaSolicitudDTO {
     private LocalTime horaFin;
 
     private String motivo;
+
+    /** Solo la administración puede mandarlo en true, y solo con un motivo. */
+    private Boolean urgente;
 }

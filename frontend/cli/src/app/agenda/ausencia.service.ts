@@ -12,6 +12,12 @@ export interface AusenciaSolicitud {
   horaInicio?: string | null;
   horaFin?: string | null;
   motivo?: string | null;
+  urgente?: boolean | null;
+}
+
+export interface AnticipacionAusencia {
+  dias: number;
+  fechaMinima: string;
 }
 
 export interface TurnoAfectado {
@@ -58,6 +64,14 @@ export class AusenciaService {
 
   constructor(private http: HttpClient) {}
 
+  anticipacion(centroId?: number | null): Observable<DataPackage<AnticipacionAusencia>> {
+    let params = new HttpParams();
+    if (centroId) {
+      params = params.set('centroId', centroId);
+    }
+    return this.http.get<DataPackage<AnticipacionAusencia>>(`${this.url}/anticipacion`, { params });
+  }
+
   listar(staffMedicoId?: number | null, centroId?: number | null): Observable<DataPackage<AusenciaListada[]>> {
     let params = new HttpParams();
     if (staffMedicoId) {
@@ -82,6 +96,9 @@ export class AusenciaService {
     }
     if (solicitud.motivo) {
       params = params.set('motivo', solicitud.motivo);
+    }
+    if (solicitud.urgente) {
+      params = params.set('urgente', 'true');
     }
     return this.http.get<DataPackage<AusenciaResultado>>(`${this.url}/preview`, { params });
   }

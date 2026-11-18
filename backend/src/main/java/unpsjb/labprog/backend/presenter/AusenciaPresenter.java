@@ -2,16 +2,20 @@ package unpsjb.labprog.backend.presenter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -82,6 +86,20 @@ public class AusenciaPresenter {
         }
     }
 
+    @GetMapping("/anticipacion")
+    public ResponseEntity<Object> anticipacion(@RequestParam(required = false) Integer centroId) {
+        try {
+            if (centroId != null) {
+                centroAccess.exigirCentro(centroId);
+            }
+            return Response.ok(ausenciaService.anticipacion(centroId), "Anticipación mínima");
+        } catch (AccessDeniedException e) {
+            throw e;
+        } catch (IllegalArgumentException e) {
+            return error400(e.getMessage());
+        }
+    }
+
     @GetMapping("/preview")
     public ResponseEntity<Object> previsualizar(
             @RequestParam Integer staffMedicoId,
@@ -89,7 +107,8 @@ public class AusenciaPresenter {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm") LocalTime horaInicio,
             @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm") LocalTime horaFin,
-            @RequestParam(required = false) String motivo) {
+            @RequestParam(required = false) String motivo,
+            @RequestParam(required = false) Boolean urgente) {
         try {
             autorizarStaff(staffMedicoId);
             AusenciaSolicitudDTO solicitud = new AusenciaSolicitudDTO();
@@ -99,11 +118,12 @@ public class AusenciaPresenter {
             solicitud.setHoraInicio(horaInicio);
             solicitud.setHoraFin(horaFin);
             solicitud.setMotivo(motivo);
+            solicitud.setUrgente(urgente);
             return Response.ok(ausenciaService.previsualizar(solicitud), "Turnos afectados");
         } catch (AccessDeniedException e) {
             throw e;
         } catch (IllegalArgumentException e) {
-            return Response.error(null, e.getMessage());
+            return error400(e.getMessage());
         }
     }
 
@@ -122,7 +142,26 @@ public class AusenciaPresenter {
         } catch (ReglaSuscripcionException e) {
             return Response.forbidden(e.getMessage());
         } catch (IllegalArgumentException e) {
-            return Response.error(null, e.getMessage());
+            return error400(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Object> actualizar(@PathVariable Integer id, @RequestBody AusenciaSolicitudDTO solicitud) {
+        try {
+            if (solicitud == null || solicitud.getStaffMedicoId() == null) {
+                return error400("Tenés que elegir al profesional");
+            }
+            autorizarStaff(solicitud.getStaffMedicoId());
+            completarCentro(solicitud);
+            return Response.ok(ausenciaService.actualizar(id, solicitud, AuditContext.getCurrentUser()),
+                    "Ausencia actualizada");
+        } catch (AccessDeniedException e) {
+            throw e;
+        } catch (ReglaSuscripcionException e) {
+            return Response.forbidden(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return error400(e.getMessage());
         }
     }
 
@@ -156,6 +195,14 @@ public class AusenciaPresenter {
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         }
+    }
+
+    private static ResponseEntity<Object> error400(String mensaje) {
+        Map<String, Object> cuerpo = new LinkedHashMap<>();
+        cuerpo.put("status_code", HttpStatus.BAD_REQUEST.value());
+        cuerpo.put("status_text", mensaje);
+        cuerpo.put("data", null);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(cuerpo);
     }
 
     private void completarCentro(AusenciaSolicitudDTO solicitud) {

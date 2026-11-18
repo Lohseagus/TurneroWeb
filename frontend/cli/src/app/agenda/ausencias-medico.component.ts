@@ -38,6 +38,9 @@ export class AusenciasMedicoComponent implements OnInit {
   horaInicio = '';
   horaFin = '';
   motivo = '';
+  urgente = false;
+  diasAnticipacion = 7;
+  fechaMinima = '';
 
   ausencias: AusenciaListada[] = [];
   vistaPrevia: AusenciaResultado | null = null;
@@ -63,6 +66,7 @@ export class AusenciasMedicoComponent implements OnInit {
             this.alCambiarCentro();
           } else {
             this.cargarLista();
+            this.cargarAnticipacion(null);
           }
         },
         error: () => this.error = 'No se pudieron cargar los centros.'
@@ -80,9 +84,18 @@ export class AusenciasMedicoComponent implements OnInit {
           this.staffMedicoId = this.staff[0].id;
         }
         this.cargarLista();
+        this.cargarAnticipacion(this.centroSeleccionado());
       },
       error: () => this.error = 'No se pudo identificar tu agenda.'
     });
+  }
+
+  get requiereUrgencia(): boolean {
+    return this.modo === 'admin' && !!this.fechaInicio && !!this.fechaMinima && this.fechaInicio < this.fechaMinima;
+  }
+
+  get minimoDelMedico(): string | null {
+    return this.modo === 'medico' ? this.fechaMinima || null : null;
   }
 
   alCambiarCentro() {
@@ -91,6 +104,7 @@ export class AusenciasMedicoComponent implements OnInit {
     this.vistaPrevia = null;
     if (!this.centroId) {
       this.cargarLista();
+      this.cargarAnticipacion(null);
       return;
     }
     this.staffService.getByCentroAtencion(this.centroId).subscribe({
@@ -101,6 +115,7 @@ export class AusenciasMedicoComponent implements OnInit {
           etiqueta: this.etiquetaStaff(item)
         }));
         this.cargarLista();
+        this.cargarAnticipacion(this.centroId);
       },
       error: () => this.error = 'No se pudieron cargar los profesionales del centro.'
     });
@@ -115,6 +130,7 @@ export class AusenciasMedicoComponent implements OnInit {
   alElegirStaff() {
     this.alEditar();
     this.cargarLista();
+    this.cargarAnticipacion(this.centroSeleccionado());
   }
 
   previsualizar() {
@@ -159,6 +175,7 @@ export class AusenciasMedicoComponent implements OnInit {
         this.mensaje = respuesta.data?.mensaje || respuesta.status_text || 'Ausencia guardada.';
         this.vistaPrevia = respuesta.data;
         this.motivo = '';
+        this.urgente = false;
         this.cargarLista();
       },
       error: (err) => {
@@ -239,6 +256,18 @@ export class AusenciasMedicoComponent implements OnInit {
       this.error = 'La fecha de fin no puede ser anterior a la de inicio.';
       return null;
     }
+    if (this.modo === 'medico' && this.fechaMinima && this.fechaInicio < this.fechaMinima) {
+      this.error = `Las ausencias se cargan con al menos ${this.diasAnticipacion} días de anticipación. Para una urgencia, pedile a la administración del centro que la cargue.`;
+      return null;
+    }
+    if (this.requiereUrgencia && !this.urgente) {
+      this.error = `Las ausencias se cargan con al menos ${this.diasAnticipacion} días de anticipación. Marcá Urgencia y escribí el motivo.`;
+      return null;
+    }
+    if (this.requiereUrgencia && this.motivo.trim().length < 5) {
+      this.error = 'La urgencia necesita un motivo de al menos 5 caracteres.';
+      return null;
+    }
     if ((this.horaInicio && !this.horaFin) || (!this.horaInicio && this.horaFin)) {
       this.error = 'Si indicás un horario, completá la hora de inicio y la de fin.';
       return null;
@@ -251,8 +280,23 @@ export class AusenciasMedicoComponent implements OnInit {
       fechaFin: this.fechaFin,
       horaInicio: this.horaInicio || null,
       horaFin: this.horaFin || null,
-      motivo: this.motivo.trim() || null
+      motivo: this.motivo.trim() || null,
+      urgente: this.requiereUrgencia ? this.urgente : false
     };
+  }
+
+  private cargarAnticipacion(centroId: number | null) {
+    this.ausenciaService.anticipacion(centroId).subscribe({
+      next: (respuesta) => {
+        if (respuesta.status_code === 200 && respuesta.data) {
+          this.diasAnticipacion = respuesta.data.dias;
+          this.fechaMinima = respuesta.data.fechaMinima;
+        }
+      },
+      error: () => {
+        this.error = 'No se pudo consultar la anticipación mínima.';
+      }
+    });
   }
 
   private centroSeleccionado(): number | null {

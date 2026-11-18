@@ -5,7 +5,9 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,14 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
 import unpsjb.labprog.backend.business.repository.ConfiguracionExcepcionalRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
+import unpsjb.labprog.backend.config.AuditContext;
+import unpsjb.labprog.backend.dto.AnticipacionAusenciaDTO;
 import unpsjb.labprog.backend.dto.AusenciaResultadoDTO;
 import unpsjb.labprog.backend.dto.AusenciaSolicitudDTO;
 import unpsjb.labprog.backend.dto.ConfiguracionExcepcionalDTO;
 import unpsjb.labprog.backend.dto.TurnoAfectadoDTO;
+import unpsjb.labprog.backend.model.AuditLog;
 import unpsjb.labprog.backend.model.ConfiguracionExcepcional;
 import unpsjb.labprog.backend.model.EstadoTurno;
+import unpsjb.labprog.backend.model.Role;
 import unpsjb.labprog.backend.model.StaffMedico;
 import unpsjb.labprog.backend.model.Turno;
+import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.saas.ReglaSuscripcionException;
 import unpsjb.labprog.backend.saas.ResultadoEscritura;
 import unpsjb.labprog.backend.saas.SaasEnforcement;
@@ -37,6 +44,7 @@ public class AusenciaMedicoService {
     public static final String PREFIJO_MOTIVO = "Ausencia del médico: ";
     public static final String TIPO_DEEP_LINK = "AUSENCIA";
     public static final ZoneId ZONA = ZoneId.of("America/Argentina/Buenos_Aires");
+    public static final int MOTIVO_URGENCIA_MINIMO = 5;
 
     private static final int RANGO_MAXIMO_DIAS = 366;
 
@@ -58,10 +66,16 @@ public class AusenciaMedicoService {
     @Autowired
     private SaasEnforcement saasEnforcement;
 
+    @Autowired
+    private ConfiguracionService configuracionService;
+
+    @Autowired
+    private AuditLogService auditLogService;
+
     @Transactional(readOnly = true)
     public AusenciaResultadoDTO previsualizar(AusenciaSolicitudDTO solicitud) {
         StaffMedico staff = staffDe(solicitud);
-        Rango rango = validar(solicitud, staff, false);
+        Rango rango = validar(solicitud, staff, false, true, null);
         return armar(null, turnoRepository.findAfectablesPorAusencia(
                 staff.getId(), rango.inicio, rango.fin,
                 List.of(EstadoTurno.PROGRAMADO, EstadoTurno.CONFIRMADO)), rango, false);
@@ -71,7 +85,7 @@ public class AusenciaMedicoService {
     public AusenciaResultadoDTO confirmar(AusenciaSolicitudDTO solicitud, String performedBy) {
         StaffMedico staff = staffDe(solicitud);
         exigirEscritura(centroDe(staff));
-        Rango rango = validar(solicitud, staff, true);
+        Rango rango = validar(solicitud, staff, true, true, null);
 
         ConfiguracionExcepcional ausencia = new ConfiguracionExcepcional();
         ausencia.setFecha(rango.inicio);
@@ -83,7 +97,9 @@ public class AusenciaMedicoService {
         ausencia.setStaffMedico(staff);
         ausencia.setCentroAtencion(staff.getCentroAtencion());
         ausencia.setActivo(true);
+        ausencia.setUrgente(rango.urgente);
         ausencia = repository.save(ausencia);
+        auditar(ausencia, AuditLog.Actions.CREATE, performedBy);
 
         List<Turno> afectados = turnoRepository.findAfectablesPorAusencia(
                 staff.getId(), rango.inicio, rango.fin,
@@ -149,6 +165,40 @@ public class AusenciaMedicoService {
         repository.save(ausencia);
     }
 
+    @Transactional
+    public ConfiguracionExcepcionalDTO actualizar(Integer id, AusenciaSolicitudDTO solicitud, String performedBy) {
+        ConfiguracionExcepcional ausencia = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la ausencia"));
+        if (ausencia.getTipo() != ConfiguracionExcepcional.TipoExcepcion.AUSENCIA_MEDICO || !ausencia.isActivo()) {
+            throw new IllegalArgumentException("No se encontró la ausencia");
+        }
+        StaffMedico staff = staffDe(solicitud);
+        exigirEscritura(centroDe(staff));
+        LocalDate inicioAnterior = ausencia.getFecha();
+        boolean mueveInicio = inicioAnterior == null || !inicioAnterior.equals(solicitud.getFechaInicio());
+        Rango rango = validar(solicitud, staff, true, mueveInicio, ausencia.getId());
+        ausencia.setFecha(rango.inicio);
+        ausencia.setFechaFin(rango.fin);
+        ausencia.setDescripcion(texto(solicitud.getMotivo()));
+        ausencia.setHoraInicio(rango.horaInicio);
+        ausencia.setHoraFin(rango.horaFin);
+        ausencia.setStaffMedico(staff);
+        ausencia.setCentroAtencion(staff.getCentroAtencion());
+        ausencia.setUrgente(mueveInicio ? rango.urgente : ausencia.isUrgente());
+        ausencia = repository.save(ausencia);
+        auditar(ausencia, AuditLog.Actions.UPDATE, performedBy);
+        return ConfiguracionExcepcionalDTO.fromEntity(ausencia);
+    }
+
+    @Transactional(readOnly = true)
+    public AnticipacionAusenciaDTO anticipacion(Integer centroId) {
+        int dias = diasAnticipacion(centroId);
+        AnticipacionAusenciaDTO dto = new AnticipacionAusenciaDTO();
+        dto.setDias(dias);
+        dto.setFechaMinima(LocalDate.now(ZONA).plusDays(Math.max(dias, 0)));
+        return dto;
+    }
+
     private StaffMedico staffDe(AusenciaSolicitudDTO solicitud) {
         if (solicitud == null || solicitud.getStaffMedicoId() == null) {
             throw new IllegalArgumentException("Tenés que elegir al profesional");
@@ -157,7 +207,8 @@ public class AusenciaMedicoService {
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el profesional"));
     }
 
-    private Rango validar(AusenciaSolicitudDTO solicitud, StaffMedico staff, boolean rechazarSolapadas) {
+    private Rango validar(AusenciaSolicitudDTO solicitud, StaffMedico staff, boolean rechazarSolapadas,
+            boolean exigirAnticipacion, Integer ignorarId) {
         if (solicitud.getFechaInicio() == null) {
             throw new IllegalArgumentException("La fecha de inicio es obligatoria");
         }
@@ -182,19 +233,85 @@ public class AusenciaMedicoService {
         if (staff.getCentroAtencion() == null) {
             throw new IllegalArgumentException("El profesional no tiene un centro de atención");
         }
-        if (rechazarSolapadas && seSolapa(staff.getId(), solicitud.getFechaInicio(), fin, horaInicio, horaFin)) {
+        if (rechazarSolapadas && seSolapa(staff.getId(), solicitud.getFechaInicio(), fin, horaInicio, horaFin, ignorarId)) {
             throw new IllegalArgumentException("Ya hay una ausencia cargada que se superpone con esas fechas");
         }
-        return new Rango(solicitud.getFechaInicio(), fin, horaInicio, horaFin);
+        boolean urgente = exigirAnticipacion && validarAnticipacion(solicitud, staff);
+        return new Rango(solicitud.getFechaInicio(), fin, horaInicio, horaFin, urgente);
     }
 
-    private boolean seSolapa(Integer staffId, LocalDate inicio, LocalDate fin, LocalTime horaInicio, LocalTime horaFin) {
+    /**
+     * @return true si quedó marcada como urgencia
+     */
+    private boolean validarAnticipacion(AusenciaSolicitudDTO solicitud, StaffMedico staff) {
+        int dias = diasAnticipacion(centroDe(staff));
+        LocalDate hoy = LocalDate.now(ZONA);
+        LocalDate minima = hoy.plusDays(Math.max(dias, 0));
+        boolean llegaATiempo = !solicitud.getFechaInicio().isBefore(minima);
+        Role rol = rolActual();
+        boolean pideUrgencia = Boolean.TRUE.equals(solicitud.getUrgente());
+        if (rol == Role.MEDICO && pideUrgencia && !llegaATiempo) {
+            throw new IllegalArgumentException(mensajeAnticipacion(dias));
+        }
+        if (llegaATiempo) {
+            return false;
+        }
+        if (!puedeUrgencia(rol) || !pideUrgencia) {
+            throw new IllegalArgumentException(mensajeAnticipacion(dias));
+        }
+        String motivo = solicitud.getMotivo() == null ? "" : solicitud.getMotivo().trim();
+        if (motivo.length() < MOTIVO_URGENCIA_MINIMO) {
+            throw new IllegalArgumentException(
+                    "La urgencia necesita un motivo de al menos " + MOTIVO_URGENCIA_MINIMO + " caracteres.");
+        }
+        return true;
+    }
+
+    public static String mensajeAnticipacion(int dias) {
+        return "Las ausencias se cargan con al menos " + dias
+                + " días de anticipación. Para una urgencia, pedile a la administración del centro que la cargue.";
+    }
+
+    private int diasAnticipacion(Integer centroId) {
+        if (configuracionService == null) {
+            return 7;
+        }
+        return configuracionService.getDiasMaxNoConfirm(centroId);
+    }
+
+    private static boolean puedeUrgencia(Role rol) {
+        return rol == Role.ADMINISTRADOR || rol == Role.OPERADOR || rol == Role.SUPERADMIN;
+    }
+
+    private static Role rolActual() {
+        User user = AuditContext.getCurrentUserObject();
+        return user == null ? null : user.getRole();
+    }
+
+    private void auditar(ConfiguracionExcepcional ausencia, String accion, String performedBy) {
+        if (auditLogService == null || ausencia.getId() == null) {
+            return;
+        }
+        Map<String, Object> datos = new LinkedHashMap<>();
+        datos.put("urgente", ausencia.isUrgente());
+        datos.put("motivo", ausencia.getDescripcion());
+        datos.put("fechaInicio", ausencia.getFecha() == null ? null : ausencia.getFecha().toString());
+        datos.put("fechaFin", ausencia.getFechaFin() == null ? null : ausencia.getFechaFin().toString());
+        datos.put("staffMedicoId", ausencia.getStaffMedico() == null ? null : ausencia.getStaffMedico().getId());
+        String actor = performedBy == null || performedBy.isBlank() ? "SISTEMA" : performedBy;
+        auditLogService.logGenericAction("AUSENCIA_MEDICO", ausencia.getId().longValue(), accion, actor,
+                null, ausencia.isUrgente() ? "URGENTE" : "PROGRAMADA", null, datos, ausencia.getDescripcion());
+    }
+
+    private boolean seSolapa(Integer staffId, LocalDate inicio, LocalDate fin, LocalTime horaInicio, LocalTime horaFin,
+            Integer ignorarId) {
         LocalDate cursor = inicio;
         while (!cursor.isAfter(fin)) {
             LocalDate dia = cursor;
             boolean solapa = repository.findAusenciasVigentes(staffId, dia,
                     ConfiguracionExcepcional.TipoExcepcion.AUSENCIA_MEDICO)
                     .stream()
+                    .filter(existente -> ignorarId == null || !ignorarId.equals(existente.getId()))
                     .anyMatch(existente -> horasSolapan(existente, horaInicio, horaFin));
             if (solapa) {
                 return true;
@@ -284,6 +401,6 @@ public class AusenciaMedicoService {
         return motivo.trim();
     }
 
-    private record Rango(LocalDate inicio, LocalDate fin, LocalTime horaInicio, LocalTime horaFin) {
+    private record Rango(LocalDate inicio, LocalDate fin, LocalTime horaInicio, LocalTime horaFin, boolean urgente) {
     }
 }

@@ -73,6 +73,25 @@ public class ConfiguracionService {
                 });
     }
 
+    /**
+     * El mismo tope, pero para el centro de la agenda. Si ese centro tiene override,
+     * gana. Si no, vale la global (o 7).
+     */
+    public int getDiasMaxNoConfirm(Integer centroId) {
+        if (centroId != null) {
+            Optional<Configuracion> override = configuracionRepository.findAll().stream()
+                    .filter(c -> "turnos.dias_max_no_confirm".equals(c.getClave())
+                            && c.getCentroAtencion() != null
+                            && centroId.equals(c.getCentroAtencion().getId())
+                            && c.getValorInt() != null)
+                    .findFirst();
+            if (override.isPresent()) {
+                return override.get().getValorInt();
+            }
+        }
+        return getDiasMaxNoConfirm();
+    }
+
     public LocalTime getHoraCorteConfirmacion() {
         String horaStr = findConfiguracionConOverride("turnos.hora_corte_confirmacion")
                 .map(Configuracion::getValorString)

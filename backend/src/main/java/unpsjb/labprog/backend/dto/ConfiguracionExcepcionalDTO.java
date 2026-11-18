@@ -49,6 +49,8 @@ public class ConfiguracionExcepcionalDTO {
 
     private Integer staffMedicoId;
 
+    private boolean urgente;
+
     /**
      * Convierte una entidad ConfiguracionExcepcional a DTO
      */
@@ -67,6 +69,7 @@ public class ConfiguracionExcepcionalDTO {
         dto.setHoraFin(entity.getHoraFin());
         dto.setDuracion(entity.getDuracion());
         dto.setActivo(entity.isActivo());
+        dto.setUrgente(entity.isUrgente());
 
         // Centro de atención
         if (entity.getCentroAtencion() != null) {
