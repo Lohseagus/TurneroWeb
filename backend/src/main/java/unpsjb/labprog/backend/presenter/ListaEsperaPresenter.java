@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import unpsjb.labprog.backend.Response;
@@ -51,6 +52,8 @@ public class ListaEsperaPresenter {
         try {
             ListaEsperaDTO saved = service.save(dto);
             return Response.ok(saved, "Solicitud agregada exitosamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -63,6 +66,8 @@ public class ListaEsperaPresenter {
             dto.setId(id); // Asegurar que el ID del DTO coincida con el de la URL
             ListaEsperaDTO updated = service.update(dto);
             return Response.ok(updated, "Solicitud actualizada exitosamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -74,6 +79,8 @@ public class ListaEsperaPresenter {
         try {
             ListaEsperaDTO resolved = service.marcarComoResuelta(id);
             return Response.ok(resolved, "Solicitud marcada como resuelta");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -85,6 +92,8 @@ public class ListaEsperaPresenter {
         try {
             ListaEsperaDTO covered = service.marcarComoCubierta(id);
             return Response.ok(covered, "Solicitud marcada como cubierta");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -96,6 +105,8 @@ public class ListaEsperaPresenter {
         try {
             service.delete(id);
             return Response.ok(null, "Solicitud eliminada exitosamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -150,6 +161,8 @@ public class ListaEsperaPresenter {
         try {
             List<Map<String, Object>> ranking = service.obtenerRankingEspera(especialidadId);
             return Response.ok(ranking, "Ranking recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -162,6 +175,8 @@ public class ListaEsperaPresenter {
             int canceladas = service.cancelarSolicitudesExpiradas();
             return Response.ok(Map.of("canceladas", canceladas),
                     String.format("Se cancelaron %d solicitudes expiradas", canceladas));
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -174,6 +189,8 @@ public class ListaEsperaPresenter {
             int enviados = service.enviarRecordatoriosSolicitudesPendientes(diasMinimos);
             return Response.ok(Map.of("recordatoriosEnviados", enviados),
                     String.format("Se enviaron %d recordatorios", enviados));
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -185,6 +202,8 @@ public class ListaEsperaPresenter {
         try {
             ListaEsperaDTO resolved = service.marcarComoResueltaPorOtroMedio(id);
             return Response.ok(resolved, "Solicitud marcada como resuelta por otro medio");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }
@@ -197,6 +216,8 @@ public class ListaEsperaPresenter {
         try {
             Map<String, Long> estadisticas = service.obtenerEstadisticasDemanda(periodo);
             return Response.ok(estadisticas, "Estadísticas de demanda recuperadas correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Response.error(null, e.getMessage());
         }

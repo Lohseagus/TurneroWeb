@@ -8,7 +8,6 @@ import unpsjb.labprog.backend.dto.ListaEsperaDTO;
 import unpsjb.labprog.backend.dto.TurnoDTO;
 import unpsjb.labprog.backend.model.*;
 import unpsjb.labprog.backend.config.AuditContext;
-import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
 import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
@@ -29,6 +28,9 @@ public class ListaEsperaService {
 
     @Autowired
     private ListaEsperaRepository repository;
+
+    @Autowired
+    private CentroAccessGuard centroAccess;
 
     @Autowired
     private SuscripcionAccessService suscripcionAccessService;
@@ -63,21 +65,25 @@ public class ListaEsperaService {
      * @return Lista completa de solicitudes en espera
      */
     public List<ListaEsperaDTO> findAll() {
-        Integer centroId = TenantContext.getFilteredCentroId();
-        
-        if (centroId != null) {
-            // Usuario limitado por centro - filtrar por lista de espera del centro
-            CentroAtencion centro = centroAtencionRepository.findById(centroId)
-                    .orElseThrow(() -> new IllegalStateException("Centro de atención no encontrado: " + centroId));
-            return repository.findByCentroAtencion(centro).stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-        } else {
-            // SUPERADMIN o PACIENTE - acceso global
-            return repository.findAll().stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-        }
+        return visibles().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /** Solicitudes de los centros de la cuenta; todas si la cuenta no está limitada. */
+    private List<ListaEspera> visibles() {
+        return centroAccess.filtrar(repository.findAll(), ListaEsperaService::centroDe);
+    }
+
+    /** Solicitud por id; 403 si es de un centro que no es de la cuenta. */
+    private Optional<ListaEspera> buscarPermitida(Long id) {
+        Optional<ListaEspera> solicitud = repository.findById(id);
+        solicitud.ifPresent(le -> centroAccess.exigirCentro(centroDe(le)));
+        return solicitud;
+    }
+
+    private static Integer centroDe(ListaEspera solicitud) {
+        return solicitud.getCentroAtencion() == null ? null : solicitud.getCentroAtencion().getId();
     }
 
     /**
@@ -88,7 +94,7 @@ public class ListaEsperaService {
      */
     // Obtener por ID
     public Optional<ListaEsperaDTO> findById(Long id) {
-        return repository.findById(id).map(this::convertToDTO);
+        return buscarPermitida(id).map(this::convertToDTO);
     }
 
     /**
@@ -99,6 +105,7 @@ public class ListaEsperaService {
      */
     @Transactional
     public ListaEsperaDTO save(ListaEsperaDTO dto) {
+        centroAccess.exigirCentro(dto.getCentroAtencionId());
         // Convertir DTO a entidad
         ListaEspera listaEspera = convertToEntity(dto);
 
@@ -132,8 +139,9 @@ public class ListaEsperaService {
      */
     @Transactional
     public ListaEsperaDTO update(ListaEsperaDTO dto) {
+        centroAccess.exigirCentro(dto.getCentroAtencionId());
         // Verificar que existe
-        Optional<ListaEspera> existing = repository.findById(dto.getId());
+        Optional<ListaEspera> existing = buscarPermitida(dto.getId());
         if (existing.isEmpty()) {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + dto.getId());
         }
@@ -157,7 +165,7 @@ public class ListaEsperaService {
      */
     @Transactional
     public ListaEsperaDTO marcarComoResuelta(Long id) {
-        Optional<ListaEspera> listaEsperaOpt = repository.findById(id);
+        Optional<ListaEspera> listaEsperaOpt = buscarPermitida(id);
         if (listaEsperaOpt.isEmpty()) {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + id);
         }
@@ -175,7 +183,7 @@ public class ListaEsperaService {
      */
     @Transactional
     public ListaEsperaDTO marcarComoCubierta(Long id) {
-        Optional<ListaEspera> listaEsperaOpt = repository.findById(id);
+        Optional<ListaEspera> listaEsperaOpt = buscarPermitida(id);
         if (listaEsperaOpt.isEmpty()) {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + id);
         }
@@ -192,6 +200,7 @@ public class ListaEsperaService {
      */
     @Transactional
     public void delete(Long id) {
+        buscarPermitida(id);
         if (!repository.existsById(id)) {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + id);
         }
@@ -204,7 +213,7 @@ public class ListaEsperaService {
      * @return Número de solicitudes con estado PENDIENTE
      */
     public long contarPendientes() {
-        return repository.findAll().stream()
+        return visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .count();
     }
@@ -215,7 +224,7 @@ public class ListaEsperaService {
      * @return Lista de solicitudes con estado PENDIENTE
      */
     public List<ListaEsperaDTO> findPendientes() {
-        return repository.findAll().stream()
+        return visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .map(this::convertToDTO)
                 .toList();
@@ -227,7 +236,7 @@ public class ListaEsperaService {
      * @return Lista de solicitudes marcadas como urgencia médica
      */
     public List<ListaEsperaDTO> findUrgentes() {
-        return repository.findAll().stream()
+        return visibles().stream()
                 .filter(le -> le.getUrgenciaMedica() == ListaEspera.UrgenciaMedica.ALTA
                         || le.getUrgenciaMedica() == ListaEspera.UrgenciaMedica.URGENTE)
                 .map(this::convertToDTO)
@@ -382,7 +391,7 @@ public class ListaEsperaService {
 
         LocalDate hoy = LocalDate.now();
 
-        return repository.findAll().stream()
+        return visibles().stream()
                 .filter(le -> especialidad == null || especialidad.equals(le.getEspecialidad()))
                 .filter(le -> centroAtencion == null || centroAtencion.equals(le.getCentroAtencion()))
                 .filter(le -> medico == null || medico.equals(le.getMedicoPreferido()))
@@ -439,7 +448,7 @@ public class ListaEsperaService {
         Especialidad especialidad = especialidadRepository.findById(especialidadId)
                 .orElseThrow(() -> new RuntimeException("Especialidad no encontrada: " + especialidadId));
 
-        List<ListaEspera> solicitudes = repository.findAll().stream()
+        List<ListaEspera> solicitudes = visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .filter(le -> especialidad.equals(le.getEspecialidad()))
                 .sorted((a, b) -> {
@@ -697,7 +706,7 @@ public class ListaEsperaService {
      */
     public Map<String, Object> obtenerEstadisticasGenerales() {
         Map<String, Object> estadisticas = new HashMap<>();
-        List<ListaEspera> todas = repository.findAll();
+        List<ListaEspera> todas = visibles();
 
         estadisticas.put("totalSolicitudes", todas.size());
         estadisticas.put("pendientes", contarPendientes());
@@ -796,7 +805,7 @@ public class ListaEsperaService {
         LocalDate hoy = LocalDate.now();
         int canceladas = 0;
 
-        List<ListaEsperaDTO> pendientes = repository.findAll().stream()
+        List<ListaEsperaDTO> pendientes = visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .filter(le -> le.getFechaDeseadaHasta() != null)
                 .filter(le -> le.getFechaDeseadaHasta().isBefore(hoy))
@@ -840,7 +849,7 @@ public class ListaEsperaService {
         LocalDateTime fechaLimite = LocalDateTime.now().minusDays(diasMinimos);
         int recordatoriosEnviados = 0;
 
-        List<ListaEsperaDTO> solicitudesAntiguas = repository.findAll().stream()
+        List<ListaEsperaDTO> solicitudesAntiguas = visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .filter(le -> le.getFechaSolicitud().isBefore(fechaLimite))
                 .map(this::convertToDTO)
@@ -882,7 +891,7 @@ public class ListaEsperaService {
      */
     @Transactional
     public ListaEsperaDTO marcarComoResueltaPorOtroMedio(Long id) {
-        Optional<ListaEspera> listaEsperaOpt = repository.findById(id);
+        Optional<ListaEspera> listaEsperaOpt = buscarPermitida(id);
         if (listaEsperaOpt.isEmpty()) {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + id);
         }
@@ -948,7 +957,7 @@ public class ListaEsperaService {
         }
 
         // Filtrar solicitudes por fecha y estado, y agrupar por especialidad
-        return repository.findAll().stream()
+        return visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .filter(le -> !le.getFechaSolicitud().toLocalDate().isBefore(fechaInicio))
                 .collect(Collectors.groupingBy(

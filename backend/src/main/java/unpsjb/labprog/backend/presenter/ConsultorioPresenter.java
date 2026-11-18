@@ -24,6 +24,7 @@ import unpsjb.labprog.backend.config.TenantContext;
 import tools.jackson.databind.ObjectMapper;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ConsultorioService;
 import unpsjb.labprog.backend.dto.ConsultorioDTO;
 import unpsjb.labprog.backend.model.Consultorio;
@@ -31,6 +32,9 @@ import unpsjb.labprog.backend.model.Consultorio;
 @RestController
 @RequestMapping("/api/consultorios")
 public class ConsultorioPresenter {
+
+    @Autowired
+    private CentroAccessGuard centroAccess;
 
     @Autowired
     private ConsultorioService service;
@@ -66,6 +70,7 @@ public class ConsultorioPresenter {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable Integer id) {
+        centroAccess.exigirConsultorio(id);
         return service.findById(id)
                 .map(consultorio -> Response.ok(consultorio, "Consultorio encontrado"))
                 .orElse(Response.notFound("Consultorio con id " + id + " no encontrado"));
@@ -74,6 +79,7 @@ public class ConsultorioPresenter {
     @PostMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Object> create(@RequestBody ConsultorioDTO consultorioDTO) {
+        centroAccess.exigirCentroSiViene(consultorioDTO.getCentroId());
         try {
             String performedBy = AuditContext.getCurrentUser();
             ConsultorioDTO saved = service.saveOrUpdate(consultorioDTO, performedBy); 
@@ -94,6 +100,7 @@ public class ConsultorioPresenter {
 
     @GetMapping("/centrosAtencion/{centroId}/consultorios")
     public ResponseEntity<Object> getConsultoriosByCentro(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         // Validar acceso
         Integer currentCentro = TenantContext.getCurrentCentroId();
         if (currentCentro == null) {
@@ -109,6 +116,8 @@ public class ConsultorioPresenter {
 
     @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Integer id, @RequestBody ConsultorioDTO consultorioDTO) {
+        centroAccess.exigirCentroSiViene(consultorioDTO.getCentroId());
+        centroAccess.exigirConsultorio(id);
         try {
             String performedBy = AuditContext.getCurrentUser();
             consultorioDTO.setId(id);
@@ -131,6 +140,8 @@ public class ConsultorioPresenter {
     @PostMapping("/centro/{centroId}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Object> createInCentro(@PathVariable Integer centroId, @RequestBody ConsultorioDTO consultorioDTO) {
+        centroAccess.exigirCentroSiViene(consultorioDTO.getCentroId());
+        centroAccess.exigirCentro(centroId);
         try {
             String performedBy = AuditContext.getCurrentUser();
             consultorioDTO.setCentroId(centroId);
@@ -150,6 +161,7 @@ public class ConsultorioPresenter {
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Object> delete(@PathVariable Integer id, 
                                         @RequestParam(required = false) String reason) {
+        centroAccess.exigirConsultorio(id);
         try {
             String performedBy = AuditContext.getCurrentUser();
             service.delete(id, performedBy, reason != null ? reason : "Eliminación solicitada por usuario");

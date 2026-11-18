@@ -260,6 +260,14 @@ public class SecurityConfig {
                                 // El paciente lee sus turnos; PacienteAccessGuard exige que el id sea el suyo.
                                 .requestMatchers(HttpMethod.GET, "/api/turno/paciente/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.POST, "/api/turno/asignar").hasRole("PACIENTE")
+                                // El paciente ve, confirma, cancela y reagenda sus turnos. CentroAccessGuard
+                                // exige que sea el titular; al personal, que el turno sea de su centro.
+                                // El id es numérico para no abrir /api/turno/page, /search y demás.
+                                .requestMatchers(HttpMethod.GET, "/api/turno/{id:\\d+}").hasRole("PACIENTE")
+                                .requestMatchers(HttpMethod.PUT,
+                                        "/api/turno/{id:\\d+}/confirmar",
+                                        "/api/turno/{id:\\d+}/cancelar",
+                                        "/api/turno/{id:\\d+}/reagendar").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.POST, "/api/lista-espera").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/**").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.GET, "/api/especialidades", "/api/especialidades/**").hasRole("PACIENTE")

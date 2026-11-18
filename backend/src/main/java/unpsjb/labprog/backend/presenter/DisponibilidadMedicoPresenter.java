@@ -18,12 +18,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.DisponibilidadMedicoService;
 import unpsjb.labprog.backend.dto.DisponibilidadMedicoDTO;
 
 @RestController
 @RequestMapping("/api/disponibilidades-medico")
 public class DisponibilidadMedicoPresenter {
+
+    @Autowired
+    private CentroAccessGuard centroAccess;
 
     @Autowired
     private DisponibilidadMedicoService service;
@@ -36,6 +40,7 @@ public class DisponibilidadMedicoPresenter {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable Integer id) {
+        centroAccess.exigirDisponibilidad(id);
         return service.findById(id)
                 .map(disponibilidad -> Response.ok(disponibilidad, "Disponibilidad encontrada"))
                 .orElse(Response.notFound("Disponibilidad con id " + id + " no encontrada"));
@@ -43,6 +48,7 @@ public class DisponibilidadMedicoPresenter {
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody DisponibilidadMedicoDTO disponibilidadDTO) {
+        centroAccess.exigirStaffMedico(disponibilidadDTO.getStaffMedicoId());
         try {
             if (disponibilidadDTO.getStaffMedicoId() == null) {
                 return Response.error(null, "El campo staffMedicoId es obligatorio");
@@ -58,6 +64,8 @@ public class DisponibilidadMedicoPresenter {
 
     @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Integer id, @RequestBody DisponibilidadMedicoDTO disponibilidadDTO) {
+        centroAccess.exigirStaffMedico(disponibilidadDTO.getStaffMedicoId());
+        centroAccess.exigirDisponibilidad(id);
         try {
             if (id == null || id <= 0) {
                 return Response.error(null, "Debe proporcionar un ID válido para actualizar");
@@ -75,6 +83,7 @@ public class DisponibilidadMedicoPresenter {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable Integer id) {
+        centroAccess.exigirDisponibilidad(id);
         try {
             service.deleteById(id);
             return Response.ok(null, "Disponibilidad eliminada correctamente");
@@ -85,6 +94,7 @@ public class DisponibilidadMedicoPresenter {
 
     @GetMapping("/staffMedico/{staffMedicoId}")
     public ResponseEntity<Object> findByStaffMedico(@PathVariable Integer staffMedicoId) {
+        centroAccess.exigirStaffMedico(staffMedicoId);
         try {
             List<DisponibilidadMedicoDTO> disponibilidades = service.findByStaffMedicoId(staffMedicoId);
             return Response.ok(disponibilidades, "Disponibilidades del staff médico recuperadas correctamente");

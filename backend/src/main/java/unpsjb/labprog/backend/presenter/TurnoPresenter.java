@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,12 +25,12 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.exception.TenantAccessException;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ExportService;
 import unpsjb.labprog.backend.business.service.RecordatorioService;
 import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.business.service.TurnoService;
 import unpsjb.labprog.backend.config.JwtTokenProvider;
-import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.dto.CancelacionDataDTO;
 import unpsjb.labprog.backend.dto.TurnoDTO;
 import unpsjb.labprog.backend.dto.TurnoFilterDTO;
@@ -51,6 +52,9 @@ public class TurnoPresenter {
     private PacienteAccessGuard pacienteAccess;
 
     @Autowired
+    private CentroAccessGuard centroAccess;
+
+    @Autowired
     private RecordatorioService recordatorioService;
 
     // Método auxiliar para auditoría
@@ -67,6 +71,8 @@ public class TurnoPresenter {
                 if (username != null && !username.isEmpty()) {
                     return username;
                 }
+            } catch (AccessDeniedException e) {
+                throw e;
             } catch (Exception e) {
                 // Token inválido o expirado, continuar con fallback
             }
@@ -84,6 +90,7 @@ public class TurnoPresenter {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> getById(@PathVariable Integer id) {
+        centroAccess.exigirTurno(id);
         return service.findById(id)
                 .map(turno -> Response.ok(turno, "Turno recuperado correctamente"))
                 .orElse(Response.notFound("Turno no encontrado"));
@@ -93,8 +100,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> getByPacienteId(@PathVariable Integer pacienteId) {
         pacienteAccess.exigirTitularOPersonal(pacienteId);
         // El titular ve todos sus turnos; el personal, solo los de su centro.
-        Integer centroId = pacienteAccess.esTitular(pacienteId) ? null : TenantContext.getFilteredCentroId();
-        List<TurnoDTO> turnos = service.findByPacienteId(pacienteId, centroId);
+        List<TurnoDTO> turnos = service.findByPacienteId(pacienteId, pacienteAccess.esTitular(pacienteId));
         return Response.ok(turnos, "Turnos del paciente recuperados correctamente");
     }
 
@@ -104,6 +110,8 @@ public class TurnoPresenter {
             String currentUserEmail = getCurrentUser(request);
             TurnoDTO saved = service.save(turnoDTO, currentUserEmail);
             return Response.ok(saved, "Turno creado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (TenantAccessException e) {
             return Response.forbidden(e.getMessage());
         } catch (unpsjb.labprog.backend.exception.OverlapException e) {
@@ -120,11 +128,14 @@ public class TurnoPresenter {
     @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Integer id, @RequestBody TurnoDTO turnoDTO,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             turnoDTO.setId(id);
             String currentUserEmail = getCurrentUser(request);
             TurnoDTO updated = service.save(turnoDTO, currentUserEmail);
             return Response.ok(updated, "Turno actualizado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (TenantAccessException e) {
             return Response.forbidden(e.getMessage());
         } catch (unpsjb.labprog.backend.exception.OverlapException e) {
@@ -169,6 +180,8 @@ public class TurnoPresenter {
                     "numberOfElements", pageResult.getNumberOfElements());
 
             return Response.ok(response, "Turnos paginados recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar turnos paginados: " + e.getMessage());
         }
@@ -200,6 +213,8 @@ public class TurnoPresenter {
             if (fechaDesde != null && !fechaDesde.trim().isEmpty()) {
                 try {
                     fechaDesdeParsed = LocalDate.parse(fechaDesde.trim());
+                } catch (AccessDeniedException e) {
+                    throw e;
                 } catch (Exception e) {
                     return Response.error(null, "Formato de fechaDesde inválido. Use: yyyy-MM-dd");
                 }
@@ -208,14 +223,17 @@ public class TurnoPresenter {
             if (fechaHasta != null && !fechaHasta.trim().isEmpty()) {
                 try {
                     fechaHastaParsed = LocalDate.parse(fechaHasta.trim());
+                } catch (AccessDeniedException e) {
+                    throw e;
                 } catch (Exception e) {
                     return Response.error(null, "Formato de fechaHasta inválido. Use: yyyy-MM-dd");
                 }
             }
 
             // Forzar filtro por centro para usuarios con tenant (ADMIN/OPERADOR)
-            Integer filteredCentroId = TenantContext.getFilteredCentroId();
-            Integer finalCentroId = filteredCentroId != null ? filteredCentroId : centroAtencionId;
+            // El servicio rechaza un centro que no es de la cuenta y, si no se pide
+            // ninguno, usa el de la cuenta.
+            Integer finalCentroId = centroAtencionId;
 
             Page<TurnoDTO> pageResult = service.getTurnosCompletadosFiltrados(
                     staffMedicoId,
@@ -238,6 +256,8 @@ public class TurnoPresenter {
                     "numberOfElements", pageResult.getNumberOfElements());
 
             return Response.ok(response, "Turnos completados recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar turnos completados: " + e.getMessage());
         }
@@ -245,6 +265,7 @@ public class TurnoPresenter {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable Integer id, HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         String currentUserEmail = getCurrentUser(request);
         service.delete(id, "Eliminación desde API", currentUserEmail);
         return Response.ok(null, "Turno eliminado correctamente");
@@ -260,6 +281,8 @@ public class TurnoPresenter {
             String currentUserEmail = getCurrentUser(request);
             TurnoDTO savedTurno = service.save(turnoDTO, currentUserEmail);
             return Response.ok(savedTurno, "Turno asignado correctamente.");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {
@@ -281,6 +304,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> cancelarTurno(@PathVariable Integer id,
             @RequestBody Map<String, String> body,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             String motivo = body.get("motivo");
 
@@ -288,6 +312,8 @@ public class TurnoPresenter {
 
             TurnoDTO turno = service.cancelarTurno(id, motivo, user);
             return Response.ok(turno, "Turno cancelado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (TenantAccessException e) {
             return Response.forbidden(e.getMessage());
         } catch (IllegalArgumentException e) {
@@ -307,10 +333,13 @@ public class TurnoPresenter {
     public ResponseEntity<Object> obtenerDatosCancelacion(@PathVariable Integer id,
             @RequestParam(value = "motivo", defaultValue = "Previsualización") String motivo,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             String user = getCurrentUser(request);
             CancelacionDataDTO cancelacionData = service.obtenerDatosCancelacion(id, motivo, user);
             return Response.ok(cancelacionData, "Datos de cancelación obtenidos correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -324,6 +353,7 @@ public class TurnoPresenter {
      */
     @GetMapping("/{id}/validar-contacto")
     public ResponseEntity<Object> validarMediosContacto(@PathVariable Integer id) {
+        centroAccess.exigirTurno(id);
         try {
             ValidacionContactoDTO validacion = service.validarMediosContacto(id);
 
@@ -334,6 +364,8 @@ public class TurnoPresenter {
                 return Response.ok(validacion, "Advertencia: Problemas con medios de contacto del paciente");
             }
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -345,6 +377,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> confirmarTurno(@PathVariable Integer id,
             @RequestBody(required = false) Map<String, String> body,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             String user = null;
 
@@ -360,6 +393,8 @@ public class TurnoPresenter {
 
             TurnoDTO turno = service.confirmarTurno(id, user);
             return Response.ok(turno, "Turno confirmado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (IllegalStateException e) {
@@ -372,10 +407,13 @@ public class TurnoPresenter {
     @PutMapping("/{id}/completar")
     public ResponseEntity<Object> completarTurno(@PathVariable Integer id,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             String user = getCurrentUser(request);
             TurnoDTO turno = service.completarTurno(id, user);
             return Response.ok(turno, "Turno completado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (IllegalStateException e) {
@@ -390,6 +428,7 @@ public class TurnoPresenter {
             @PathVariable Integer id,
             @RequestBody Map<String, Boolean> body,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             // Validar que el body contenga el campo asistio
             if (!body.containsKey("asistio") || body.get("asistio") == null) {
@@ -406,6 +445,8 @@ public class TurnoPresenter {
 
             return Response.ok(updated, mensaje);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (EntityNotFoundException e) {
             return Response.error(null, e.getMessage());
         } catch (IllegalArgumentException e) {
@@ -421,6 +462,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> reagendarTurno(@PathVariable Integer id,
             @RequestBody Map<String, Object> body,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             TurnoDTO nuevosDatos = new TurnoDTO();
             // Parsear los nuevos datos del turno desde el body
@@ -438,6 +480,8 @@ public class TurnoPresenter {
             String user = getCurrentUser(request);
             TurnoDTO turno = service.reagendarTurno(id, nuevosDatos, motivo, user);
             return Response.ok(turno, "Turno reagendado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (IllegalStateException e) {
@@ -455,6 +499,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> cambiarEstado(@PathVariable Integer id,
             @RequestBody Map<String, String> body,
             HttpServletRequest request) {
+        centroAccess.exigirTurno(id);
         try {
             String estadoStr = body.get("estado");
             String motivo = body.get("motivo");
@@ -463,6 +508,8 @@ public class TurnoPresenter {
             EstadoTurno newState = EstadoTurno.valueOf(estadoStr.toUpperCase());
             TurnoDTO turno = service.changeEstado(id, newState, motivo, user);
             return Response.ok(turno, "Estado del turno cambiado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (IllegalStateException e) {
@@ -474,9 +521,12 @@ public class TurnoPresenter {
 
     @GetMapping("/{id}/estados-validos")
     public ResponseEntity<Object> getEstadosValidos(@PathVariable Integer id) {
+        centroAccess.exigirTurno(id);
         try {
             List<EstadoTurno> estados = service.getValidNextStates(id);
             return Response.ok(estados, "Estados válidos recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -488,9 +538,12 @@ public class TurnoPresenter {
 
     @GetMapping("/{id}/audit")
     public ResponseEntity<Object> getTurnoAuditHistory(@PathVariable Integer id) {
+        centroAccess.exigirTurno(id);
         try {
             List<AuditLog> auditHistory = service.getTurnoAuditHistory(id);
             return Response.ok(auditHistory, "Historial de auditoría recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar el historial de auditoría: " + e.getMessage());
         }
@@ -500,6 +553,7 @@ public class TurnoPresenter {
     public ResponseEntity<Object> getTurnoAuditHistoryPaged(@PathVariable Integer id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        centroAccess.exigirTurno(id);
         try {
             Page<AuditLog> auditHistory = service.getTurnoAuditHistoryPaged(id, page, size);
 
@@ -514,6 +568,8 @@ public class TurnoPresenter {
                     "numberOfElements", auditHistory.getNumberOfElements());
 
             return Response.ok(response, "Historial de auditoría paginado recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar el historial de auditoría: " + e.getMessage());
         }
@@ -521,11 +577,14 @@ public class TurnoPresenter {
 
     @GetMapping("/{id}/audit/verify")
     public ResponseEntity<Object> verifyTurnoAuditIntegrity(@PathVariable Integer id) {
+        centroAccess.exigirTurno(id);
         try {
             boolean isValid = service.verifyTurnoAuditIntegrity(id);
             return Response.ok(Map.of("isValid", isValid),
                     isValid ? "La integridad del historial es válida"
                             : "Se detectaron inconsistencias en el historial");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al verificar la integridad del historial: " + e.getMessage());
         }
@@ -536,6 +595,8 @@ public class TurnoPresenter {
         try {
             List<Object[]> statistics = service.getAuditStatistics();
             return Response.ok(statistics, "Estadísticas de auditoría recuperadas correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar las estadísticas: " + e.getMessage());
         }
@@ -546,6 +607,8 @@ public class TurnoPresenter {
         try {
             List<AuditLog> recentLogs = service.getRecentAuditLogs();
             return Response.ok(recentLogs, "Logs recientes recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar los logs recientes: " + e.getMessage());
         }
@@ -575,6 +638,8 @@ public class TurnoPresenter {
 
                 return Response.ok(response, "Turnos filtrados recuperados correctamente");
             }
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al buscar turnos: " + e.getMessage());
         }
@@ -609,6 +674,8 @@ public class TurnoPresenter {
                     "numberOfElements", turnos.getNumberOfElements());
 
             return Response.ok(response, "Búsqueda por texto completada correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error en la búsqueda por texto: " + e.getMessage());
         }
@@ -619,6 +686,8 @@ public class TurnoPresenter {
         try {
             List<TurnoDTO> turnos = service.findByFilters(filter);
             return Response.ok(turnos, "Turnos filtrados recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al aplicar filtros: " + e.getMessage());
         }
@@ -664,6 +733,8 @@ public class TurnoPresenter {
                     "last", result.isLast());
 
             return Response.ok(response, "Turnos filtrados recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al filtrar turnos: " + e.getMessage());
         }
@@ -700,6 +771,8 @@ public class TurnoPresenter {
                     .headers(headers)
                     .body(csvContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al exportar CSV: " + e.getMessage());
@@ -737,6 +810,8 @@ public class TurnoPresenter {
                     .headers(headers)
                     .body(pdfContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(("Error al exportar PDF: " + e.getMessage()).getBytes());
@@ -770,6 +845,8 @@ public class TurnoPresenter {
                     .headers(headers)
                     .body(pdfContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             System.err.println("PDF Export POST - Error: " + e.getMessage());
             e.printStackTrace();
@@ -783,6 +860,8 @@ public class TurnoPresenter {
         try {
             recordatorioService.enviarRecordatoriosPendientes();
             return Response.ok(null, "Recordatorios ejecutados manualmente por RecordatorioService");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al ejecutar recordatorios: " + e.getMessage());
         }
@@ -798,6 +877,8 @@ public class TurnoPresenter {
         try {
             turnoAutomationService.ejecutarCancelacionManual();
             return Response.ok(null, "Cancelación automática de turnos ejecutada manualmente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al ejecutar cancelación automática: " + e.getMessage());
         }
@@ -832,6 +913,8 @@ public class TurnoPresenter {
                     "numberOfElements", historial.getNumberOfElements());
 
             return Response.ok(response, "Historial del paciente recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -885,6 +968,8 @@ public class TurnoPresenter {
                     "numberOfElements", historial.getNumberOfElements());
 
             return Response.ok(response, "Historial filtrado recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -925,6 +1010,8 @@ public class TurnoPresenter {
                     "filtros", filter);
 
             return Response.ok(response, "Búsqueda de historial completada correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -942,6 +1029,8 @@ public class TurnoPresenter {
         try {
             Map<String, Object> estadisticas = service.getEstadisticasHistorialPaciente(pacienteId);
             return Response.ok(estadisticas, "Estadísticas del historial recuperadas correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -968,6 +1057,8 @@ public class TurnoPresenter {
                     "diasConsiderados", dias);
 
             return Response.ok(response, "Turnos próximos recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -997,6 +1088,8 @@ public class TurnoPresenter {
                     "size", turnosCancelados.getSize());
 
             return Response.ok(response, "Turnos cancelados recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {
@@ -1020,6 +1113,8 @@ public class TurnoPresenter {
 
             return Response.ok(response,
                     tienePendientes ? "El paciente tiene turnos pendientes" : "El paciente no tiene turnos pendientes");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al verificar turnos pendientes: " + e.getMessage());
         }
@@ -1078,6 +1173,8 @@ public class TurnoPresenter {
                     .headers(headers)
                     .body(csv.toString());
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         } catch (Exception e) {
@@ -1096,6 +1193,8 @@ public class TurnoPresenter {
         try {
             unpsjb.labprog.backend.dto.HistorialTurnoDTO detalle = service.getHistorialTurnoById(turnoId);
             return Response.ok(detalle, "Detalle del historial recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (Exception e) {

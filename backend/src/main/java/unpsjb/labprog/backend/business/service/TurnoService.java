@@ -45,7 +45,6 @@ import unpsjb.labprog.backend.model.Turno;
 import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.business.repository.OperadorRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
-import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
 import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.exception.TenantAccessException;
@@ -73,6 +72,9 @@ public class TurnoService {
 
     @Autowired
     private AuditLogService auditLogService;
+
+    @Autowired
+    private CentroAccessGuard centroAccess;
 
     @Autowired
     private NotificacionService notificacionService;
@@ -137,21 +139,13 @@ public class TurnoService {
      * @return Lista de DTOs de turnos según permisos del usuario
      */
     public List<TurnoDTO> findAll() {
-        Integer centroId = TenantContext.getFilteredCentroId();
-        
-        if (centroId != null) {
-            // Usuario restringido a un centro (ADMIN/MEDICO/OPERADOR)
-            return repository.findByCentroAtencion_Id(centroId, Sort.by(Sort.Direction.DESC, "fecha", "horaInicio"))
-                .stream()
+        Sort orden = Sort.by(Sort.Direction.DESC, "fecha", "horaInicio");
+        List<Turno> turnos = centroAccess.centrosPermitidos() == null
+                ? repository.findAll(orden)
+                : repository.findAll(soloCentrosPermitidos(null, null), orden);
+        return turnos.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
-        } else {
-            // Usuario con acceso global (SUPERADMIN o PACIENTE)
-            return repository.findAll(Sort.by(Sort.Direction.DESC, "fecha", "horaInicio"))
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-        }
     }
 
     // Obtener un turno por ID como DTO
@@ -161,13 +155,16 @@ public class TurnoService {
 
     // Obtener turnos por paciente ID
     public List<TurnoDTO> findByPacienteId(Integer pacienteId) {
-        return findByPacienteId(pacienteId, null);
+        return findByPacienteId(pacienteId, true);
     }
 
-    /** Turnos de un paciente; con centroId, solo los de ese centro. */
-    public List<TurnoDTO> findByPacienteId(Integer pacienteId, Integer centroId) {
-        return repository.findByPaciente_Id(pacienteId).stream()
-                .filter(turno -> centroId == null || centroId.equals(centroDe(turno)))
+    /** Turnos de un paciente: todos para el titular; para el personal, los de sus centros. */
+    public List<TurnoDTO> findByPacienteId(Integer pacienteId, boolean esTitular) {
+        List<Turno> turnos = repository.findByPaciente_Id(pacienteId);
+        if (!esTitular) {
+            turnos = centroAccess.filtrar(turnos, CentroAccessGuard::centroDe);
+        }
+        return turnos.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -176,16 +173,6 @@ public class TurnoService {
         return repository.findById(turnoId)
                 .map(Turno::getPaciente)
                 .map(Paciente::getId);
-    }
-
-    private static Integer centroDe(Turno turno) {
-        if (turno.getCentroAtencion() != null) {
-            return turno.getCentroAtencion().getId();
-        }
-        if (turno.getConsultorio() != null && turno.getConsultorio().getCentroAtencion() != null) {
-            return turno.getConsultorio().getCentroAtencion().getId();
-        }
-        return null;
     }
 
     @Transactional
@@ -241,6 +228,9 @@ public class TurnoService {
 
             Turno turno = toEntity(dto); // Convertir DTO a entidad
             validarTurno(turno); // Validar el turno
+            // El turno que se va a guardar (nuevo, o uno existente que cambia de centro)
+            // tiene que quedar en un centro de quien lo guarda.
+            validarAccesoCentroTurno(turno);
 
             // Validar solapamiento: si el DTO indica permitirSolapamiento==true, entonces
             // se permitirá crear el turno aun cuando exista conflicto (sobreturno confirmado
@@ -324,18 +314,11 @@ public class TurnoService {
 
     // Obtener turnos paginados como DTOs con filtrado automático de multi-tenencia
     public Page<TurnoDTO> findByPage(int page, int size) {
-        Integer centroId = TenantContext.getFilteredCentroId();
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fecha", "horaInicio"));
-        
-        if (centroId != null) {
-            // Usuario restringido a un centro
-            return repository.findByCentroAtencion_Id(centroId, pageable)
-                .map(this::toDTO);
-        } else {
-            // Usuario con acceso global
-            return repository.findAll(pageable)
-                .map(this::toDTO);
-        }
+        Page<Turno> turnos = centroAccess.centrosPermitidos() == null
+                ? repository.findAll(pageable)
+                : repository.findAll(soloCentrosPermitidos(null, null), pageable);
+        return turnos.map(this::toDTO);
     }
 
     /**
@@ -405,8 +388,19 @@ public class TurnoService {
             }
         }
 
-        // MULTI-TENENCIA: Obtener centro del usuario actual
-        Integer centroId = TenantContext.getFilteredCentroId();
+        // MULTI-TENENCIA: centros de la cuenta (un médico puede tener varios)
+        java.util.Set<Integer> centros = centroAccess.centrosPermitidos();
+        if (centros != null && centros.size() != 1) {
+            // Ninguno o varios centros: la consulta filtra por uno solo, así que se
+            // trae sin paginar, se recorta a los centros de la cuenta y se pagina acá.
+            List<Turno> todos = centros.isEmpty() ? List.of()
+                    : centroAccess.filtrar(repository.findByFiltrosWithCentro(null, paciente, medico, consultorio,
+                            estadoEnum, fechaDesdeParsed, fechaHastaParsed,
+                            org.springframework.data.domain.Pageable.unpaged(sort)).getContent(),
+                            CentroAccessGuard::centroDe);
+            return createPageFromList(todos, pageable).map(this::toDTO);
+        }
+        Integer centroId = centros == null ? null : centros.iterator().next();
 
         // Ejecutar consulta con filtros incluyendo tenant
         Page<Turno> result = repository.findByFiltrosWithCentro(
@@ -544,21 +538,11 @@ public class TurnoService {
     }
 
     /**
-     * Un operador o administrador solo puede modificar turnos de su centro.
-     * SUPERADMIN y PACIENTE (centro filtrado nulo) no quedan restringidos.
+     * El personal solo puede modificar turnos de sus centros (un médico, de todos
+     * los centros donde tiene StaffMedico). SUPERADMIN y PACIENTE no quedan restringidos acá.
      */
     private void validarAccesoCentroTurno(Turno turno) {
-        Integer centroUsuario = TenantContext.getFilteredCentroId();
-        if (centroUsuario == null || turno == null) {
-            return;
-        }
-        Integer centroTurno = null;
-        if (turno.getCentroAtencion() != null) {
-            centroTurno = turno.getCentroAtencion().getId();
-        } else if (turno.getConsultorio() != null && turno.getConsultorio().getCentroAtencion() != null) {
-            centroTurno = turno.getConsultorio().getCentroAtencion().getId();
-        }
-        if (centroTurno == null || !centroUsuario.equals(centroTurno)) {
+        if (turno != null && !centroAccess.puedeOperar(CentroAccessGuard.centroDe(turno))) {
             throw new TenantAccessException("No tiene permiso para operar turnos de otro centro");
         }
     }
@@ -1349,6 +1333,12 @@ public class TurnoService {
 
     // Consultas avanzadas con filtros (versión simplificada sin CriteriaBuilder)
     public List<TurnoDTO> findByFilters(TurnoFilterDTO filter) {
+        return centroAccess.filtrar(buscarSinFiltroDeCentro(filter), CentroAccessGuard::centroDe).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    private List<Turno> buscarSinFiltroDeCentro(TurnoFilterDTO filter) {
         // Validar y limpiar el filtro
         TurnoFilterDTO cleanFilter = validateAndCleanFilter(filter);
 
@@ -1356,9 +1346,7 @@ public class TurnoService {
         if (cleanFilter.getEstado() != null && !cleanFilter.getEstado().isEmpty()) {
             try {
                 EstadoTurno estadoEnum = EstadoTurno.valueOf(cleanFilter.getEstado().toUpperCase());
-                return repository.findByEstado(estadoEnum).stream()
-                        .map(this::toDTO)
-                        .collect(Collectors.toList());
+                return repository.findByEstado(estadoEnum);
             } catch (IllegalArgumentException e) {
                 System.err.println("Estado inválido en filtro simple: " + cleanFilter.getEstado());
                 // Estado inválido, retornar lista vacía
@@ -1367,36 +1355,26 @@ public class TurnoService {
         }
 
         if (cleanFilter.getPacienteId() != null) {
-            return repository.findByPaciente_Id(cleanFilter.getPacienteId()).stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList());
+            return repository.findByPaciente_Id(cleanFilter.getPacienteId());
         }
 
         if (cleanFilter.getStaffMedicoId() != null) {
-            return repository.findByStaffMedico_Id(cleanFilter.getStaffMedicoId()).stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList());
+            return repository.findByStaffMedico_Id(cleanFilter.getStaffMedicoId());
         }
 
         if (cleanFilter.getFechaExacta() != null) {
             System.out.println("🔍 DEBUG: Buscando turnos por fecha exacta: " + cleanFilter.getFechaExacta());
-            return repository.findByFecha(cleanFilter.getFechaExacta()).stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList());
+            return repository.findByFecha(cleanFilter.getFechaExacta());
         }
 
         if (cleanFilter.getFechaDesde() != null && cleanFilter.getFechaHasta() != null) {
             System.out.println("🔍 DEBUG: Buscando turnos entre fechas: " + cleanFilter.getFechaDesde() + " y "
                     + cleanFilter.getFechaHasta());
-            return repository.findByFechaBetween(cleanFilter.getFechaDesde(), cleanFilter.getFechaHasta()).stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList());
+            return repository.findByFechaBetween(cleanFilter.getFechaDesde(), cleanFilter.getFechaHasta());
         }
 
         // Si no hay filtros específicos, retornar todos
-        return repository.findAll().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+        return repository.findAll();
     }
 
     // === MÉTODOS DE CONSULTA AVANZADA CON FILTROS ===
@@ -1451,6 +1429,8 @@ public class TurnoService {
                 cleanFilter.getNombreEspecialidad(),
                 cleanFilter.getNombreCentro());
 
+        spec = soloCentrosPermitidos(spec, cleanFilter.getCentroAtencionId());
+
         // Usar el método de JpaSpecificationExecutor
         Page<Turno> turnosPage = repository.findAll(spec, pageable);
 
@@ -1458,6 +1438,24 @@ public class TurnoService {
 
         // Convertir a DTOs con información de auditoría
         return turnosPage.map(this::toDTOWithAuditInfo);
+    }
+
+    /**
+     * Agrega a una búsqueda la restricción a los centros de la cuenta. Un centro pedido
+     * que no es de la cuenta se rechaza (403) en vez de devolver una lista vacía.
+     */
+    private Specification<Turno> soloCentrosPermitidos(Specification<Turno> spec, Integer centroPedido) {
+        java.util.Set<Integer> centros = centroAccess.centrosPermitidos();
+        if (centros == null) {
+            return spec;
+        }
+        if (centroPedido != null) {
+            centroAccess.exigirCentro(centroPedido);
+        }
+        Specification<Turno> restriccion = centros.isEmpty()
+                ? (root, query, cb) -> cb.disjunction()
+                : (root, query, cb) -> root.get("centroAtencion").get("id").in(centros);
+        return spec == null ? restriccion : spec.and(restriccion);
     }
 
     /**
@@ -1508,6 +1506,7 @@ public class TurnoService {
                 "DESC".equalsIgnoreCase(cleanFilter.getSortDirection()) ? Sort.Direction.DESC : Sort.Direction.ASC,
                 cleanFilter.getSortBy());
 
+        spec = soloCentrosPermitidos(spec, cleanFilter.getCentroAtencionId());
         List<Turno> turnos = repository.findAll(spec, sort);
 
         System.out.println("✅ DEBUG: Búsqueda para exportación completada. Resultados encontrados: " + turnos.size());
@@ -1542,6 +1541,7 @@ public class TurnoService {
             int size,
             String sortBy,
             String sortDir) {
+        centroAtencionId = centroAccess.centroParaFiltro(centroAtencionId);
 
         // Configurar ordenamiento
         Sort sort = Sort.unsorted();
@@ -1580,6 +1580,7 @@ public class TurnoService {
             Integer centroAtencionId,
             LocalDate fechaDesde,
             LocalDate fechaHasta) {
+        centroAtencionId = centroAccess.centroParaFiltro(centroAtencionId);
 
         List<Turno> turnos = repository.findTurnosCompletadosList(
                 staffMedicoId,
@@ -1675,7 +1676,22 @@ public class TurnoService {
      * Busca turnos por nombres (paciente, médico, especialidad, centro)
      */
     public Page<TurnoDTO> findByTextSearch(String searchText, org.springframework.data.domain.Pageable pageable) {
-        if (searchText == null || searchText.trim().isEmpty()) {
+        boolean sinTexto = searchText == null || searchText.trim().isEmpty();
+        if (centroAccess.centrosPermitidos() != null) {
+            // La consulta por texto no filtra centro: se trae completa, se recorta a los
+            // centros de la cuenta y se pagina en memoria.
+            String texto = sinTexto ? null : searchText.trim();
+            List<Turno> todos = sinTexto
+                    ? repository.findAll(soloCentrosPermitidos(null, null), pageable.getSort())
+                    : centroAccess.filtrar(repository.findByTextFilters(texto, texto, texto, texto,
+                            org.springframework.data.domain.Pageable.unpaged(pageable.getSort())).getContent(),
+                            CentroAccessGuard::centroDe);
+            int desde = (int) Math.min(pageable.getOffset(), todos.size());
+            int hasta = Math.min(desde + pageable.getPageSize(), todos.size());
+            return new org.springframework.data.domain.PageImpl<>(todos.subList(desde, hasta), pageable, todos.size())
+                    .map(this::toDTOWithAuditInfo);
+        }
+        if (sinTexto) {
             return repository.findAll(pageable).map(this::toDTOWithAuditInfo);
         }
 
@@ -1797,27 +1813,23 @@ public class TurnoService {
     public Page<TurnoDTO> findByFilters(TurnoFilterDTO filter, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        // Por simplicidad, implementar filtros básicos
-        // En producción, usar Specifications de JPA para filtros más complejos
-
+        List<Turno> turnos;
         if (filter.getEstado() != null && !filter.getEstado().isEmpty()) {
             try {
-                EstadoTurno estadoEnum = EstadoTurno.valueOf(filter.getEstado().toUpperCase());
-                // Obtener todos y filtrar - no ideal para producción pero funcional
-                List<Turno> allTurnos = repository.findByEstado(estadoEnum);
-                return createPageFromList(allTurnos, pageRequest).map(this::toDTO);
+                turnos = repository.findByEstado(EstadoTurno.valueOf(filter.getEstado().toUpperCase()));
             } catch (IllegalArgumentException e) {
                 return Page.empty(pageRequest);
             }
+        } else if (filter.getPacienteId() != null) {
+            turnos = repository.findByPaciente_Id(filter.getPacienteId());
+        } else if (centroAccess.centrosPermitidos() == null) {
+            // Si no hay filtros específicos, retornar todos paginados
+            return repository.findAll(pageRequest).map(this::toDTO);
+        } else {
+            turnos = repository.findAll(soloCentrosPermitidos(null, null), Sort.unsorted());
         }
-
-        if (filter.getPacienteId() != null) {
-            List<Turno> allTurnos = repository.findByPaciente_Id(filter.getPacienteId());
-            return createPageFromList(allTurnos, pageRequest).map(this::toDTO);
-        }
-
-        // Si no hay filtros específicos, retornar todos paginados
-        return repository.findAll(pageRequest).map(this::toDTO);
+        return createPageFromList(centroAccess.filtrar(turnos, CentroAccessGuard::centroDe), pageRequest)
+                .map(this::toDTO);
     }
 
     /**
@@ -2013,6 +2025,10 @@ public class TurnoService {
         if (filter == null) {
             filter = new TurnoFilterDTO();
         }
+
+        // centroId es un alias que las búsquedas no aplican: igual se rechaza si
+        // nombra un centro que no es de la cuenta, en vez de ignorarlo en silencio.
+        centroAccess.exigirCentroSiViene(filter.getCentroId());
 
         // Crear una copia limpia del filtro
         TurnoFilterDTO cleanFilter = new TurnoFilterDTO();

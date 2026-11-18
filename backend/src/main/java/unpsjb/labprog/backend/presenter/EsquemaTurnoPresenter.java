@@ -16,12 +16,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.EsquemaTurnoService;
 import unpsjb.labprog.backend.dto.EsquemaTurnoDTO;
 
 @RestController
 @RequestMapping("/api/esquema-turno")
 public class EsquemaTurnoPresenter {
+
+    @Autowired
+    private CentroAccessGuard centroAccess;
 
     @Autowired
     private EsquemaTurnoService service;
@@ -48,6 +52,7 @@ public class EsquemaTurnoPresenter {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> getById(@PathVariable Integer id) {
+        centroAccess.exigirEsquemaTurno(id);
         return service.findById(id)
                 .map(esquema -> Response.ok(esquema, "Esquema de turno obtenido correctamente"))
                 .orElse(Response.error(null, "Esquema de turno no encontrado"));
@@ -55,6 +60,7 @@ public class EsquemaTurnoPresenter {
 
     @GetMapping("/staff/{staffMedicoId}")
     public ResponseEntity<Object> getByStaffMedico(@PathVariable Integer staffMedicoId) {
+        centroAccess.exigirStaffMedico(staffMedicoId);
         try {
             List<EsquemaTurnoDTO> esquemas = service.findByStaffMedico(staffMedicoId);
             return Response.ok(esquemas, "Esquemas de turno obtenidos correctamente");
@@ -65,6 +71,9 @@ public class EsquemaTurnoPresenter {
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody EsquemaTurnoDTO esquemaTurnoDTO) {
+        centroAccess.exigirCentroSiViene(esquemaTurnoDTO.getCentroId());
+        centroAccess.exigirStaffMedico(esquemaTurnoDTO.getStaffMedicoId());
+        centroAccess.exigirConsultorio(esquemaTurnoDTO.getConsultorioId());
         try {
             EsquemaTurnoDTO saved = service.saveOrUpdate(esquemaTurnoDTO);
             String aviso = service.consumirAdvertenciaSolapamiento();
@@ -82,6 +91,10 @@ public class EsquemaTurnoPresenter {
 
     @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Integer id, @RequestBody EsquemaTurnoDTO esquemaTurnoDTO) {
+        centroAccess.exigirCentroSiViene(esquemaTurnoDTO.getCentroId());
+        centroAccess.exigirStaffMedico(esquemaTurnoDTO.getStaffMedicoId());
+        centroAccess.exigirConsultorio(esquemaTurnoDTO.getConsultorioId());
+        centroAccess.exigirEsquemaTurno(id);
         try {
             esquemaTurnoDTO.setId(id);
             EsquemaTurnoDTO updated = service.saveOrUpdate(esquemaTurnoDTO);
@@ -96,6 +109,7 @@ public class EsquemaTurnoPresenter {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable Integer id) {
+        centroAccess.exigirEsquemaTurno(id);
         try {
             if (service.findById(id).isPresent()) {
                 service.deleteById(id);
@@ -110,6 +124,7 @@ public class EsquemaTurnoPresenter {
     // Nuevos endpoints para centros de atencion
     @GetMapping("/centrosAtencion/{centroId}/esquemas")
     public ResponseEntity<Object> getByCentroAtencion(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         try {
             List<EsquemaTurnoDTO> esquemas = service.findByCentroAtencion(centroId);
             return Response.ok(esquemas, "Esquemas de turno del centro obtenidos correctamente");
@@ -120,6 +135,7 @@ public class EsquemaTurnoPresenter {
 
     @GetMapping("/centrosAtencion/{centroId}/esquemas/disponibles")
     public ResponseEntity<Object> getDisponiblesByCentroAtencion(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         try {
             List<EsquemaTurnoDTO> esquemas = service.findDisponiblesByCentroAtencion(centroId);
             return Response.ok(esquemas, "Esquemas disponibles del centro obtenidos correctamente");
@@ -171,6 +187,7 @@ public class EsquemaTurnoPresenter {
      */
     @PostMapping("/centrosAtencion/{centroId}/redistribuir")
     public ResponseEntity<Object> redistribuirEsquemas(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         try {
             int esquemasProcesados = service.redistribuirEsquemasPorCentro(centroId);
             return Response.ok(esquemasProcesados, 
@@ -200,6 +217,9 @@ public class EsquemaTurnoPresenter {
 
     @PostMapping("/validar-conflictos")
     public ResponseEntity<Object> validarConflictos(@RequestBody EsquemaTurnoDTO dto) {
+        centroAccess.exigirCentroSiViene(dto.getCentroId());
+        centroAccess.exigirStaffMedico(dto.getStaffMedicoId());
+        centroAccess.exigirConsultorio(dto.getConsultorioId());
         try {
             Map<String, Object> resultado = service.validarConflictos(dto);
             
