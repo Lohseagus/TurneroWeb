@@ -92,10 +92,10 @@
     }
 
     @if (!isLoadingTurnos && errorCarga) {
-      <div class="empty-state card">
-        <span class="material-symbols-outlined empty-icon">error</span>
-        <h3>No se pudieron cargar los turnos</h3>
-        <p>{{ errorCarga }}</p>
+      <div class="ct-empty">
+        <span class="material-symbols-outlined ct-empty__icon ct-empty__icon--danger">error</span>
+        <h3 class="ct-empty__title">No se pudieron cargar los turnos</h3>
+        <p class="ct-empty__text">{{ errorCarga }}</p>
         <button class="btn btn-primary" type="button" (click)="reintentar()">
           <span class="material-symbols-outlined">refresh</span>
           Reintentar
