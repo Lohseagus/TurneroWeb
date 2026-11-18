@@ -24,6 +24,9 @@ import unpsjb.labprog.backend.config.TenantContext;
 public class DisponibilidadMedicoService {
 
     @Autowired
+    private CentroAccessGuard centroAccess;
+
+    @Autowired
     private DisponibilidadMedicoRepository repository;
 
     @Autowired
@@ -268,7 +271,8 @@ public class DisponibilidadMedicoService {
     }
 
     public List<DisponibilidadMedicoDTO> findByMedicoId(Integer medicoId) {
-        return repository.findByStaffMedicoMedicoId(medicoId).stream()
+        return centroAccess.filtrar(repository.findByStaffMedicoMedicoId(medicoId),
+                        disponibilidad -> CentroAccessGuard.centroDe(disponibilidad.getStaffMedico())).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }

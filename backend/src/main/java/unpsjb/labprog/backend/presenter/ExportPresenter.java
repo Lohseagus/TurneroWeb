@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,6 +47,8 @@ public class ExportPresenter {
                     .headers(headers)
                     .body(csvContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Error al generar CSV: " + e.getMessage());
@@ -64,6 +67,8 @@ public class ExportPresenter {
                     .headers(headers)
                     .body(htmlContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Error al generar HTML: " + e.getMessage());
@@ -85,6 +90,8 @@ public class ExportPresenter {
                     .headers(headers)
                     .body(htmlContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Error al generar reporte para PDF: " + e.getMessage());
@@ -96,6 +103,8 @@ public class ExportPresenter {
         try {
             Map<String, Object> statistics = exportService.getExportStatistics(filter);
             return Response.ok(statistics, "Estadísticas de exportación generadas correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al generar estadísticas: " + e.getMessage());
         }
@@ -144,6 +153,8 @@ public class ExportPresenter {
                     .headers(headers)
                     .body(csvContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Error al generar CSV del reporte de atención: " + e.getMessage());
@@ -190,6 +201,8 @@ public class ExportPresenter {
                     .headers(headers)
                     .body(htmlContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Error al generar HTML del reporte de atención: " + e.getMessage());
@@ -236,6 +249,8 @@ public class ExportPresenter {
                     .headers(headers)
                     .body(htmlContent);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Error al generar reporte para PDF: " + e.getMessage());

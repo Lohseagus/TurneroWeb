@@ -33,6 +33,9 @@ import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 public class EsquemaTurnoService {
 
     @Autowired
+    private CentroAccessGuard centroAccess;
+
+    @Autowired
     private EsquemaTurnoRepository esquemaTurnoRepository;
 
     @Autowired
@@ -124,7 +127,8 @@ public class EsquemaTurnoService {
 
     public List<EsquemaTurnoDTO> search(String term) {
         // Implementar búsqueda simple por nombre de médico o centro
-        return esquemaTurnoRepository.findAll().stream()
+        return centroAccess.filtrar(esquemaTurnoRepository.findAll(),
+                        esquema -> esquema.getCentroAtencion() == null ? null : esquema.getCentroAtencion().getId()).stream()
                 .filter(esquema -> {
                     String medicoNombre = esquema.getStaffMedico().getMedico().getNombre() + " " +
                                         esquema.getStaffMedico().getMedico().getApellido();

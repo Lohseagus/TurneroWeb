@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.StaffMedicoService;
 import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.dto.StaffMedicoDTO;
@@ -25,6 +26,9 @@ import unpsjb.labprog.backend.dto.StaffMedicoDTO;
 @RestController
 @RequestMapping("/api/staff-medico")
 public class StaffMedicoPresenter {
+
+    @Autowired
+    private CentroAccessGuard centroAccess;
 
     @Autowired
     private StaffMedicoService service;
@@ -39,6 +43,7 @@ public class StaffMedicoPresenter {
     // Obtener staff médico por ID
     @GetMapping("/{id}")
     public ResponseEntity<Object> getById(@PathVariable Integer id) {
+        centroAccess.exigirStaffMedico(id);
         Optional<StaffMedicoDTO> dtoOpt = service.findById(id);
         if (!dtoOpt.isPresent()) {
             return Response.notFound("No se encontró el staff médico con id " + id);
@@ -56,6 +61,7 @@ public class StaffMedicoPresenter {
 
     @GetMapping("/centrosAtencion/{centroId}/staffMedico")
     public ResponseEntity<Object> getStaffMedicoByCentro(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         // Validar acceso
         Integer currentCentro = TenantContext.getCurrentCentroId();
         if (currentCentro != null && !currentCentro.equals(centroId)) {
@@ -80,6 +86,9 @@ public class StaffMedicoPresenter {
     // Asociar médico a centro
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody StaffMedicoDTO dto) {
+        centroAccess.exigirCentroSiViene(dto.getCentroAtencionId() != null ? dto.getCentroAtencionId()
+                : dto.getCentro() != null ? dto.getCentro().getId() : null);
+        centroAccess.exigirConsultorio(dto.getConsultorioId());
         try {
             StaffMedicoDTO saved = service.saveOrUpdate(dto);
             return Response.ok(saved, "Médico asociado correctamente al centro");
@@ -92,6 +101,10 @@ public class StaffMedicoPresenter {
 
     @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Integer id, @RequestBody StaffMedicoDTO dto) {
+        centroAccess.exigirCentroSiViene(dto.getCentroAtencionId() != null ? dto.getCentroAtencionId()
+                : dto.getCentro() != null ? dto.getCentro().getId() : null);
+        centroAccess.exigirConsultorio(dto.getConsultorioId());
+        centroAccess.exigirStaffMedico(id);
         try {
             dto.setId(id);
             StaffMedicoDTO updated = service.saveOrUpdate(dto);
@@ -106,6 +119,7 @@ public class StaffMedicoPresenter {
     // Eliminar asociación
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable Integer id) {
+        centroAccess.exigirStaffMedico(id);
         try {
             service.deleteById(id);
             return Response.ok(null, "Asociación eliminada correctamente");
@@ -117,6 +131,7 @@ public class StaffMedicoPresenter {
     // Listar médicos asociados a un centro
     @GetMapping("/centro/{centroId}")
     public ResponseEntity<Object> getByCentro(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         try {
             // Validar acceso multi-tenant
             Integer currentCentro = TenantContext.getCurrentCentroId();
@@ -148,6 +163,7 @@ public class StaffMedicoPresenter {
     public ResponseEntity<Object> actualizarPorcentajes(
             @PathVariable Integer centroId,
             @RequestBody List<StaffMedicoDTO> medicosConPorcentaje) {
+        centroAccess.exigirCentro(centroId);
         try {
             service.actualizarPorcentajes(centroId, medicosConPorcentaje);
             return Response.ok(null, "Porcentajes actualizados correctamente");
@@ -163,6 +179,7 @@ public class StaffMedicoPresenter {
      */
     @GetMapping("/centrosAtencion/{centroId}/medicos/porcentajes/total")
     public ResponseEntity<Object> obtenerTotalPorcentajes(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         try {
             Double total = service.obtenerTotalPorcentajesPorCentro(centroId);
             return Response.ok(total, "Total de porcentajes obtenido correctamente");
@@ -178,6 +195,7 @@ public class StaffMedicoPresenter {
     public ResponseEntity<Object> validarPorcentajes(
             @PathVariable Integer centroId,
             @RequestBody List<StaffMedicoDTO> medicosConPorcentaje) {
+        centroAccess.exigirCentro(centroId);
         try {
             boolean esValido = service.validarPorcentajesPorCentro(centroId, medicosConPorcentaje);
             return Response.ok(esValido, esValido ? "Porcentajes válidos" : "Porcentajes inválidos");
@@ -191,6 +209,7 @@ public class StaffMedicoPresenter {
      */
     @GetMapping("/centrosAtencion/{centroId}/medicos/conPorcentajes")
     public ResponseEntity<Object> getMedicosConPorcentajes(@PathVariable Integer centroId) {
+        centroAccess.exigirCentro(centroId);
         try {
             List<StaffMedicoDTO> medicos = service.getMedicosConPorcentajesPorCentro(centroId);
             return Response.ok(medicos, "Médicos con porcentajes obtenidos correctamente");

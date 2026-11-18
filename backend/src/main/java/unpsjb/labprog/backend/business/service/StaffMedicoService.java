@@ -41,6 +41,9 @@ public class StaffMedicoService {
     private EntityManager entityManager;
 
     @Autowired
+    private CentroAccessGuard centroAccess;
+
+    @Autowired
     private SuscripcionAccessService suscripcionAccessService;
 
     @Autowired
@@ -91,7 +94,7 @@ public class StaffMedicoService {
     }
 
     public List<StaffMedicoDTO> findByMedicoId(Integer medicoId) {
-        return repository.findByMedicoId(medicoId).stream()
+        return centroAccess.filtrar(repository.findByMedicoId(medicoId), CentroAccessGuard::centroDe).stream()
                 .map(this::toDTO)
                 .toList();
     }

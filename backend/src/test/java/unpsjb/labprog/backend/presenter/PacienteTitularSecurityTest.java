@@ -3,6 +3,7 @@ package unpsjb.labprog.backend.presenter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -34,6 +35,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.EncuestaService;
 import unpsjb.labprog.backend.business.service.ExportService;
 import unpsjb.labprog.backend.business.service.ListaEsperaService;
@@ -109,6 +111,8 @@ class PacienteTitularSecurityTest {
     private EncuestaService encuestaService;
     @MockitoBean
     private ListaEsperaService listaEsperaService;
+    @MockitoBean
+    private CentroAccessGuard centroAccess;
 
     @BeforeEach
     void setUp() {
@@ -172,15 +176,16 @@ class PacienteTitularSecurityTest {
         pedir(200, paciente, get("/api/turno/paciente/" + PROPIO));
         pedir(403, paciente, get("/api/turno/paciente/" + AJENO));
 
-        verify(turnoService).findByPacienteId(PROPIO, null);
-        verify(turnoService, never()).findByPacienteId(eq(AJENO), any());
+        verify(turnoService).findByPacienteId(PROPIO, true);
+        verify(turnoService, never()).findByPacienteId(eq(AJENO), anyBoolean());
     }
 
     @Test
     void elPersonalVeSoloLosTurnosDeSuCentro() throws Exception {
         pedir(200, token(Role.OPERADOR, "operador@turnero.com", 3), get("/api/turno/paciente/" + AJENO));
 
-        verify(turnoService).findByPacienteId(AJENO, 3);
+        // false: no es el titular, así que el servicio recorta a los centros de la cuenta.
+        verify(turnoService).findByPacienteId(AJENO, false);
     }
 
     // SEC-A10
