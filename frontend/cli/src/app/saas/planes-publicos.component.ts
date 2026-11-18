@@ -29,7 +29,7 @@ interface FilaComparacion {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './planes-publicos.component.html',
-  styleUrl: './saas.css',
+  styleUrls: ['./saas.css', './planes-publicos.component.css'],
   changeDetection: ChangeDetectionStrategy.Eager
 })
 export class PlanesPublicosComponent implements OnInit, OnDestroy {
@@ -93,6 +93,15 @@ export class PlanesPublicosComponent implements OnInit, OnDestroy {
   get codigoRecomendado(): string {
     const planes = this.catalogo?.planes || [];
     return planes.find((plan) => plan.codigo === 'CENTRO')?.codigo || planes[0]?.codigo || 'CENTRO';
+  }
+
+  /** Plan que muestra la comparación en celular, donde entra uno por vez. */
+  planMovil = '';
+
+  get indiceMovil(): number {
+    const planes = this.catalogo?.planes || [];
+    const indice = planes.findIndex((plan) => plan.codigo === (this.planMovil || this.codigoRecomendado));
+    return indice < 0 ? 0 : indice;
   }
 
   get porAsiento(): boolean {
