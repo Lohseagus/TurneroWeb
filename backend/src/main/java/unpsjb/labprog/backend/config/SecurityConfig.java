@@ -247,6 +247,9 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.POST, "/api/admins").hasRole("SUPERADMIN")
                                 .requestMatchers(HttpMethod.PUT, "/api/admins/**").hasRole("SUPERADMIN")
                                 .requestMatchers(HttpMethod.DELETE, "/api/admins/**").hasRole("SUPERADMIN")
+                                // Consultan o actúan sobre toda la plataforma, no sobre un centro.
+                                .requestMatchers(HttpMethod.GET, "/api/admins/check-email").hasRole("SUPERADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/admins/test-encuesta-invitaciones").hasRole("SUPERADMIN")
                                 .requestMatchers("/api/admins/**").hasRole("ADMINISTRADOR")
 
                                 // Autoservicio del paciente (y de quien hereda PACIENTE):

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +32,14 @@ public class OperadorPresenter {
 
     @Autowired
     private OperadorService service;
+
+    @Autowired
+    private unpsjb.labprog.backend.business.service.CentroAccessGuard centroAccess;
+
+    /** 403 si el operador pertenece a un centro que no es de la cuenta. */
+    private void exigirMismoCentro(OperadorDTO operador) {
+        centroAccess.exigirCentroSiViene(operador.getCentroAtencionId());
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
@@ -90,6 +99,8 @@ public class OperadorPresenter {
             String performedBy = AuditContext.getCurrentUser();
             OperadorDTO updated = service.saveOrUpdate(operadorDTO, performedBy);
             return Response.ok(updated, "Operador actualizado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {
@@ -126,6 +137,8 @@ public class OperadorPresenter {
             String performedBy = AuditContext.getCurrentUser();
             OperadorDTO updated = service.saveOrUpdate(operadorDTO, performedBy);
             return Response.ok(updated, "Operador actualizado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Response.dbError(e.getMessage());
         } catch (Exception e) {
@@ -160,6 +173,8 @@ public class OperadorPresenter {
             String performedBy = AuditContext.getCurrentUser();
             service.delete(id, performedBy);
             return Response.ok(null, "Operador eliminado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al eliminar el operador: " + e.getMessage());
         }
@@ -167,9 +182,12 @@ public class OperadorPresenter {
 
     @DeleteMapping("/{id}/logico")
     public ResponseEntity<Object> deleteLogico(@PathVariable Long id) {
+        service.findById(id).ifPresent(this::exigirMismoCentro);
         try {
             service.deleteLogico(id);
             return Response.ok(null, "Operador desactivado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al desactivar el operador: " + e.getMessage());
         }
@@ -178,7 +196,10 @@ public class OperadorPresenter {
     @GetMapping("/dni/{dni}")
     public ResponseEntity<Object> findByDni(@PathVariable Long dni) {
         return service.findByDni(dni)
-                .map(operador -> Response.ok(operador, "Operador encontrado por DNI"))
+                .map(operador -> {
+                    exigirMismoCentro(operador);
+                    return Response.ok(operador, "Operador encontrado por DNI");
+                })
                 .orElse(Response.notFound("Operador con DNI " + dni + " no encontrado"));
     }
 
@@ -190,6 +211,7 @@ public class OperadorPresenter {
     public ResponseEntity<Object> findByEmail(@PathVariable String email) {
         return service.findByEmail(email)
                 .map(operador -> {
+                    exigirMismoCentro(operador);
                     Map<String, Object> response = new HashMap<>();
                     response.put("operadorId", operador.getId());
                     response.put("nombre", operador.getNombre());
@@ -212,6 +234,8 @@ public class OperadorPresenter {
                     .filter(OperadorDTO::isActivo)
                     .toList();
             return Response.ok(operadores, "Operadores activos recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar operadores activos: " + e.getMessage());
         }
@@ -228,6 +252,8 @@ public class OperadorPresenter {
                     .filter(op -> !op.isActivo())
                     .toList();
             return Response.ok(operadores, "Operadores inactivos recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar operadores inactivos: " + e.getMessage());
         }
@@ -255,6 +281,8 @@ public class OperadorPresenter {
                 "currentPage", pageResult.getNumber()
             );
             return Response.ok(response, "Operadores recuperados correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar operadores paginados: " + e.getMessage());
         }

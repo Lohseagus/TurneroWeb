@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.repository.EsquemaTurnoRepository;
 import unpsjb.labprog.backend.business.repository.MedicoRepository;
 import unpsjb.labprog.backend.business.service.AgendaService;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ConfiguracionExcepcionalService;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.dto.ConfiguracionExcepcionalDTO;
@@ -60,6 +62,46 @@ public class AgendaPresenter {
     @Autowired
     private PacienteService pacienteService;
 
+    @Autowired
+    private CentroAccessGuard centroAccess;
+
+    /** Administrador y operador ven la agenda de su centro con el paciente de cada turno. */
+    private static boolean esPersonalDelCentro(User user) {
+        return user != null && (user.getRole() == Role.ADMINISTRADOR || user.getRole() == Role.OPERADOR);
+    }
+
+    /**
+     * Quien saca turno para sí mismo (paciente, o médico que se atiende con un colega)
+     * ve qué horarios están ocupados, no por quién.
+     */
+    private static boolean veSoloDisponibilidad(User user) {
+        return user != null && (user.getRole() == Role.PACIENTE || user.getRole() == Role.MEDICO);
+    }
+
+    private static void ocultarPaciente(List<TurnoDTO> eventos) {
+        for (TurnoDTO evento : eventos) {
+            evento.setPacienteId(null);
+            evento.setNombrePaciente(null);
+            evento.setApellidoPaciente(null);
+        }
+    }
+
+    /**
+     * Día excepcional por id: el personal solo toca los de sus centros. Un feriado
+     * no tiene centro (vale para todos) y no se decide acá.
+     */
+    private void exigirConfiguracion(Integer configId) {
+        configuracionExcepcionalService.findByIdDTO(configId).ifPresent(config -> {
+            if (config.getCentroAtencionId() != null) {
+                centroAccess.exigirCentro(config.getCentroAtencionId());
+            } else if (config.getEsquemaTurnoId() != null) {
+                centroAccess.exigirEsquemaTurno(config.getEsquemaTurnoId());
+            } else if (config.getConsultorioId() != null) {
+                centroAccess.exigirConsultorio(config.getConsultorioId());
+            }
+        });
+    }
+
         /**
      * Endpoint público: Obtener turnos disponibles SIN datos del paciente
      * Accesible por usuarios anónimos y autenticados
@@ -84,6 +126,8 @@ public class AgendaPresenter {
             String mensaje = String.format("Turnos disponibles obtenidos correctamente (%d semanas)", semanas);
             
             return Response.ok(turnosPublicos, mensaje);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al obtener turnos públicos: " + e.getMessage());
         }
@@ -110,6 +154,13 @@ public class AgendaPresenter {
             }
         }
         
+        // El personal del centro no sale de sus centros: un centro ajeno pedido se
+        // rechaza y, sin centro pedido, solo se arman los esquemas de los propios.
+        Set<Integer> centrosDelPersonal = esPersonalDelCentro(currentUser) ? centroAccess.centrosPermitidos() : null;
+        if (centrosDelPersonal != null && centroId != null) {
+            centroAccess.exigirCentro(centroId);
+        }
+
         List<EsquemaTurno> esquemas = esquemaTurnoRepository.findAll();
         List<TurnoDTO> todosLosEventos = new ArrayList<>();
 
@@ -132,19 +183,14 @@ public class AgendaPresenter {
             }
             
             // FILTRAR POR CENTRO DE ATENCIÓN (multi-tenancy)
-            // Si el usuario es ADMIN/OPERADOR, forzar filtro por su centro
-            Integer centroIdFiltro = centroId;
-            if (centroIdFiltro == null && currentUser != null && 
-                (currentUser.getRole() == Role.ADMINISTRADOR || currentUser.getRole() == Role.OPERADOR)) {
-                if (currentUser.getCentroAtencion() != null) {
-                    centroIdFiltro = currentUser.getCentroAtencion().getId();
-                }
+            Integer centroDelEsquema = esquema.getConsultorio().getCentroAtencion() == null
+                    ? null : esquema.getConsultorio().getCentroAtencion().getId();
+            if (centroId != null && centroDelEsquema != null && !centroDelEsquema.equals(centroId)) {
+                continue;
             }
-            
-            if (centroIdFiltro != null && esquema.getConsultorio().getCentroAtencion() != null) {
-                if (!esquema.getConsultorio().getCentroAtencion().getId().equals(centroIdFiltro)) {
-                    continue; // Skip este esquema si no coincide el centro
-                }
+            if (centrosDelPersonal != null
+                    && (centroDelEsquema == null || !centrosDelPersonal.contains(centroDelEsquema))) {
+                continue;
             }
             
             // FILTRAR POR STAFF MÉDICO
@@ -168,6 +214,8 @@ public class AgendaPresenter {
             try {
                 List<TurnoDTO> eventos = agendaService.generarEventosDesdeEsquemaTurno(esquema, semanas);
                 todosLosEventos.addAll(eventos);
+            } catch (AccessDeniedException e) {
+                throw e;
             } catch (Exception e) {
                 System.err.println("❌ Error processing EsquemaTurno ID " + esquema.getId() + ": " + e.getMessage());
                 // Continue processing other schemas instead of failing completely
@@ -175,7 +223,9 @@ public class AgendaPresenter {
             }
         }
 
-        System.out.println("✅ [AgendaPresenter] Total eventos generados después de filtros: " + todosLosEventos.size());
+        if (veSoloDisponibilidad(currentUser)) {
+            ocultarPaciente(todosLosEventos);
+        }
         
         // 🕐 FILTRO DE PREFERENCIAS HORARIAS: Para cualquier usuario autenticado que tenga perfil de paciente
         if (filtrarPorPreferencia && currentUser != null) {
@@ -260,6 +310,7 @@ public class AgendaPresenter {
             String descripcion = (String) params.get("descripcion");
             Integer esquemaTurnoId = params.get("esquemaTurnoId") != null ? 
                 Integer.valueOf(params.get("esquemaTurnoId").toString()) : null;
+            centroAccess.exigirEsquemaTurno(esquemaTurnoId);
             
             LocalTime horaInicio = null;
             LocalTime horaFin = null;
@@ -302,6 +353,8 @@ public class AgendaPresenter {
             }
             
             return Response.ok(configDTO, "Día excepcional creado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al crear día excepcional: " + e.getMessage());
         }
@@ -318,12 +371,23 @@ public class AgendaPresenter {
             
             List<ConfiguracionExcepcionalDTO> configuraciones;
             if (centroId != null) {
+                centroAccess.exigirCentro(centroId);
                 configuraciones = configuracionExcepcionalService.obtenerConfiguracionesPorCentroDTO(inicio, fin, centroId);
             } else {
                 configuraciones = configuracionExcepcionalService.obtenerConfiguracionesPorRangoDTO(inicio, fin);
+                // Sin centro pedido, el personal ve los feriados (sin centro) y lo de sus centros.
+                Set<Integer> centros = centroAccess.centrosPermitidos();
+                if (centros != null) {
+                    configuraciones = configuraciones.stream()
+                            .filter(config -> config.getCentroAtencionId() == null
+                                    || centros.contains(config.getCentroAtencionId()))
+                            .collect(Collectors.toList());
+                }
             }
             
             return Response.ok(configuraciones, "Días excepcionales obtenidos correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al obtener días excepcionales: " + e.getMessage());
         }
@@ -349,6 +413,8 @@ public class AgendaPresenter {
             }
             
             return Response.ok(resultado, "Validación completada");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al validar disponibilidad: " + e.getMessage());
         }
@@ -356,9 +422,12 @@ public class AgendaPresenter {
     
     @DeleteMapping("/dia-excepcional/{configId}")
     public ResponseEntity<Object> eliminarDiaExcepcional(@PathVariable Integer configId) {
+        exigirConfiguracion(configId);
         try {
             configuracionExcepcionalService.eliminarConfiguracion(configId);
             return Response.ok(null, "Día excepcional eliminado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al eliminar día excepcional: " + e.getMessage());
         }
@@ -371,6 +440,8 @@ public class AgendaPresenter {
         try {
             List<TurnoDTO> slots = agendaService.obtenerSlotsDisponiblesPorMedico(staffMedicoId, semanas);
             return Response.ok(slots, "Slots disponibles obtenidos correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al obtener slots disponibles: " + e.getMessage());
         }
@@ -382,12 +453,14 @@ public class AgendaPresenter {
      */
     @PutMapping("/dia-excepcional/{configId}")
     public ResponseEntity<Object> actualizarDiaExcepcional(@PathVariable Integer configId, @RequestBody Map<String, Object> params) {
+        exigirConfiguracion(configId);
         try {
             LocalDate fecha = LocalDate.parse((String) params.get("fecha"));
             String tipoAgenda = (String) params.get("tipoAgenda");
             String descripcion = (String) params.get("descripcion");
             Integer esquemaTurnoId = params.get("esquemaTurnoId") != null ? 
                 Integer.valueOf(params.get("esquemaTurnoId").toString()) : null;
+            centroAccess.exigirEsquemaTurno(esquemaTurnoId);
             
             LocalTime horaInicio = null;
             LocalTime horaFin = null;
@@ -408,6 +481,8 @@ public class AgendaPresenter {
                 duracion, true, null, null, null, null, esquemaTurnoId, null, null, null, null, null, null, null, null));
             
             return Response.ok(configDTO, "Día excepcional actualizado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al actualizar día excepcional: " + e.getMessage());
         }

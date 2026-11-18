@@ -219,11 +219,13 @@ public class User extends Persona implements UserDetails {
     // ===============================
     
     /**
-     * Verifica si este usuario tiene acceso global (no limitado a un centro)
-     * @return true si es SUPERADMIN o PACIENTE
+     * Verifica si este usuario tiene acceso global (no limitado a un centro).
+     * El paciente no cuenta: no pertenece a un centro, pero se lo autoriza por
+     * titularidad de sus datos, no por "ver todo".
+     * @return true si es SUPERADMIN
      */
     public boolean tieneAccesoGlobal() {
-        return role == Role.SUPERADMIN || role == Role.PACIENTE;
+        return role == Role.SUPERADMIN;
     }
     
     /**
@@ -241,7 +243,7 @@ public class User extends Persona implements UserDetails {
      */
     public boolean perteneceACentro(Integer centroId) {
         if (tieneAccesoGlobal()) {
-            return true; // SUPERADMIN y PACIENTE tienen acceso a todos los centros
+            return true; // SUPERADMIN tiene acceso a todos los centros
         }
         return centroAtencion != null && centroAtencion.getId().equals(centroId);
     }
