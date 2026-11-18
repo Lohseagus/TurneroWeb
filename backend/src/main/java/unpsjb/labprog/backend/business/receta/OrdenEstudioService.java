@@ -13,7 +13,6 @@ import unpsjb.labprog.backend.business.hce.HceImmutableException;
 import unpsjb.labprog.backend.business.hce.HceNotFoundException;
 import unpsjb.labprog.backend.business.repository.ConsultaRepository;
 import unpsjb.labprog.backend.business.repository.OrdenEstudioRepository;
-import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.dto.receta.ItemPublicoDTO;
 import unpsjb.labprog.backend.dto.receta.OrdenEstudioDTO;
 import unpsjb.labprog.backend.dto.receta.OrdenEstudioItemDTO;
@@ -22,7 +21,6 @@ import unpsjb.labprog.backend.dto.receta.OrdenEstudioWriteDTO;
 import unpsjb.labprog.backend.dto.receta.VerificacionPublicaDTO;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.Paciente;
-import unpsjb.labprog.backend.model.Role;
 import unpsjb.labprog.backend.model.hce.AccionAuditoriaHce;
 import unpsjb.labprog.backend.model.hce.Consulta;
 import unpsjb.labprog.backend.model.hce.DocumentoAsistencial;
@@ -36,7 +34,6 @@ public class OrdenEstudioService {
 
     private final OrdenEstudioRepository ordenRepository;
     private final ConsultaRepository consultaRepository;
-    private final PacienteRepository pacienteRepository;
     private final HceAccessGuard guard;
     private final HceAuditoriaService auditoria;
     private final DatosDocumento datos;
@@ -45,12 +42,10 @@ public class OrdenEstudioService {
     private final LimiteVerificacion limite;
 
     public OrdenEstudioService(OrdenEstudioRepository ordenRepository, ConsultaRepository consultaRepository,
-            PacienteRepository pacienteRepository, HceAccessGuard guard, HceAuditoriaService auditoria,
-            DatosDocumento datos, RecetaProperties properties, PlataformaRecetaElectronica plataforma,
-            LimiteVerificacion limite) {
+            HceAccessGuard guard, HceAuditoriaService auditoria, DatosDocumento datos, RecetaProperties properties,
+            PlataformaRecetaElectronica plataforma, LimiteVerificacion limite) {
         this.ordenRepository = ordenRepository;
         this.consultaRepository = consultaRepository;
-        this.pacienteRepository = pacienteRepository;
         this.guard = guard;
         this.auditoria = auditoria;
         this.datos = datos;
@@ -279,13 +274,7 @@ public class OrdenEstudioService {
     }
 
     private Paciente pacienteActual() {
-        var user = guard.usuarioActual();
-        if (user.getRole() != Role.PACIENTE) {
-            throw new unpsjb.labprog.backend.business.hce.HceAccessDeniedException(
-                    "Este recurso es del portal del paciente");
-        }
-        return pacienteRepository.findByEmail(user.getEmail())
-                .orElseThrow(() -> new HceNotFoundException("No hay un paciente asociado a la sesión"));
+        return guard.pacienteDeLaCuenta();
     }
 
     private VerificacionPublicaDTO publica(OrdenEstudio orden) {

@@ -1,4 +1,5 @@
-import { Routes } from "@angular/router";
+import { Route, Routes } from "@angular/router";
+import { Type } from "@angular/core";
 import { HomeComponent } from "./home/home.component";
 import { InicioSesionComponent } from "./inicio-sesion/inicio-sesion.component";
 import { RegistroUsuarioComponent } from "./registro-usuario/registro-usuario.component";
@@ -28,6 +29,7 @@ import { EsquemaTurnoDetailComponent } from "./esquemaTurno/esquemaTurno-detail.
 import { ObraSocialComponent } from "./obraSocial/obraSocial.component";
 import { ObraSocialDetailComponent } from "./obraSocial/obraSocial-detail.component";
 import { PacienteDashboardComponent } from "./pacientes/paciente-dashboard.component";
+import { PacientePortalComponent } from "./pacientes/paciente-portal.component";
 import { PacienteAgendaComponent } from "./pacientes/paciente-agenda.component";
 import { PacienteReagendarTurnoComponent } from "./pacientes/paciente-reagendar-turno.component";
 import { PacienteNotificacionesComponent } from "./pacientes/paciente-notificaciones.component";
@@ -82,6 +84,19 @@ import { PlanesPublicosComponent } from "./saas/planes-publicos.component";
 import { RegistroSaasComponent } from "./saas/registro-saas.component";
 import { MiPlanComponent } from "./saas/mi-plan.component";
 import { SaasAdminComponent } from "./saas/saas-admin.component";
+
+/** El staff entra a la ruta, y el portal decide si hay ficha antes de montar la pantalla. */
+function portalPaciente(path: string, component: Type<unknown>): Route {
+  const partes = path.split("/");
+  const ultima = partes[partes.length - 1];
+  const conParametro = ultima.startsWith(":");
+  return {
+    path: conParametro ? partes.slice(0, -1).join("/") : path,
+    component: PacientePortalComponent,
+    canActivate: [PatientGuard],
+    children: [{ path: conParametro ? ultima : "", component }],
+  };
+}
 
 export const routes: Routes = [
   { path: "", component: HomeComponent },
@@ -156,57 +171,20 @@ export const routes: Routes = [
   { path: "reset-password", component: RecuperarContrasenaComponent },
   { path: "activate-account", component: ActivacionCuentaComponent },
 
-  // Patient Routes
-  {
-    path: "paciente-dashboard",
-    component: PacienteDashboardComponent,
-    canActivate: [PatientGuard],
-  },
+  // Patient Routes. La agenda queda pública para el banner anónimo.
+  portalPaciente("paciente-dashboard", PacienteDashboardComponent),
   {
     path: "paciente-agenda",
     component: PacienteAgendaComponent,
-    // ruta desprotegida para poder usar el banner anonimo
   },
-  {
-    path: "paciente-notificaciones",
-    component: PacienteNotificacionesComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente-historial",
-    component: HistorialTurnosComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente-historia-clinica",
-    component: PacienteHceComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente-recetas",
-    component: PacienteRecetasComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente-preferencias",
-    component: PreferenciasPacienteComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente/encuesta/:id",
-    component: EncuestaComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente-perfil",
-    component: PacienteDetailComponent,
-    canActivate: [PatientGuard],
-  },
-  {
-    path: "paciente-reagendar-turno/:id",
-    component: PacienteReagendarTurnoComponent,
-    canActivate: [PatientGuard],
-  },
+  portalPaciente("paciente-notificaciones", PacienteNotificacionesComponent),
+  portalPaciente("paciente-historial", HistorialTurnosComponent),
+  portalPaciente("paciente-historia-clinica", PacienteHceComponent),
+  portalPaciente("paciente-recetas", PacienteRecetasComponent),
+  portalPaciente("paciente-preferencias", PreferenciasPacienteComponent),
+  portalPaciente("paciente/encuesta/:id", EncuestaComponent),
+  portalPaciente("paciente-perfil", PacienteDetailComponent),
+  portalPaciente("paciente-reagendar-turno/:id", PacienteReagendarTurnoComponent),
 
   // Medico Routes
   {
@@ -257,11 +235,7 @@ export const routes: Routes = [
     component: ListaEsperaComponent,
     canActivate: [AdminOperadorGuard],
   },
-  {
-    path: "lista-espera-form",
-    component: ListaEsperaFormComponent,
-    canActivate: [PatientGuard],
-  },
+  portalPaciente("lista-espera-form", ListaEsperaFormComponent),
   {
     path: "lista-espera-estadisticas",
     component: ListaEsperaEstadisticasComponent,

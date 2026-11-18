@@ -186,12 +186,7 @@ public class HistoriaClinicaService {
 
     @Transactional(readOnly = true)
     public Paciente pacienteActual() {
-        User user = guard.usuarioActual();
-        if (user.getRole() != Role.PACIENTE) {
-            throw new HceAccessDeniedException("Este recurso es del portal del paciente");
-        }
-        return pacienteRepository.findByEmail(user.getEmail())
-                .orElseThrow(() -> new HceNotFoundException("No hay un paciente asociado a la sesión"));
+        return guard.pacienteDeLaCuenta();
     }
 
     @Transactional
@@ -666,7 +661,7 @@ public class HistoriaClinicaService {
 
     private boolean visible(Consulta consulta) {
         User user = guard.usuarioActual();
-        if (user.getRole() == Role.PACIENTE) {
+        if (user.getRole() == Role.PACIENTE || guard.esTitular(user, consulta.getPaciente())) {
             return true;
         }
         if (guard.consentimiento(consulta.getPaciente())) {

@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import unpsjb.labprog.backend.business.repository.ConsultaRepository;
 import unpsjb.labprog.backend.business.repository.MedicoRepository;
+import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.PerfilClinicoRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
@@ -38,6 +39,7 @@ class HceAccessGuardTest {
     @Mock private ConsultaRepository consultaRepository;
     @Mock private TurnoRepository turnoRepository;
     @Mock private HceAuditoriaService auditoria;
+    @Mock private PacienteRepository pacienteRepository;
 
     @AfterEach
     void limpiar() {
@@ -98,6 +100,25 @@ class HceAccessGuardTest {
     }
 
     @Test
+    void elTitularLeeSuConsultaAunqueSuRolPrimarioNoSeaPaciente() {
+        autenticar(Role.MEDICO, "paciente1.santamaria@turnero.com");
+        guard().assertLeeConsulta(consultaCentro(1));
+
+        autenticar(Role.OPERADOR, "paciente1.santamaria@turnero.com");
+        guard().assertLeeConsulta(consultaCentro(1));
+    }
+
+    @Test
+    void cuentaSinFichaRecibe404YNoUn403() {
+        autenticar(Role.MEDICO, "sin.ficha@turnero.com");
+        when(pacienteRepository.findByUserEmail("sin.ficha@turnero.com")).thenReturn(Optional.empty());
+
+        HceNotFoundException error = assertThrows(HceNotFoundException.class, () -> guard().pacienteDeLaCuenta());
+
+        assertEquals(HceAccessGuard.SIN_FICHA, error.getMessage());
+    }
+
+    @Test
     void anonimoRecibe401() {
         SecurityContextHolder.clearContext();
         HceAccessDeniedException error = assertThrows(HceAccessDeniedException.class,
@@ -107,7 +128,7 @@ class HceAccessGuardTest {
 
     private HceAccessGuard guard() {
         return new HceAccessGuard(medicoRepository, staffMedicoRepository, perfilRepository, consultaRepository,
-                turnoRepository, auditoria);
+                turnoRepository, auditoria, pacienteRepository);
     }
 
     private void autenticar(Role rol, String email) {

@@ -13,7 +13,6 @@ import unpsjb.labprog.backend.business.hce.HceImmutableException;
 import unpsjb.labprog.backend.business.hce.HceNotFoundException;
 import unpsjb.labprog.backend.business.repository.CatalogoMedicamentoRepository;
 import unpsjb.labprog.backend.business.repository.ConsultaRepository;
-import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.RecetaRepository;
 import unpsjb.labprog.backend.dto.receta.CatalogoMedicamentoDTO;
 import unpsjb.labprog.backend.dto.receta.ItemPublicoDTO;
@@ -24,7 +23,6 @@ import unpsjb.labprog.backend.dto.receta.RecetaWriteDTO;
 import unpsjb.labprog.backend.dto.receta.VerificacionPublicaDTO;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.Paciente;
-import unpsjb.labprog.backend.model.Role;
 import unpsjb.labprog.backend.model.hce.AccionAuditoriaHce;
 import unpsjb.labprog.backend.model.hce.CatalogoMedicamento;
 import unpsjb.labprog.backend.model.hce.Consulta;
@@ -41,7 +39,6 @@ public class RecetaService {
     private final RecetaRepository recetaRepository;
     private final ConsultaRepository consultaRepository;
     private final CatalogoMedicamentoRepository catalogoRepository;
-    private final PacienteRepository pacienteRepository;
     private final HceAccessGuard guard;
     private final HceAuditoriaService auditoria;
     private final DatosDocumento datos;
@@ -50,13 +47,12 @@ public class RecetaService {
     private final LimiteVerificacion limite;
 
     public RecetaService(RecetaRepository recetaRepository, ConsultaRepository consultaRepository,
-            CatalogoMedicamentoRepository catalogoRepository, PacienteRepository pacienteRepository,
-            HceAccessGuard guard, HceAuditoriaService auditoria, DatosDocumento datos, RecetaProperties properties,
-            PlataformaRecetaElectronica plataforma, LimiteVerificacion limite) {
+            CatalogoMedicamentoRepository catalogoRepository, HceAccessGuard guard, HceAuditoriaService auditoria,
+            DatosDocumento datos, RecetaProperties properties, PlataformaRecetaElectronica plataforma,
+            LimiteVerificacion limite) {
         this.recetaRepository = recetaRepository;
         this.consultaRepository = consultaRepository;
         this.catalogoRepository = catalogoRepository;
-        this.pacienteRepository = pacienteRepository;
         this.guard = guard;
         this.auditoria = auditoria;
         this.datos = datos;
@@ -423,13 +419,7 @@ public class RecetaService {
     }
 
     private Paciente pacienteActual() {
-        var user = guard.usuarioActual();
-        if (user.getRole() != Role.PACIENTE) {
-            throw new unpsjb.labprog.backend.business.hce.HceAccessDeniedException(
-                    "Este recurso es del portal del paciente");
-        }
-        return pacienteRepository.findByEmail(user.getEmail())
-                .orElseThrow(() -> new HceNotFoundException("No hay un paciente asociado a la sesión"));
+        return guard.pacienteDeLaCuenta();
     }
 
     VerificacionPublicaDTO publica(Receta receta, String tipo) {

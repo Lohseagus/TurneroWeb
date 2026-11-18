@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import unpsjb.labprog.backend.business.repository.ConsultaRepository;
 import unpsjb.labprog.backend.business.repository.MedicoRepository;
+import unpsjb.labprog.backend.business.repository.PacienteRepository;
 import unpsjb.labprog.backend.business.repository.PerfilClinicoRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
@@ -28,22 +29,27 @@ public class HceAccessGuard {
 
     private static final Logger log = LoggerFactory.getLogger(HceAccessGuard.class);
 
+    /** La cuenta autenticada no tiene una fila Paciente con su email. */
+    public static final String SIN_FICHA = "Tu cuenta no tiene ficha de paciente";
+
     private final MedicoRepository medicoRepository;
     private final StaffMedicoRepository staffMedicoRepository;
     private final PerfilClinicoRepository perfilRepository;
     private final ConsultaRepository consultaRepository;
     private final TurnoRepository turnoRepository;
     private final HceAuditoriaService auditoria;
+    private final PacienteRepository pacienteRepository;
 
     public HceAccessGuard(MedicoRepository medicoRepository, StaffMedicoRepository staffMedicoRepository,
             PerfilClinicoRepository perfilRepository, ConsultaRepository consultaRepository,
-            TurnoRepository turnoRepository, HceAuditoriaService auditoria) {
+            TurnoRepository turnoRepository, HceAuditoriaService auditoria, PacienteRepository pacienteRepository) {
         this.medicoRepository = medicoRepository;
         this.staffMedicoRepository = staffMedicoRepository;
         this.perfilRepository = perfilRepository;
         this.consultaRepository = consultaRepository;
         this.turnoRepository = turnoRepository;
         this.auditoria = auditoria;
+        this.pacienteRepository = pacienteRepository;
     }
 
     public User usuarioActual() {
@@ -54,11 +60,28 @@ public class HceAccessGuard {
         return user;
     }
 
+    /**
+     * Titular es la cuenta cuyo email coincide con el de la ficha, sea cual sea
+     * el rol primario. Un médico con ficha propia lee esa historia como paciente.
+     */
     public boolean esTitular(User user, Paciente paciente) {
-        return user.getRole() == Role.PACIENTE
-                && user.getEmail() != null
-                && paciente.getEmail() != null
-                && user.getEmail().equalsIgnoreCase(paciente.getEmail());
+        if (user == null || paciente == null || user.getEmail() == null || paciente.getEmail() == null) {
+            return false;
+        }
+        String cuenta = user.getEmail().trim();
+        String ficha = paciente.getEmail().trim();
+        return !cuenta.isEmpty() && cuenta.equalsIgnoreCase(ficha);
+    }
+
+    /** Ficha de la cuenta autenticada. Sin ficha es 404, no un 403 de permiso. */
+    public Paciente pacienteDeLaCuenta() {
+        User user = usuarioActual();
+        String email = user.getEmail() == null ? "" : user.getEmail().trim();
+        if (email.isEmpty()) {
+            throw new HceNotFoundException(SIN_FICHA);
+        }
+        return pacienteRepository.findByUserEmail(email)
+                .orElseThrow(() -> new HceNotFoundException(SIN_FICHA));
     }
 
     public Medico exigirMedico(User user) {
@@ -75,6 +98,9 @@ public class HceAccessGuard {
 
     public boolean puedeLeerConsulta(Consulta consulta) {
         User user = usuarioActual();
+        if (consulta != null && esTitular(user, consulta.getPaciente())) {
+            return true;
+        }
         HceAccessPolicy.Nivel nivel = HceAccessPolicy.nivel(user.getRole(), esTitular(user, consulta.getPaciente()));
         if (nivel != HceAccessPolicy.Nivel.CLINICO) {
             return false;
@@ -108,7 +134,10 @@ public class HceAccessGuard {
 
     public void assertLeePerfil(Paciente paciente) {
         User user = usuarioActual();
-        HceAccessPolicy.Nivel nivel = HceAccessPolicy.nivel(user.getRole(), esTitular(user, paciente));
+        if (esTitular(user, paciente)) {
+            return;
+        }
+        HceAccessPolicy.Nivel nivel = HceAccessPolicy.nivel(user.getRole(), false);
         if (nivel == HceAccessPolicy.Nivel.DENEGADO) {
             denegar(paciente, "Sin acceso a esta historia clínica");
         }
@@ -163,7 +192,10 @@ public class HceAccessGuard {
 
     public void assertLeeMetadata(Paciente paciente) {
         User user = usuarioActual();
-        HceAccessPolicy.Nivel nivel = HceAccessPolicy.nivel(user.getRole(), esTitular(user, paciente));
+        if (esTitular(user, paciente)) {
+            return;
+        }
+        HceAccessPolicy.Nivel nivel = HceAccessPolicy.nivel(user.getRole(), false);
         if (nivel == HceAccessPolicy.Nivel.DENEGADO) {
             denegar(paciente, "Sin acceso a esta historia clínica");
         }

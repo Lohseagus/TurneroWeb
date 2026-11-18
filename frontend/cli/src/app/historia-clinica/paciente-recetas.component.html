@@ -5,10 +5,14 @@
       <p>Recetas y órdenes emitidas en tus consultas. Podés descargar el PDF.</p>
     </div>
   </div>
+  <div class="ct-empty" *ngIf="sinFicha">
+    <span class="material-symbols-outlined ct-empty__icon" aria-hidden="true">personal_injury</span>
+    <h2 class="ct-empty__title">{{ mensajeSinFicha }}</h2>
+  </div>
   <div class="hce-error" *ngIf="error">{{ error }}</div>
-  <p *ngIf="cargando">Cargando…</p>
+  <p *ngIf="cargando && !sinFicha">Cargando…</p>
 
-  <section class="hce-panel">
+  <section class="hce-panel" *ngIf="!sinFicha && !cargando">
     <h2>Recetas</h2>
     <article class="hce-card" *ngFor="let receta of recetas">
       <div class="hce-header">
@@ -26,7 +30,7 @@
     <p class="hce-muted" *ngIf="!cargando && !recetas.length">Todavía no tenés recetas.</p>
   </section>
 
-  <section class="hce-panel">
+  <section class="hce-panel" *ngIf="!sinFicha && !cargando">
     <h2>Órdenes de estudio</h2>
     <article class="hce-card" *ngFor="let orden of ordenes">
       <div class="hce-header">

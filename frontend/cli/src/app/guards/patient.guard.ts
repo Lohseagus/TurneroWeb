@@ -27,7 +27,9 @@ export class PatientGuard implements CanActivate {
       return false;
     }
 
-    // Verificar si tiene rol de paciente o superior usando el UserContextService
+    // El staff hereda PACIENTE, así que la ruta abre. PacientePortalComponent
+    // mira GET /api/pacientes/me y, si no hay ficha, muestra el vacío sin montar
+    // las pantallas (no hay toast de permiso ni un Cargando que no termina).
     return this.userContextService.hasRole(Role.PACIENTE);
   }
 }
