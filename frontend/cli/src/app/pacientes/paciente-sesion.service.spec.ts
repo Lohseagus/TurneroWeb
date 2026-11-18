@@ -63,6 +63,10 @@ describe('PacienteSesionService', () => {
 
     expect(recibidas).toEqual([9, 1]);
     expect(localStorage.getItem('pacienteId')).toBe('9');
+
+    let id: number | null = -1;
+    service.id().subscribe(valor => id = valor);
+    expect(id).toBe(9);
     http.verify();
   });
 
@@ -109,6 +113,47 @@ describe('PacienteSesionService', () => {
 
     expect(fichaId).toBe(15);
     expect(localStorage.getItem('pacienteId')).toBe('15');
+
+    let id: number | null = null;
+    service.id().subscribe(valor => id = valor);
+    expect(id).toBe(15);
+    http.verify();
+  });
+
+  it('un 404 que llega después de crear la ficha no borra el id', () => {
+    let errorTardio = false;
+    service.resolver().subscribe({ error: () => errorTardio = true });
+    const lectura = http.expectOne('rest/pacientes/me');
+
+    let creado: number | null = null;
+    service.crear({}).subscribe(ficha => creado = ficha.id);
+    const alta = http.expectOne('rest/pacientes/me');
+    expect(alta.request.method).toBe('POST');
+    alta.flush({
+      status_code: 201,
+      status_text: 'Creaste tu ficha de paciente',
+      data: {
+        id: 15,
+        nombre: 'Juan',
+        apellido: 'Pérez',
+        email: 'medico@turnero.com',
+        telefono: '',
+        dni: 1,
+        fechaNacimiento: ''
+      }
+    });
+
+    lectura.flush(
+      { status_code: 404, status_text: 'Tu cuenta no tiene ficha de paciente', data: null },
+      { status: 404, statusText: 'Not Found' }
+    );
+
+    expect(creado).toBe(15);
+    expect(errorTardio).toBe(false);
+    expect(localStorage.getItem('pacienteId')).toBe('15');
+    let id: number | null = null;
+    service.id().subscribe(valor => id = valor);
+    expect(id).toBe(15);
     http.verify();
   });
 });

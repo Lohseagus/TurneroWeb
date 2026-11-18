@@ -7,6 +7,8 @@ import { ActivatedRoute } from '@angular/router';
 import { PacienteService } from '../paciente.service';
 import { PreferenciaHoraria } from '../preferencia-horaria';
 import { DataPackage } from '../../data.package';
+import { timeout } from 'rxjs/operators';
+import { mensajeDeCarga } from '../mensaje-carga';
 
 /**
  * Componente para gestionar las preferencias horarias de un paciente.
@@ -53,6 +55,7 @@ export class PreferenciasPacienteComponent implements OnInit {
 
   /** Indica si se está procesando una operación */
   isLoading = false;
+  cargandoLista = true;
 
   /** Mensajes de éxito o error */
   mensaje = '';
@@ -73,13 +76,16 @@ export class PreferenciasPacienteComponent implements OnInit {
    * Carga las preferencias horarias del paciente desde el backend.
    */
   cargarPreferencias(): void {
-    this.pacienteService.getPreferencias().subscribe({
+    this.cargandoLista = true;
+    this.pacienteService.getPreferencias().pipe(timeout(20000)).subscribe({
       next: (response: DataPackage<PreferenciaHoraria[]>) => {
         this.preferencias = response.data || [];
+        this.cargandoLista = false;
       },
       error: (error) => {
         console.error('Error al cargar preferencias:', error);
-        this.mostrarMensaje('Error al cargar las preferencias', 'error');
+        this.cargandoLista = false;
+        this.mostrarMensaje(mensajeDeCarga(error, 'No se pudieron cargar los horarios preferidos. Reintentá.'), 'error');
       }
     });
   }

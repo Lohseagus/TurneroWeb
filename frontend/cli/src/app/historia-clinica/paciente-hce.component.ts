@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { finalize } from 'rxjs/operators';
+import { finalize, timeout } from 'rxjs/operators';
 import { HceService } from './hce.service';
 import { AdjuntoHce, ConsultaHce, PerfilClinico, TimelineItem } from './hce.models';
 import { MENSAJE_SIN_FICHA_PACIENTE } from '../config/menu.config';
@@ -43,7 +43,7 @@ export class PacienteHceComponent implements OnInit {
     this.cargando = true;
     this.sinFicha = false;
     this.error = '';
-    this.hce.miHistoria().pipe(finalize(() => {
+    this.hce.miHistoria().pipe(timeout(20000), finalize(() => {
       this.cargando = false;
       this.cdr.detectChanges();
     })).subscribe({

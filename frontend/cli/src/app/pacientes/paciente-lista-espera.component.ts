@@ -3,6 +3,8 @@ import { CommonModule } from "@angular/common";
 import { PacienteService } from "./paciente.service";
 import { ListaEspera } from "../lista-espera/lista-espera.model";
 import { ModalService } from "../modal/modal.service";
+import { timeout } from "rxjs/operators";
+import { mensajeDeCarga } from "./mensaje-carga";
 
 @Component({
   selector: "app-paciente-lista-espera",
@@ -33,14 +35,14 @@ export class PacienteListaEsperaComponent implements OnInit {
   cargar(): void {
     this.cargando = true;
     this.error = "";
-    this.pacienteService.misSolicitudesEspera().subscribe({
+    this.pacienteService.misSolicitudesEspera().pipe(timeout(20000)).subscribe({
       next: (paquete) => {
         this.solicitudes = paquete.data || [];
         this.cargando = false;
       },
-      error: () => {
+      error: (error) => {
         this.cargando = false;
-        this.error = "";
+        this.error = mensajeDeCarga(error, "No se pudo cargar la lista de espera.");
       },
     });
   }
