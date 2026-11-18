@@ -83,7 +83,7 @@
             @if (!item.divider) {
               <li
                 class="sidebar__menu-item"
-                [class.sidebar__menu-item--active]="isActiveRoute(item.route)"
+                [class.sidebar__menu-item--active]="isItemActive(item)"
                 >
                 @if (item.route) {
                   <a

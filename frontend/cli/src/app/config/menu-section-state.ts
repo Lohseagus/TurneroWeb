@@ -21,6 +21,7 @@ export interface MenuSectionLike {
   items: ReadonlyArray<{
     route?: string;
     divider?: boolean;
+    activeOn?: readonly string[];
   }>;
 }
 
@@ -49,8 +50,21 @@ export function routeMatches(currentUrl: string, itemRoute: string | undefined):
   return path === target || path.startsWith(`${target}/`);
 }
 
+export function itemMatchesRoute(
+  currentUrl: string,
+  item: { route?: string; activeOn?: readonly string[] } | null | undefined
+): boolean {
+  if (!item) {
+    return false;
+  }
+  if (routeMatches(currentUrl, item.route)) {
+    return true;
+  }
+  return (item.activeOn ?? []).some(alias => routeMatches(currentUrl, alias));
+}
+
 export function sectionContainsActiveRoute(section: MenuSectionLike, activeRoute: string): boolean {
-  return section.items.some(item => !item.divider && routeMatches(activeRoute, item.route));
+  return section.items.some(item => !item.divider && itemMatchesRoute(activeRoute, item));
 }
 
 /**

@@ -4,8 +4,8 @@
     <div class="ct-page-header__main">
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_available</span>
       <div>
-        <h1 class="ct-page-header__title">Turnos Disponibles</h1>
-        <p class="ct-page-header__subtitle">Busca y reserva turnos médicos disponibles</p>
+        <h1 class="ct-page-header__title">Pedir turno</h1>
+        <p class="ct-page-header__subtitle">Buscá un horario libre y reservalo</p>
       </div>
     </div>
     <div class="ct-page-header__actions">
@@ -188,7 +188,7 @@
                     <span class="material-symbols-outlined">info</span>
                     <small>
                       Filtra los turnos según los horarios que configuraste en
-                      <a routerLink="/paciente-preferencias"
+                      <a routerLink="/paciente-cuenta/horarios"
                         class="link-preferencias"
                         title="Ir a configurar horarios preferidos">
                         Mis Horarios Preferidos
@@ -592,7 +592,7 @@
                   </li>
                 }
               </ul>
-              <p class="mt-3">Intenta cambiar los filtros o seleccionar otras opciones.</p>
+              <p class="mt-3">Probá con otros filtros. Si no aparece un horario, podés anotarte en la lista de espera.</p>
               <button
                 class="btn btn-paciente-primary"
                 (click)="limpiarTodosFiltros()"
@@ -600,8 +600,26 @@
                 <span class="material-symbols-outlined">filter_alt</span>
                 Limpiar Filtros
               </button>
+              @if (estaAutenticado && !esOperador) {
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  (click)="abrirListaEspera()"
+                >
+                  <span class="material-symbols-outlined">schedule</span>
+                  Anotarme en la lista de espera
+                </button>
+              }
             </div>
           </div>
+        </div>
+      </div>
+    }
+
+    @if (mostrarListaEspera && estaAutenticado && !esOperador) {
+      <div class="row mt-3">
+        <div class="col-12">
+          <app-lista-espera-form></app-lista-espera-form>
         </div>
       </div>
     }

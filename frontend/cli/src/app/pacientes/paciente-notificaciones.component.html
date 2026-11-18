@@ -1,4 +1,5 @@
-<div class="ct-page">
+<div [class.ct-page]="!embebido">
+  @if (!embebido) {
   <header class="ct-page-header">
     <div class="ct-page-header__main">
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">notifications</span>
@@ -28,6 +29,23 @@
       </button>
     </div>
   </header>
+  } @else {
+    <div class="ct-page-header__actions mb-lg">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="marcarTodasComoLeidas()"
+        [disabled]="contadorNoLeidas === 0"
+      >
+        <span class="material-symbols-outlined">mark_email_read</span>
+        Marcar todas como leídas
+      </button>
+      <button type="button" class="btn btn-primary" (click)="actualizarNotificaciones()">
+        <span class="material-symbols-outlined">sync</span>
+        Actualizar
+      </button>
+    </div>
+  }
 <div class="card p-xl mb-xl">
   <!-- Filtros -->
   <div class="card p-lg mb-lg">

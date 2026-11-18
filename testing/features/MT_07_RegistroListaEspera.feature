@@ -11,3 +11,15 @@ Característica: Flujo Completo de Paciente (Registro -> Activación -> Lista Es
     Y inicia sesión con sus nuevas credenciales
     Y solicita unirse a la lista de espera para "Cardiología"
     Entonces el sistema confirma su ingreso a la lista exitosamente
+
+  Escenario: El paciente ve y cancela su propia solicitud
+    Dado que un nuevo paciente se registra en el sistema
+    Cuando el sistema genera el token de activación
+    Y el paciente valida su email con dicho token
+    Y inicia sesión con sus nuevas credenciales
+    Y solicita unirse a la lista de espera para "Cardiología"
+    Entonces el sistema confirma su ingreso a la lista exitosamente
+    Cuando consulta sus solicitudes de lista de espera
+    Entonces ve su solicitud de "Cardiología"
+    Cuando cancela esa solicitud de lista de espera
+    Entonces la solicitud de lista de espera queda cancelada

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -9,15 +9,19 @@ import { NotificacionService } from "../services/notificacion.service";
 import { EncuestaService } from "../services/encuesta.service";
 import { AuthService } from "../inicio-sesion/auth.service";
 import { ModalService } from "../modal/modal.service";
+import { RecetaService } from "../historia-clinica/receta.service";
+import { PacienteListaEsperaComponent } from "./paciente-lista-espera.component";
 
 @Component({
   selector: "app-paciente-dashboard",
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PacienteListaEsperaComponent],
   templateUrl: "./paciente-dashboard.component.html",
   changeDetection: ChangeDetectionStrategy.Eager,
-  styleUrl: "./paciente-dashboard.component.css",
+  styleUrls: ["./paciente-dashboard.component.css", "./paciente-portal.css"],
 })
 export class PacienteDashboardComponent implements OnInit, OnDestroy {
+  /** Dentro de Mis turnos: solo la lista de próximos, sin el inicio. */
+  @Input() embebido = false;
   patientDNI: string = "";
   patientName: string = "";
   patientEmail: string = "";
@@ -27,8 +31,9 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   isLoadingTurnos = false;
   currentFilter: "upcoming" | "past" | "all" = "upcoming";
 
-  // Notificaciones
+  // Notificaciones y recetas vigentes, solo en Inicio
   contadorNotificaciones = 0;
+  recetasPendientes = 0;
   // Mapa de encuestas pendientes por turnoId
   surveyPendingMap: { [turnoId: number]: boolean } = {};
 
@@ -139,7 +144,8 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
     private notificacionService: NotificacionService,
     private authService: AuthService,
     private encuestaService: EncuestaService,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private recetaService: RecetaService
   ) {
     // Obtener datos del usuario autenticado
     this.patientEmail = this.authService.getUserEmail() || "";
@@ -164,9 +170,20 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  get turnosVisibles(): any[] {
+    if (this.embebido) {
+      return this.filteredTurnos;
+    }
+    return this.filteredTurnos.slice(0, 1);
+  }
+
   ngOnInit() {
+    this.currentFilter = "upcoming";
     this.cargarTurnosPaciente();
-    this.cargarContadorNotificaciones();
+    if (!this.embebido) {
+      this.cargarContadorNotificaciones();
+      this.cargarRecetasPendientes();
+    }
     this.cargarNotificacionesNoLeidas();
 
 
@@ -279,6 +296,25 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
 
   trackByTurno(index: number, turno: any): any {
     return turno.id || index;
+  }
+
+  private cargarRecetasPendientes() {
+    this.recetaService.mias().subscribe({
+      next: (paquete) => {
+        this.recetasPendientes = (paquete.data || []).filter((receta) => receta.estado === "EMITIDA").length;
+      },
+      error: () => {
+        this.recetasPendientes = 0;
+      },
+    });
+  }
+
+  verNotificaciones() {
+    this.router.navigate(["/paciente-cuenta/notificaciones"]);
+  }
+
+  verRecetas() {
+    this.router.navigate(["/paciente-salud"], { queryParams: { tab: "recetas" } });
   }
 
   private cargarContadorNotificaciones() {
@@ -737,35 +773,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
 
   scheduleAppointment() {
     this.router.navigate(["/paciente-agenda"]);
-  }
-
-  viewAgenda() {
-    this.router.navigate(["/paciente-agenda"]);
-  }
-
-  viewProfile() {
-    // Navegar a la ruta específica para el perfil del paciente
-    this.router.navigate(["/paciente-perfil"]);
-  }
-
-  viewPreferencias() {
-    this.router.navigate(["/paciente-preferencias"]);
-  }
-
-  viewNotifications() {
-    this.router.navigate(["/paciente-notificaciones"]);
-  }
-
-  viewHistorial() {
-    this.router.navigate(["/paciente-historial"]);
-  }
-
-  viewHistoriaClinica() {
-    this.router.navigate(["/paciente-historia-clinica"]);
-  }
-
-  viewRecetas() {
-    this.router.navigate(["/paciente-recetas"]);
   }
 
   abrirEncuesta(turnoId: number) {

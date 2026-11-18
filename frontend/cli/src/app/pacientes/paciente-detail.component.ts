@@ -90,7 +90,8 @@ export class PacienteDetailComponent implements OnInit {
   }
 
   private esPerfil(): boolean {
-    return this.route.snapshot.routeConfig?.path === "paciente-perfil";
+    const path = this.route.snapshot.routeConfig?.path;
+    return path === "paciente-perfil" || path === "perfil";
   }
 
   private cargarFicha(): void {
@@ -239,9 +240,9 @@ export class PacienteDetailComponent implements OnInit {
     const path = this.route.snapshot.routeConfig?.path;
     const userRole = this.authService.getUserRole();
 
-    // Verificar por ruta: Las rutas de admin son 'pacientes/new' y 'pacientes/:id'
-    // La ruta de paciente es 'paciente-perfil'
-    const isAdminRoute = path !== "paciente-perfil";
+    // Las rutas de admin son pacientes/new y pacientes/:id.
+    // La ficha propia es paciente-perfil (vieja) o perfil, dentro de Mi cuenta.
+    const isAdminRoute = path !== "paciente-perfil" && path !== "perfil";
 
     // Verificar por rol: ADMINISTRADOR u OPERADOR pueden crear pacientes
     const isAdminRole = userRole === "ADMINISTRADOR" || userRole === "OPERADOR";
@@ -334,8 +335,7 @@ export class PacienteDetailComponent implements OnInit {
             }
           } else {
             // Comportamiento normal
-            const path = this.route.snapshot.routeConfig?.path;
-            if (path === "paciente-perfil") {
+            if (this.esPerfil()) {
               this.router.navigate(["/paciente-dashboard"]);
             } else {
               this.router.navigate(["/pacientes"]);
@@ -363,8 +363,7 @@ export class PacienteDetailComponent implements OnInit {
 
   goBack(): void {
     const path = this.route.snapshot.routeConfig?.path;
-    if (path === "paciente-perfil") {
-      // Si es un paciente viendo su perfil, volver al dashboard del paciente
+    if (path === "paciente-perfil" || path === "perfil") {
       this.router.navigate(["/paciente-dashboard"]);
     } else {
       // Si es un admin, volver a la lista de pacientes
@@ -422,8 +421,7 @@ export class PacienteDetailComponent implements OnInit {
   }
 
   esPacienteVendoSuPerfil(): boolean {
-    const path = this.route.snapshot.routeConfig?.path;
-    return path === "paciente-perfil";
+    return this.esPerfil();
   }
 
   /**

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NotificacionService, NotificacionDTO, PageNotificacion } from '../services/notificacion.service';
 import { Subscription } from 'rxjs';
 
@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
   styleUrl: './paciente-notificaciones.component.css'
 })
 export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
+  embebido = false;
 
   notificaciones: NotificacionDTO[] = [];
   notificacionesFiltradas: NotificacionDTO[] = [];
@@ -35,8 +36,11 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
 
   constructor(
     private notificacionService: NotificacionService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    this.embebido = this.route.snapshot.data['embebido'] === true;
+  }
 
   ngOnInit(): void {
     this.cargarNotificaciones();
@@ -206,8 +210,8 @@ export class PacienteNotificacionesComponent implements OnInit, OnDestroy {
 
   verTurno(turnoId: number, event: Event): void {
     event.stopPropagation();
-    this.router.navigate(['/paciente-dashboard'], { 
-      queryParams: { turnoId: turnoId } 
+    this.router.navigate(['/paciente-turnos'], {
+      queryParams: { turnoId: turnoId }
     });
   }
 

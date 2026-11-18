@@ -3,6 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { map, Observable } from "rxjs";
 import { Paciente } from "./paciente";
 import { PreferenciaHoraria } from "./preferencia-horaria";
+import { ListaEspera } from "../lista-espera/lista-espera.model";
 import { DataPackage } from "../data.package";
 import { ResultsPage } from "../results-page";
 import { environment } from '../../environments/environment';
@@ -277,6 +278,16 @@ export class PacienteService {
   deletePreferencia(id: number): Observable<void> {
     const url = `${this.url}/me/preferencias/${id}`;
     return this.http.delete<void>(url);
+  }
+
+  /** Solicitudes de lista de espera de la cuenta autenticada. */
+  misSolicitudesEspera(): Observable<DataPackage<ListaEspera[]>> {
+    return this.http.get<DataPackage<ListaEspera[]>>(`${this.url}/me/lista-espera`);
+  }
+
+  /** Cancela una solicitud pendiente propia. Queda en estado CANCELADA. */
+  cancelarSolicitudEspera(id: number): Observable<DataPackage<ListaEspera>> {
+    return this.http.delete<DataPackage<ListaEspera>>(`${this.url}/me/lista-espera/${id}`);
   }
 }
 

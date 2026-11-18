@@ -12,6 +12,8 @@ export interface MenuItem {
     value: number | string;
     color: 'primary' | 'danger' | 'warning' | 'success' | 'info';
   };
+  /** Rutas que también marcan este ítem, sin mostrarse en el menú. */
+  activeOn?: string[];
   divider?: boolean;
   description?: string;
   children?: MenuItem[];
@@ -49,57 +51,33 @@ export const MENU_CONFIG: MenuSection[] = [
     order: 2,
     items: [
       {
-        label: 'Mi Dashboard',
+        label: 'Inicio',
         route: '/paciente-dashboard',
         icon: 'dashboard',
-        description: 'Panel principal del paciente'
+        description: 'Tu próximo turno'
       },
       {
-        label: 'Pedir turno',
-        route: '/paciente-agenda',
+        label: 'Mis turnos',
+        route: '/paciente-turnos',
         icon: 'event_available',
-        description: 'Buscar disponibilidad y reservar un turno'
+        description: 'Próximos, pasados y pedir un turno',
+        activeOn: ['/paciente-agenda', '/paciente-reagendar-turno', '/paciente/encuesta']
       },
       {
-        label: 'Mi Historial',
-        route: '/paciente-historial',
-        icon: 'history',
-        description: 'Ver historial de atenciones médicas'
-      },
-      {
-        label: 'Mi historia clínica',
-        route: '/paciente-historia-clinica',
+        label: 'Mi salud',
+        route: '/paciente-salud',
         icon: 'clinical_notes',
-        description: 'Consultas, estudios y perfil clínico'
+        description: 'Historia clínica, recetas y órdenes'
       },
       {
-        label: 'Mis recetas',
-        route: '/paciente-recetas',
-        icon: 'description',
-        description: 'Recetas y órdenes de estudio'
-      },
-      {
-        label: 'Mis Notificaciones',
-        route: '/paciente-notificaciones',
-        icon: 'notifications',
-        description: 'Notificaciones y alertas',
+        label: 'Mi cuenta',
+        route: '/paciente-cuenta',
+        icon: 'account_circle',
+        description: 'Perfil, horarios preferidos y notificaciones',
         badge: {
-          value: 0, // Se actualiza dinámicamente
+          value: 0,
           color: 'danger'
         }
-      },
-      {
-        label: 'Mi Perfil',
-        route: '/paciente-perfil',
-        icon: 'account_circle',
-        description: 'Datos personales y configuración',
-        requiresPrimaryRole: true // Solo visible si el usuario es PACIENTE como rol primario
-      },
-      {
-        label: 'Lista de Espera',
-        route: '/lista-espera-form',
-        icon: 'schedule',
-        description: 'Agregarme a lista de espera de pacientes'
       }
     ]
   },

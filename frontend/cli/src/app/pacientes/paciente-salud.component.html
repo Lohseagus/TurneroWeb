@@ -1,0 +1,32 @@
+<div class="ct-page">
+  <header class="ct-page-header">
+    <div class="ct-page-header__main">
+      <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">clinical_notes</span>
+      <div>
+        <h1 class="ct-page-header__title">Mi salud</h1>
+        <p class="ct-page-header__subtitle">Consultas, recetas, órdenes y tu perfil clínico</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="portal-tabs" role="tablist">
+    <button type="button" class="portal-tab" [class.active]="tab === 'timeline'" (click)="ir('timeline')">
+      Línea de tiempo
+    </button>
+    <button type="button" class="portal-tab" [class.active]="tab === 'recetas'" (click)="ir('recetas')">
+      Recetas y órdenes
+    </button>
+    <button type="button" class="portal-tab" [class.active]="tab === 'perfil'" (click)="ir('perfil')">
+      Perfil clínico
+    </button>
+    <button type="button" class="portal-tab" [class.active]="tab === 'pdf'" (click)="ir('pdf')">
+      Descargar PDF
+    </button>
+  </div>
+
+  @if (tab === "recetas") {
+    <app-paciente-recetas [embebido]="true" />
+  } @else {
+    <app-paciente-hce [seccion]="seccionHce" />
+  }
+</div>

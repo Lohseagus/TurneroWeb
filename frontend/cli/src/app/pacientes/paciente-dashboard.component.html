@@ -30,137 +30,58 @@
   </div>
 }
 
-<div class="dashboard-wrapper ct-page">
-  <!-- Header del Dashboard -->
-  <div class="dashboard-header card">
-    <div class="header-content">
-      <div class="welcome-info">
-        <span class="material-symbols-outlined header-icon">health_and_safety</span>
-        <div>
-          <h1>Panel de Paciente</h1>
-          <p class="header-subtitle">Gestiona tu salud de manera inteligente</p>
-        </div>
-      </div>
-      <div class="user-info">
-        <div class="info-item">
-          <span class="material-symbols-outlined">person</span>
-          <span>{{ patientName }}</span>
-        </div>
-        <div class="info-item">
-          <span class="material-symbols-outlined">email</span>
-          <span>{{ patientEmail }}</span>
-        </div>
-        @if (patientDNI) {
-          <div class="info-item">
-            <span class="material-symbols-outlined">badge</span>
-            <span>DNI: {{ patientDNI }}</span>
+<div class="dashboard-wrapper" [class.ct-page]="!embebido">
+  @if (!embebido) {
+    <div class="dashboard-header card">
+      <div class="header-content">
+        <div class="welcome-info">
+          <span class="material-symbols-outlined header-icon">health_and_safety</span>
+          <div>
+            <h1>Inicio</h1>
+            <p class="header-subtitle">Hola{{ patientName ? ', ' + patientName : '' }}. Este es tu próximo turno.</p>
           </div>
-        }
+        </div>
+        <button type="button" class="btn btn-primary" (click)="scheduleAppointment()">
+          <span class="material-symbols-outlined">add_circle</span>
+          Pedir turno
+        </button>
       </div>
     </div>
-  </div>
 
-  <!-- Sección Acciones Rápidas -->
-  <section class="quick-actions-section card">
-    <h2>
-      <span class="material-symbols-outlined">bolt</span>
-      Acciones Rápidas
-    </h2>
-    <p class="section-description">Accede rápidamente a las funciones principales</p>
-
-    <div class="actions-grid">
-      <div class="card action-card" (click)="viewAgenda()">
-        <span class="material-symbols-outlined card-icon">calendar_month</span>
-        <h3>Agenda de turnos</h3>
-        <p>Ver horarios disponibles y solicitar citas</p>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </div>
-
-      <div class="card action-card" (click)="viewProfile()">
-        <span class="material-symbols-outlined card-icon">account_circle</span>
-        <h3>Mi Perfil</h3>
-        <p>Ver y actualizar información personal</p>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </div>
-
-      <div class="card action-card" (click)="viewPreferencias()">
-        <span class="material-symbols-outlined card-icon">schedule</span>
-        <h3>Mis Horarios Preferidos</h3>
-        <p>Configurar horarios de preferencia</p>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </div>
-
-      <div class="card action-card" (click)="viewNotifications()">
-        <span class="material-symbols-outlined card-icon">notifications</span>
-        <h3>Notificaciones</h3>
-        <p>Ver mensajes y alertas del sistema</p>
+    @if (contadorNotificaciones > 0 || recetasPendientes > 0) {
+      <div class="inicio-alertas">
         @if (contadorNotificaciones > 0) {
-          <span class="notification-badge">{{ contadorNotificaciones }}</span>
+          <button type="button" class="inicio-alerta" (click)="verNotificaciones()">
+            <span class="material-symbols-outlined">notifications</span>
+            <span>
+              {{ contadorNotificaciones === 1 ? 'Tenés 1 notificación sin leer' : 'Tenés ' + contadorNotificaciones + ' notificaciones sin leer' }}
+            </span>
+          </button>
         }
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+        @if (recetasPendientes > 0) {
+          <button type="button" class="inicio-alerta" (click)="verRecetas()">
+            <span class="material-symbols-outlined">description</span>
+            <span>
+              {{ recetasPendientes === 1 ? 'Tenés 1 receta vigente' : 'Tenés ' + recetasPendientes + ' recetas vigentes' }}
+            </span>
+          </button>
+        }
       </div>
+    }
+  }
 
-      <div class="card action-card" (click)="viewHistorial()">
-        <span class="material-symbols-outlined card-icon">history</span>
-        <h3>Mi Historial</h3>
-        <p>Ver historial de turnos médicos</p>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </div>
-
-      <div class="card action-card" (click)="viewHistoriaClinica()">
-        <span class="material-symbols-outlined card-icon">clinical_notes</span>
-        <h3>Mi historia clínica</h3>
-        <p>Consultas, estudios y perfil clínico</p>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </div>
-
-      <div class="card action-card" (click)="viewRecetas()">
-        <span class="material-symbols-outlined card-icon">description</span>
-        <h3>Mis recetas</h3>
-        <p>Descargá recetas y órdenes de estudio</p>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- Sección Mis Turnos -->
-  <section class="appointments-section card">
-    <div class="section-header">
-      <div class="section-title">
-        <span class="material-symbols-outlined">event_available</span>
-        <div>
-          <h2>Mis Turnos Médicos</h2>
-          <p class="section-description">Gestiona tus citas médicas</p>
+  <section class="appointments-section" [class.card]="!embebido">
+    @if (!embebido) {
+      <div class="section-header">
+        <div class="section-title">
+          <span class="material-symbols-outlined">event_available</span>
+          <div>
+            <h2>Próximo turno</h2>
+            <p class="section-description">Confirmalo, cancelalo o reprogramalo</p>
+          </div>
         </div>
       </div>
-      <button class="btn btn-primary" (click)="scheduleAppointment()">
-        <span class="material-symbols-outlined">add_circle</span>
-        Solicitar Turno
-      </button>
-    </div>
-
-    <!-- Filtros -->
-    <div class="filter-tabs">
-      <button class="filter-tab" [class.active]="currentFilter === 'upcoming'" (click)="setFilter('upcoming')">
-        <span class="material-symbols-outlined">schedule</span>
-        <span>Próximos</span>
-        @if (getFilterCount('upcoming') > 0) {
-          <span class="tab-count">{{ getFilterCount("upcoming") }}</span>
-        }
-      </button>
-      <button class="filter-tab" [class.active]="currentFilter === 'past'" (click)="setFilter('past')">
-        <span class="material-symbols-outlined">history</span>
-        <span>Pasados</span>
-        @if (getFilterCount('past') > 0) {
-          <span class="tab-count">{{ getFilterCount("past") }}</span>
-        }
-      </button>
-      <button class="filter-tab" [class.active]="currentFilter === 'all'" (click)="setFilter('all')">
-        <span class="material-symbols-outlined">list</span>
-        <span>Todos</span>
-        <span class="tab-count">{{ allTurnos.length }}</span>
-      </button>
-    </div>
+    }
 
     <!-- Loading -->
     @if (isLoadingTurnos) {
@@ -171,9 +92,9 @@
     }
 
     <!-- Lista de Turnos -->
-    @if (!isLoadingTurnos && filteredTurnos.length > 0) {
+    @if (!isLoadingTurnos && turnosVisibles.length > 0) {
       <div class="appointments-grid">
-        @for (turno of filteredTurnos; track trackByTurno($index, turno)) {
+        @for (turno of turnosVisibles; track trackByTurno($index, turno)) {
           <div class="card appointment-card"
             [class.status-programado]="turno.status === 'programado'"
             [class.status-confirmado]="turno.status === 'confirmado'" [class.status-completo]="turno.status === 'completo'"
@@ -258,21 +179,22 @@
     }
 
     <!-- Estado vacío -->
-    @if (!isLoadingTurnos && filteredTurnos.length === 0) {
+    @if (!isLoadingTurnos && turnosVisibles.length === 0) {
       <div class="empty-state card">
         <span class="material-symbols-outlined empty-icon">event_busy</span>
-        <h3>No tienes turnos {{ getEmptyStateText() }}</h3>
-        <p>{{ getEmptyStateDescription() }}</p>
-        @if (currentFilter === 'upcoming' || currentFilter === 'all') {
-          <button class="btn btn-primary" (click)="scheduleAppointment()"
-            >
-            <span class="material-symbols-outlined">add_circle</span>
-            Solicitar mi primer turno
-          </button>
-        }
+        <h3>No tenés turnos próximos</h3>
+        <p>Cuando reserves uno, lo vas a ver acá.</p>
+        <button class="btn btn-primary" type="button" (click)="scheduleAppointment()">
+          <span class="material-symbols-outlined">add_circle</span>
+          Pedir turno
+        </button>
       </div>
     }
   </section>
+
+  @if (!embebido) {
+    <app-paciente-lista-espera />
+  }
 
   <!-- Modal de Cancelación -->
   @if (showReasonModal) {

@@ -1,4 +1,5 @@
-<div class="ct-page ct-page--narrow">
+<div [class.ct-page]="!embebido" [class.ct-page--narrow]="!embebido">
+  @if (!embebido) {
   <header class="ct-page-header">
     <div class="ct-page-header__main">
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">schedule</span>
@@ -8,6 +9,7 @@
       </div>
     </div>
   </header>
+  }
   <section class="ct-section">
           <!-- Mensajes de éxito/error -->
           @if (mensaje) {

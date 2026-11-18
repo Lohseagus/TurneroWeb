@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 // Models & Services
 import { PacienteService } from '../paciente.service';
@@ -27,7 +28,8 @@ import { DataPackage } from '../../data.package';
   styleUrls: ['./preferencias-paciente.component.css']
 })
 export class PreferenciasPacienteComponent implements OnInit {
-  
+  embebido = false;
+
   /** Lista de preferencias horarias del paciente */
   preferencias: PreferenciaHoraria[] = [];
   
@@ -56,7 +58,12 @@ export class PreferenciasPacienteComponent implements OnInit {
   mensaje = '';
   tipoMensaje: 'success' | 'error' | '' = '';
 
-  constructor(private pacienteService: PacienteService) {}
+  constructor(
+    private pacienteService: PacienteService,
+    private route: ActivatedRoute
+  ) {
+    this.embebido = this.route.snapshot.data['embebido'] === true;
+  }
 
   ngOnInit(): void {
     this.cargarPreferencias();

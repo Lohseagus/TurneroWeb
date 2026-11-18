@@ -6,14 +6,14 @@ import { filter } from 'rxjs/operators';
 import { MenuService } from '../services/menu.service';
 import { UserContextService, UserContext } from '../services/user-context.service';
 import { AuthService } from '../inicio-sesion/auth.service';
-import { MenuSection } from '../config/menu.config';
+import { MenuItem, MenuSection } from '../config/menu.config';
 import {
   readMenuSectionState,
   writeMenuSectionState
 } from '../config/menu-section-storage';
 import {
   resolveOpenSectionIds,
-  routeMatches
+  itemMatchesRoute
 } from '../config/menu-section-state';
 import { homeRouteForRole } from '../config/menu.config';
 
@@ -96,8 +96,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
   /**
    * Verifica si una ruta está activa
    */
-  isActiveRoute(route?: string): boolean {
-    return routeMatches(this.currentRoute, route);
+  isItemActive(item: MenuItem): boolean {
+    return itemMatchesRoute(this.currentRoute, item);
   }
 
   isSectionOpen(sectionId: string): boolean {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
@@ -15,6 +15,7 @@ import { MENSAJE_SIN_FICHA_PACIENTE } from '../config/menu.config';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PacienteRecetasComponent implements OnInit {
+  @Input() embebido = false;
   recetas: Receta[] = [];
   ordenes: OrdenEstudio[] = [];
   error = '';
