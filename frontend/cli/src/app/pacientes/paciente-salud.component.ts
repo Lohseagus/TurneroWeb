@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Subscription } from "rxjs";
@@ -11,6 +11,7 @@ type TabSalud = "timeline" | "recetas" | "perfil" | "pdf";
   selector: "app-paciente-salud",
   standalone: true,
   imports: [CommonModule, PacienteHceComponent, PacienteRecetasComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./paciente-salud.component.html",
   styleUrl: "./paciente-portal.css",
 })

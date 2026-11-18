@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Subscription } from "rxjs";
@@ -16,6 +16,7 @@ import { PacienteListaEsperaComponent } from "./paciente-lista-espera.component"
     HistorialTurnosComponent,
     PacienteListaEsperaComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./paciente-turnos.component.html",
   styleUrl: "./paciente-portal.css",
 })

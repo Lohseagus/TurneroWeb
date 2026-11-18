@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { PacienteService } from "./paciente.service";
 import { ListaEspera } from "../lista-espera/lista-espera.model";
@@ -10,6 +10,7 @@ import { mensajeDeCarga } from "./mensaje-carga";
   selector: "app-paciente-lista-espera",
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./paciente-lista-espera.component.html",
   styleUrl: "./paciente-portal.css",
 })
