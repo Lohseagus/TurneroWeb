@@ -85,105 +85,91 @@
 
     <!-- Loading -->
     @if (isLoadingTurnos) {
-      <div class="loading-section">
-        <span class="material-symbols-outlined spinner-large">sync</span>
+      <div class="ct-loading">
+        <span class="material-symbols-outlined ct-spin">sync</span>
         <p>Cargando turnos...</p>
       </div>
     }
 
     <!-- Lista de Turnos -->
     @if (!isLoadingTurnos && turnosVisibles.length > 0) {
-      <div class="appointments-grid">
+      <div class="turnos-grid">
         @for (turno of turnosVisibles; track trackByTurno($index, turno)) {
-          <div class="card appointment-card"
-            [class.status-programado]="turno.status === 'programado'"
-            [class.status-confirmado]="turno.status === 'confirmado'" [class.status-completo]="turno.status === 'completo'"
-            [class.status-cancelado]="turno.status === 'cancelado'">
-            <!-- Fecha y Estado -->
-            <div class="appointment-header">
-              <div class="date-info">
-                <span class="material-symbols-outlined">calendar_today</span>
-                <div class="date-details">
-                  <span class="date-day">{{ turno.day }}</span>
-                  <span class="date-month">{{ turno.month }}</span>
-                  <span class="date-year">{{ turno.year }}</span>
-                </div>
-                <div class="time-details">
-                  <span class="material-symbols-outlined">schedule</span>
-                  <span class="time-value">{{ turno.time }}</span>
-                </div>
+          <article class="turno" [class.is-cancelado]="turno.status === 'cancelado'">
+            <div class="turno__cabecera">
+              <div class="turno__fecha">
+                <span class="turno__dia">{{ turno.day }}</span>
+                <span class="turno__mes">{{ turno.month }} {{ turno.year }}</span>
               </div>
-              <div class="status-badge" [ngClass]="'status-' + turno.status">
+              <div class="turno__hora">
+                <span class="material-symbols-outlined">schedule</span>
+                {{ turno.time | slice : 0 : 5 }}
+              </div>
+              <span
+                class="ct-badge turno__estado"
+                [class.ct-badge--success]="turno.status === 'confirmado' || turno.status === 'completo'"
+                [class.ct-badge--warning]="turno.status === 'programado' || turno.status === 'reagendado'"
+                [class.ct-badge--danger]="turno.status === 'cancelado'"
+                >
                 <span class="material-symbols-outlined">{{ getStatusIcon(turno.status) }}</span>
-              </div>
+                {{ getStatusText(turno.status) }}
+              </span>
             </div>
-            <!-- Información del Turno -->
-            <div class="appointment-info">
-              <!-- Médico -->
-              <div class="info-item doctor-info">
+            <ul class="turno__datos">
+              <li>
                 <span class="material-symbols-outlined">person</span>
-                <div class="info-content">
-                  <strong class="info-value">{{ turno.doctor }}</strong>
-                </div>
-              </div>
-              <!-- Especialidad -->
-              <div class="info-item specialty-info">
+                <strong>{{ turno.doctor }}</strong>
+              </li>
+              <li>
                 <span class="material-symbols-outlined">medical_services</span>
-                <div class="info-content">
-                  <span class="info-value">{{ turno.specialty }}</span>
-                </div>
-              </div>
-              <!-- Ubicación -->
-              <div class="info-item location-info">
+                {{ turno.specialty }}
+              </li>
+              <li>
                 <span class="material-symbols-outlined">location_on</span>
-                <div class="info-content">
-                  <span class="info-value">{{ turno.location }}</span>
-                </div>
-              </div>
-            </div>
-            <!-- Acciones -->
+                {{ turno.location }}
+              </li>
+            </ul>
             @if (canPerformActions(turno)) {
-              <div class="appointment-actions">
+              <div class="turno__acciones">
                 @if (canConfirm(turno)) {
-                  <button class="btn btn-success btn-sm" (click)="confirmarTurno(turno)">
+                  <button type="button" class="btn btn-success btn-sm" (click)="confirmarTurno(turno)">
                     <span class="material-symbols-outlined">check</span>
                     Confirmar
                   </button>
                 }
                 @if (canReschedule(turno)) {
-                  <button class="btn btn-secondary btn-sm" (click)="reprogramarTurno(turno)">
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="reprogramarTurno(turno)">
                     <span class="material-symbols-outlined">event_repeat</span>
                     Reagendar
                   </button>
                 }
                 @if (canCancel(turno)) {
-                  <button class="btn btn-danger btn-sm" (click)="cancelarTurno(turno)">
+                  <button type="button" class="btn btn-danger btn-sm" (click)="cancelarTurno(turno)">
                     <span class="material-symbols-outlined">close</span>
                     Cancelar
                   </button>
                 }
               </div>
             }
-            <!-- Botón para responder encuesta si existe una encuesta pendiente para turnos completos -->
             @if (turno.status === 'completo' && surveyPendingMap[turno.id]) {
-              <div class="appointment-actions">
-                <button class="btn btn-secondary btn-sm" (click)="abrirEncuesta(turno.id)">
+              <div class="turno__acciones">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="abrirEncuesta(turno.id)">
                   <span class="material-symbols-outlined">feedback</span>
-                  Responder Encuesta
+                  Responder encuesta
                 </button>
               </div>
             }
-          </div>
+          </article>
         }
       </div>
     }
 
     <!-- Estado vacío -->
     @if (!isLoadingTurnos && turnosVisibles.length === 0) {
-      <div class="empty-state card">
-        <span class="material-symbols-outlined empty-icon">event_busy</span>
-        <h3>No tenés turnos próximos</h3>
-        <p>Cuando reserves uno, lo vas a ver acá.</p>
+      <div class="ct-empty">
+        <span class="material-symbols-outlined ct-empty__icon">event_busy</span>
+        <h3 class="ct-empty__title">No tenés turnos próximos</h3>
+        <p class="ct-empty__text">Cuando reserves uno, lo vas a ver acá.</p>
         <button class="btn btn-primary" type="button" (click)="scheduleAppointment()">
           <span class="material-symbols-outlined">add_circle</span>
           Pedir turno

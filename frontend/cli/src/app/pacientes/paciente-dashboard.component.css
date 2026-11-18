@@ -1413,3 +1413,117 @@
   }
 }
 }
+/* =========================
+   TARJETA DE TURNO
+   ========================= */
+
+.appointments-section:not(.card)::before {
+  display: none;
+}
+
+.turnos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+.turno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.turno.is-cancelado {
+  border-left-color: var(--color-danger);
+  opacity: 0.75;
+}
+
+.turno__cabecera {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.turno__fecha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.turno__dia {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--text-main);
+}
+
+.turno__mes {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.turno__hora {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  background: rgba(var(--color-accent-rgb), 0.08);
+  border-radius: var(--border-radius-md);
+}
+
+.turno__hora .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.turno__estado {
+  margin-left: auto;
+}
+
+.turno__datos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0 0;
+  margin: 0;
+  list-style: none;
+  font-size: var(--font-size-base);
+  color: var(--text-main);
+  border-top: 1px solid var(--border-color);
+}
+
+.turno__datos li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.turno__datos .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--color-accent);
+}
+
+.turno__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+}
+
+.turno__acciones .btn {
+  flex: 1;
+}
