@@ -2264,3 +2264,104 @@
   }
 }
 }
+/* =========================
+   Alineado con la base compartida (ct-ui.css)
+   ========================= */
+
+.banner-centro-atencion {
+  position: relative;
+  overflow: hidden;
+  color: var(--text-main);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+  padding: var(--space-xl);
+  margin-bottom: var(--section-gap);
+}
+
+.banner-centro-atencion::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: auto;
+  height: 4px;
+  background: var(--gradient-brand-bar);
+  border-radius: 0;
+  opacity: 1;
+  transform: none;
+}
+
+.banner-centro-atencion h1 {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+.banner-centro-atencion p {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.banner-centro-atencion p i {
+  color: var(--color-accent);
+}
+
+.modern-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.modern-tabs .nav-item {
+  flex: 1 0 auto;
+}
+
+.modern-tabs .nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-sm) var(--space-lg);
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--border-radius-xl);
+  box-shadow: none;
+  transform: none;
+}
+
+.modern-tabs .nav-link::before {
+  display: none;
+}
+
+.modern-tabs .nav-link.active {
+  color: var(--text-on-accent);
+  background: var(--color-accent);
+  box-shadow: none;
+  transform: none;
+}
+
+.modern-tabs .nav-link:hover:not(.active) {
+  color: var(--color-accent);
+  background: transparent;
+  transform: none;
+}

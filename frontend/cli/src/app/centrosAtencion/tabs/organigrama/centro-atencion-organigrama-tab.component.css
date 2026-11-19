@@ -2,11 +2,11 @@
 
 /* Variables CSS */
 :host {
-  --primary-color: #10b981;
-  --primary-light: #34d399;
+  --primary-color: var(--color-accent);
+  --primary-light: var(--color-accent);
   --secondary-color: #64748b;
-  --success-color: #10b981;
-  --success-light: #34d399;
+  --success-color: var(--color-accent);
+  --success-light: var(--color-accent);
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #06b6d4;
@@ -296,8 +296,8 @@
 }
 
 .consultorio-dia-card.has-esquemas {
-  border-color: #28a745;
-  background: rgba(40, 167, 69, 0.02);
+  border-color: var(--color-accent);
+  background: rgba(var(--color-accent-rgb), 0.02);
 }
 
 .consultorio-dia-card:hover {
@@ -350,7 +350,7 @@
   border-radius: 6px;
   padding: 0.75rem;
   margin-bottom: 0.5rem;
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--color-accent);
 }
 
 .esquema-item:last-child {
@@ -420,7 +420,7 @@
 }
 
 .consultorio-numero-grande {
-  background: #007bff;
+  background: var(--color-accent);
   color: white;
   width: 60px;
   height: 60px;
@@ -473,7 +473,7 @@
 }
 
 .medico-avatar {
-  background: #28a745;
+  background: var(--color-accent);
   color: white;
   width: 40px;
   height: 40px;
@@ -524,7 +524,7 @@
   background: #f8f9fa;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  border-left: 3px solid #007bff;
+  border-left: 3px solid var(--color-accent);
 }
 
 .dia-label {
@@ -597,7 +597,7 @@
 }
 
 .consultorio-row:hover {
-  background: rgba(0, 123, 255, 0.02);
+  background: rgba(var(--color-accent-rgb), 0.02);
 }
 
 .consultorio-cell {
@@ -617,7 +617,7 @@
 }
 
 .numero-matriz {
-  background: #007bff;
+  background: var(--color-accent);
   color: white;
   width: 30px;
   height: 30px;
@@ -653,7 +653,7 @@
   background: #e3f2fd;
   border-radius: 4px;
   padding: 0.375rem;
-  border-left: 2px solid #2196f3;
+  border-left: 2px solid var(--color-accent);
   font-size: 0.75rem;
 }
 
@@ -727,27 +727,27 @@
 
 /* Botones de vista */
 .btn-group .btn.active {
-  background-color: #007bff;
-  border-color: #007bff;
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
   color: white;
 }
 
 .btn-group .btn:not(.active) {
   background-color: white;
-  color: #007bff;
+  color: var(--color-accent);
 }
 
 .btn-group .btn:not(.active):hover {
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(var(--color-accent-rgb), 0.1);
 }
 
 /* Variables CSS */
 :root {
-  --primary-color: #10b981;
-  --primary-light: #34d399;
+  --primary-color: var(--color-accent);
+  --primary-light: var(--color-accent);
   --secondary-color: #64748b;
-  --success-color: #10b981;
-  --success-light: #34d399;
+  --success-color: var(--color-accent);
+  --success-light: var(--color-accent);
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #06b6d4;
@@ -760,4 +760,133 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Alineado con la base compartida (ct-ui.css) */
+.modern-card,
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.modern-card-header,
+.card-header {
+  color: var(--text-main);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.modern-card-header::after,
+.card-header::after {
+  display: none;
+}
+
+.modern-card-header h4,
+.card-header h4 {
+  font-size: var(--font-size-xl);
+  color: var(--text-main);
+}
+
+.modern-card-header small,
+.card-header small {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.modern-card-header .header-icon,
+.card-header .info-icon {
+  background: var(--gradient-accent-soft) !important;
+  border: 0;
+  box-shadow: none;
+}
+
+.modern-card-header .btn-modern {
+  color: var(--text-on-accent);
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.modern-card-header .btn-modern:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  transform: none;
+}
+
+/* Encabezado de la pestaña: fondo blanco y título oscuro (pisa los !important anteriores) */
+.modern-card-header,
+.card-header {
+  color: var(--text-main) !important;
+  background: var(--color-surface) !important;
+}
+
+.modern-card-header h4,
+.card-header h4 {
+  color: var(--text-main) !important;
+}
+
+.modern-card-header small,
+.card-header small {
+  color: var(--text-secondary) !important;
+}
+
+/* Calendarios semanales y tablas: cabeceras claras y tarjetas suaves en vez de bloques de color */
+.dias-header,
+.dias-horarios-header,
+.dia-header,
+.dia-header-matriz,
+.modern-table .table thead th,
+.tabla-matriz thead th,
+.consultorio-section-header {
+  color: var(--text-secondary) !important;
+  background: var(--color-background) !important;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.dias-header::after,
+.dia-header::after,
+.modern-table .table thead th::after {
+  display: none;
+}
+
+.dias-header .dia-header {
+  border-bottom: 0;
+}
+
+.esquema-dia-card,
+.disponibilidad-dia-card {
+  color: var(--text-main) !important;
+  background: rgba(var(--color-accent-rgb), 0.08) !important;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
+  border-left: 3px solid var(--color-accent);
+  box-shadow: none;
+}
+
+.esquema-dia-card::before {
+  display: none;
+}
+
+.esquema-dia-card *,
+.disponibilidad-dia-card * {
+  color: var(--text-main) !important;
+  text-shadow: none;
+}
+
+.badge-horario,
+.badge-centro-atencion,
+.dia-count {
+  color: var(--color-accent) !important;
+  background: rgba(var(--color-accent-rgb), 0.1) !important;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  box-shadow: none;
+}
+
+.badge-horario *,
+.badge-centro-atencion * {
+  color: var(--color-accent) !important;
 }
