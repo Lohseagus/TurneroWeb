@@ -1,6 +1,5 @@
 <div class="ct-page">
-  <!-- HEADER -->
-    <header class="ct-page-header">
+  <header class="ct-page-header">
     <div class="ct-page-header__main">
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">event_available</span>
       <div>
@@ -16,518 +15,245 @@
     </div>
   </header>
 
-
-  <!-- FILTROS DE TURNOS -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="filtros-card card">
-        @if (esOperador) {
-          <div class="filtros-header">
-            <span class="material-symbols-outlined filtros-icon">filter_alt</span>
-            <h3>Filtros Avanzados (Opcional)</h3>
-          </div>
-        }
-        @if (!esOperador) {
-          <div class="filtros-header">
-            <span class="material-symbols-outlined filtros-icon">filter_alt</span>
-            <h3>Filtros Adicionales (Opcional)</h3>
-          </div>
-        }
-        <div class="filtros-body">
-          <!-- BUSCADOR DE TEXTO -->
-          <div class="buscador-container">
-            <div class="buscador-header">
-              <span class="material-symbols-outlined">search</span>
-              <h4>Búsqueda Rápida</h4>
-            </div>
-
-            <div class="buscador-input-group">
-              <input
-                type="text"
-                class="form-control"
-                [(ngModel)]="textoBusqueda"
-                (input)="filtrarPorBusqueda()"
-                placeholder="Buscar por especialidad o nombre de médico..."
-                />
-              @if (textoBusqueda) {
-                <button
-                  class="btn btn-secondary btn-limpiar-busqueda"
-                  (click)="limpiarBusqueda()"
-                  type="button"
-                  >
-                  <span class="material-symbols-outlined">close</span>
-                </button>
-              }
-            </div>
-
-            @if (textoBusqueda && textoBusqueda.length > 0) {
-              <div
-                class="buscador-sugerencias"
-                >
-                <small>
-                  <span class="material-symbols-outlined">info</span>
-                  Busca por ejemplo: "Cardiología", "Dr. Pérez", "Traumatología"
-                </small>
-              </div>
-            }
-          </div>
-
-          <div class="filtros-divider"></div>
-
-          <!--  FORMULARIO REACTIVO - Nueva implementación -->
-          <form [formGroup]="filtrosForm">
-            <!-- Filtro por Centro de Atención -->
-            <div class="filtro-step" [class.active]="centroAtencionSeleccionado">
-              <div class="step-header">
-                <div class="step-number">1</div>
-                <h4>Centro de Atención (Opcional)</h4>
-              </div>
-              <div class="form-group">
-                <select
-                  class="form-control"
-                  formControlName="centroAtencion"
-                  [disabled]="isLoadingCentros"
-                  >
-                  <option [ngValue]="null">Todos los centros</option>
-                  @for (centro of centrosAtencion; track centro) {
-                    <option
-                      [ngValue]="centro.id"
-                      >
-                      {{ centro.nombre }}
-                    </option>
-                  }
-                </select>
-              </div>
-              @if (isLoadingCentros) {
-                <div class="loading-indicator">
-                  <span class="material-symbols-outlined">sync</span> Cargando centros...
-                </div>
-              }
-            </div>
-
-            <!-- Filtro por Especialidad -->
-            <div class="filtro-step" [class.active]="especialidadSeleccionada">
-              <div class="step-header">
-                <div class="step-number">2</div>
-                <h4>Especialidad (Opcional)</h4>
-              </div>
-              <div class="form-group">
-                <select
-                  class="form-control"
-                  formControlName="especialidad"
-                  [disabled]="isLoadingEspecialidades"
-                  >
-                  <option value="">Seleccione una especialidad</option>
-                  @for (especialidad of especialidades; track especialidad) {
-                    <option
-                      [value]="especialidad.nombre"
-                      >
-                      {{ especialidad.nombre }}
-                    </option>
-                  }
-                </select>
-              </div>
-              @if (isLoadingEspecialidades) {
-                <div class="loading-indicator">
-                  <span class="material-symbols-outlined">sync</span> Cargando especialidades...
-                </div>
-              }
-            </div>
-
-            <!-- Filtro por Staff Médico -->
-            <div class="filtro-step" [class.active]="staffMedicoSeleccionado">
-              <div class="step-header">
-                <div class="step-number">3</div>
-                <h4>Médico (Opcional)</h4>
-              </div>
-              <div class="form-group">
-                <select
-                  class="form-control"
-                  formControlName="medico"
-                  [disabled]="isLoadingStaffMedicos"
-                  >
-                  <option [ngValue]="null">Todos los médicos</option>
-                  @for (staff of staffMedicos; track staff) {
-                    <option [ngValue]="staff.id">
-                      {{ staff.medico?.nombre }} {{ staff.medico?.apellido }} ({{ staff.centro?.nombre || 'Sin centro' }})
-                    </option>
-                  }
-                </select>
-              </div>
-              @if (isLoadingStaffMedicos) {
-                <div class="loading-indicator">
-                  <span class="material-symbols-outlined">sync</span> Cargando médicos...
-                </div>
-              }
-            </div>
-
-            <!-- Filtro por Preferencias Horarias -->
-            @if (estaAutenticado) {
-              <div class="filtro-step filtro-preferencias">
-                <div class="step-header">
-                  <div class="step-number">
-                    <span class="material-symbols-outlined">schedule</span>
-                  </div>
-                  <h4>Mis Horarios Preferidos</h4>
-                </div>
-                <div class="filtro-preferencias-content">
-                  <div class="custom-checkbox-container">
-                    <label class="custom-checkbox">
-                      <input
-                        type="checkbox"
-                        formControlName="filtrarPorPreferencia"
-                        id="filtrarPorPreferencia"
-                        />
-                      <span class="checkbox-custom"></span>
-                      <span class="checkbox-label">
-                        Mostrar solo turnos que coincidan con mis horarios preferidos
-                      </span>
-                    </label>
-                  </div>
-                  <div class="filtro-preferencias-info">
-                    <span class="material-symbols-outlined">info</span>
-                    <small>
-                      Filtra los turnos según los horarios que configuraste en
-                      <a routerLink="/paciente-cuenta/horarios"
-                        class="link-preferencias"
-                        title="Ir a configurar horarios preferidos">
-                        Mis Horarios Preferidos
-                      </a>
-                    </small>
-                  </div>
-                </div>
-              </div>
-            }
-          </form>
-
-          <!-- Filtros aplicados -->
-          @if (
-            centroAtencionSeleccionado ||
-            especialidadSeleccionada ||
-            staffMedicoSeleccionado
-            ) {
-            <div
-              class="filtros-aplicados"
-              >
-              <h5>Filtros aplicados:</h5>
-              <div class="filter-tags">
-                @if (centroAtencionSeleccionado) {
-                  <span class="filter-tag">
-                    <span class="material-symbols-outlined">local_hospital</span>
-                    {{ getCentroAtencionNombre(centroAtencionSeleccionado) }}
-                    <button type="button" (click)="limpiarCentroAtencion()">
-                      ×
-                    </button>
-                  </span>
-                }
-                @if (especialidadSeleccionada) {
-                  <span class="filter-tag">
-                    <span class="material-symbols-outlined">medical_services</span>
-                    {{ especialidadSeleccionada }}
-                    <button type="button" (click)="limpiarEspecialidad()">×</button>
-                  </span>
-                }
-                @if (staffMedicoSeleccionado) {
-                  <span class="filter-tag">
-                    <span class="material-symbols-outlined">person</span>
-                    {{ getStaffMedicoNombre(staffMedicoSeleccionado) }}
-                    <button type="button" (click)="limpiarStaffMedico()">×</button>
-                  </span>
-                }
-                <button
-                  type="button"
-                  class="btn btn-secondary btn-clear-filters"
-                  (click)="limpiarTodosFiltros()"
-                  >
-                  <span class="material-symbols-outlined">close</span> Limpiar filtros
-                </button>
-              </div>
-            </div>
+  <form class="filtro-bar" [formGroup]="filtrosForm" (submit)="$event.preventDefault()" data-testid="filtro-bar">
+    <div class="filtro-bar__busqueda">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <input
+        type="search"
+        [ngModel]="textoBusqueda"
+        (ngModelChange)="onTextoBusqueda($event)"
+        [ngModelOptions]="{ standalone: true }"
+        (blur)="onTextoBlur()"
+        (keydown)="onTextoKeydown($event)"
+        placeholder="Especialidad o médico"
+        aria-label="Buscar por especialidad o médico"
+        autocomplete="off"
+        data-testid="filtro-busqueda"
+      />
+      @if (sugerenciasAbiertas && sugerencias.length) {
+        <ul class="filtro-sugerencias" role="listbox">
+          @for (opcion of sugerencias; track opcion.clave) {
+            <li role="option">
+              <button type="button" (mousedown)="$event.preventDefault()" (click)="elegirSugerencia(opcion)">
+                <span>{{ opcion.etiqueta }}</span>
+                <small>{{ opcion.tipo === "especialidad" ? "Especialidad" : "Médico" }}</small>
+              </button>
+            </li>
           }
-
-          <!-- Acciones -->
-          <div class="filtros-actions">
-            <button
-              type="button"
-              class="btn btn-secondary btn-paciente-primary"
-              (click)="aplicarFiltros()"
-              [disabled]="isLoadingTurnos"
-              >
-              <span class="material-symbols-outlined">search</span>
-              {{ isLoadingTurnos ? "Buscando..." : "Aplicar Filtros" }}
-            </button>
-
-            <button
-              type="button"
-              class="btn btn-secondary btn-paciente-mapa"
-              (click)="mostrarMapaCentros()"
-              [disabled]="isLoadingCentros"
-              >
-              <span class="material-symbols-outlined">map</span>
-              Ver Mapa de Centros Medicos
-            </button>
-          </div>
-        </div>
-      </div>
+        </ul>
+      }
     </div>
-  </div>
 
+    <select
+      class="filtro-select"
+      formControlName="centroAtencion"
+      aria-label="Centro"
+      [attr.aria-busy]="isLoadingCentros"
+      data-testid="filtro-centro"
+    >
+      <option [ngValue]="null">Centro</option>
+      @for (centro of centrosAtencion; track centro.id) {
+        <option [ngValue]="centro.id">{{ centro.nombre }}</option>
+      }
+    </select>
 
-  <!-- TURNOS DISPONIBLES AGRUPADOS POR FECHA -->
-  @if (showCalendar) {
-    <div class="row">
-      <div class="col-12">
-        <div class="turnos-card">
-          <div class="turnos-header">
-            <div class="d-flex justify-content-between align-items-center">
-              <h3><span class="material-symbols-outlined">calendar_month</span> Turnos Disponibles</h3>
-              <div class="turnos-info">
-                <span class="info-text"
-                  >{{ slotsDisponibles.length }} turnos encontrados</span
-                  >
-                </div>
-              </div>
-            </div>
-            <!-- ... resto del contenido del calendario ... -->
-          </div>
-        </div>
+    <select
+      class="filtro-select"
+      formControlName="especialidad"
+      aria-label="Especialidad"
+      [attr.aria-busy]="isLoadingEspecialidades"
+      data-testid="filtro-especialidad"
+    >
+      <option value="">Especialidad</option>
+      @for (especialidad of especialidades; track especialidad.id) {
+        <option [value]="especialidad.nombre">{{ especialidad.nombre }}</option>
+      }
+    </select>
+
+    @if (estaAutenticado) {
+      <div class="filtro-horarios">
+        <button
+          type="button"
+          class="filtro-horarios__toggle"
+          [class.activo]="prefiereHorarios"
+          (click)="alternarHorarios()"
+          [attr.aria-pressed]="prefiereHorarios"
+          data-testid="mis-horarios"
+        >
+          <span class="material-symbols-outlined">schedule</span>
+          Mis horarios
+        </button>
+        <a
+          routerLink="/paciente-cuenta/horarios"
+          class="filtro-horarios__link"
+          title="Configurar mis horarios"
+          aria-label="Configurar mis horarios"
+        >
+          <span class="material-symbols-outlined">tune</span>
+        </a>
       </div>
     }
 
-    <!-- MENSAJE INICIAL - INVITA A SELECCIONAR FILTROS -->
-    @if (!showCalendar && !isLoadingTurnos) {
-      <div class="row">
-        <div class="col-12">
-          <div class="filtros-inicial-card">
-            <div class="filtros-inicial-content">
-              <span class="material-symbols-outlined">filter_alt</span>
-              <h4>Selecciona tus preferencias</h4>
-              <p>
-                Para ver los turnos disponibles, selecciona al menos uno de los
-                filtros de arriba:
-              </p>
-              <ul>
-                <li>
-                  <strong>Centro de Atención:</strong> Busca turnos en un centro
-                  específico
-                </li>
-                <li>
-                  <strong>Especialidad:</strong> Busca turnos de una especialidad
-                  específica
-                </li>
-                <li>
-                  <strong>Médico:</strong> Busca turnos de un médico en particular
-                </li>
-              </ul>
-              <p>
-                <small
-                  >Puedes combinar varios filtros para refinar tu búsqueda.</small
-                  >
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
+    <button
+      type="button"
+      class="filtro-icono"
+      (click)="mostrarMapaCentros()"
+      [disabled]="isLoadingCentros"
+      aria-label="Ver mapa de centros"
+      title="Ver mapa de centros"
+      data-testid="mapa-centros"
+    >
+      <span class="material-symbols-outlined">map</span>
+    </button>
 
-      <div class="turnos-body">
-        <!-- Loading State -->
-        @if (isLoadingTurnos) {
-          <div class="loading-turnos">
-            <span class="material-symbols-outlined ct-spin">sync</span>
-            Cargando turnos disponibles...
-          </div>
-        }
+    <button
+      type="button"
+      class="filtro-mas"
+      (click)="masFiltrosAbierto = !masFiltrosAbierto"
+      [attr.aria-expanded]="masFiltrosAbierto"
+      data-testid="mas-filtros"
+    >
+      Más filtros
+      <span class="material-symbols-outlined">{{ masFiltrosAbierto ? "expand_less" : "expand_more" }}</span>
+    </button>
 
-        @if (!isLoadingTurnos && errorCarga) {
-          <div class="loading-turnos">
-            <p>{{ errorCarga }}</p>
-          </div>
-        }
+    @if (hayFiltrosActivos) {
+      <button type="button" class="filtro-limpiar" (click)="limpiarTodosFiltros()" data-testid="filtro-limpiar">
+        Limpiar
+      </button>
+    }
 
-        <!-- VISTA COMPACTA POR MÉDICO CON PAGINACIÓN -->
-        @if (!isLoadingTurnos && slotsDisponibles.length > 0) {
-          <div
-            class="medicos-lista-compacta"
-            >
-            <!-- Info de paginación -->
-            @if (getTotalPaginas() > 1) {
-              <div class="paginacion-info-header">
-                <div class="info-medicos">
-                  <span class="material-symbols-outlined">groups</span>
-                  <span>Mostrando médicos {{ getRangoPaginacion() }}</span>
-                </div>
-                <div class="info-pagina">
-                  Página {{ paginaActual }} de {{ getTotalPaginas() }}
-                </div>
-              </div>
+    @if (masFiltrosAbierto) {
+      <div class="filtro-extra">
+        <label class="filtro-extra__medico">
+          Médico
+          <select
+            [ngModel]="medicoFiltroClave"
+            (ngModelChange)="elegirMedico($event)"
+            [ngModelOptions]="{ standalone: true }"
+            aria-label="Médico"
+            data-testid="filtro-medico"
+          >
+            <option value="">Cualquier médico</option>
+            @for (medico of medicosParaFiltro; track medico.clave) {
+              <option [value]="medico.clave">
+                {{ medico.etiqueta }}@if (medico.especialidad) { · {{ medico.especialidad }} }
+              </option>
             }
-            <!-- Lista de médicos paginada -->
-            @for (medicoEntry of getMedicosPaginados(); track medicoEntry) {
-              <div
-                class="medico-item"
-                >
-                <div
-                  class="medico-header-compacto"
-                  [class.expandido]="isMedicoExpandido(medicoEntry.key)"
-                  (click)="toggleMedicoExpansion(medicoEntry.key)"
-                  >
-                  <div class="medico-avatar">
-                    <span class="material-symbols-outlined">person</span>
-                  </div>
-                  <div class="medico-info-compacta">
-                    <h4 class="medico-nombre">
-                      {{ getMedicoInfo(medicoEntry.key).nombre }}
-                      {{ getMedicoInfo(medicoEntry.key).apellido }}
-                    </h4>
-                    <div class="medico-detalles">
-                      <span class="detalle-item">
-                        <span class="material-symbols-outlined">medical_services</span>
-                        {{ getEspecialidadesUnicas(medicoEntry.value).join(", ") }}
-                      </span>
-                      <span class="detalle-item">
-                        <span class="material-symbols-outlined">location_on</span>
-                        {{ getCentrosUnicos(medicoEntry.value).length }} centro(s)
-                      </span>
-                    </div>
-                  </div>
-                  <div class="medico-stats">
-                    <div class="stat-badge">
-                      <span class="stat-number">{{
-                        getTurnosDisponiblesPorMedico(medicoEntry.value)
-                      }}</span>
-                      <span class="stat-label">turnos</span>
-                    </div>
-                    @if (getProximoTurno(medicoEntry.value); as proximo) {
-                      <div
-                        class="proximo-turno-badge"
-                        >
-                        <span class="material-symbols-outlined">schedule</span>
-                        {{ proximo.fecha | date : "dd/MM" }} - {{ proximo.horaInicio }}
-                      </div>
-                    }
-                  </div>
-                  <div class="expand-icon">
-                    @if (!isMedicoExpandido(medicoEntry.key)) {
-                      <span
-                        class="material-symbols-outlined"
-                      >expand_more</span>
-                    }
-                    @if (isMedicoExpandido(medicoEntry.key)) {
-                      <span
-                        class="material-symbols-outlined"
-                      >expand_less</span>
-                    }
-                  </div>
-                </div>
-                <!-- TURNOS EXPANDIBLES POR DÍA -->
-                @if (isMedicoExpandido(medicoEntry.key)) {
-                  <div
-                    class="medico-turnos-expandible"
+          </select>
+        </label>
+      </div>
+    }
+  </form>
+
+  <div class="agenda-resultados" aria-live="polite">
+    @if (isLoadingTurnos) {
+      <div class="agenda-cargando" data-testid="cargando-turnos">
+        <span class="material-symbols-outlined ct-spin">sync</span>
+        Buscando turnos...
+      </div>
+    } @else if (errorCarga) {
+      <div class="ct-empty" data-testid="error-turnos">
+        <span class="material-symbols-outlined ct-empty__icon ct-empty__icon--danger">error</span>
+        <p class="ct-empty__text">{{ errorCarga }}</p>
+        <button type="button" class="btn btn-primary" (click)="reintentarCarga()" data-testid="reintentar-turnos">
+          Reintentar
+        </button>
+      </div>
+    } @else if (!busquedaHecha) {
+      <div class="ct-empty" data-testid="vacio-turnos">
+        <span class="material-symbols-outlined ct-empty__icon">event_available</span>
+        <p class="ct-empty__text">Elegí una especialidad, médico o centro para ver turnos disponibles</p>
+        @if (avisoBusqueda) {
+          <p class="ct-empty__text">{{ avisoBusqueda }}</p>
+        }
+      </div>
+    } @else if (slotsDisponibles.length === 0) {
+      <div class="ct-empty" data-testid="sin-turnos">
+        <span class="material-symbols-outlined ct-empty__icon">event_busy</span>
+        <h2 class="ct-empty__title">No hay turnos disponibles</h2>
+        <p class="ct-empty__text">Probá con otra especialidad, otro médico o otro centro. Si no aparece un horario, podés anotarte en la lista de espera.</p>
+        <div class="agenda-vacio__acciones">
+          <button type="button" class="btn btn-secondary" (click)="limpiarTodosFiltros()">Limpiar</button>
+          @if (estaAutenticado && !esOperador) {
+            <button type="button" class="btn btn-primary" (click)="abrirListaEspera()">
+              <span class="material-symbols-outlined">schedule</span>
+              Anotarme en la lista de espera
+            </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <section class="medicos-lista">
+        <div class="medicos-lista__encabezado">
+          <h2>
+            <span class="material-symbols-outlined">calendar_month</span>
+            Turnos disponibles
+          </h2>
+          <p>{{ slotsDisponibles.length }} turnos · tocá un horario para reservarlo</p>
+          @if (getTotalPaginas() > 1) {
+            <p class="medicos-lista__pagina">
+              <span class="material-symbols-outlined">groups</span>
+              Médicos {{ getRangoPaginacion() }} · página {{ paginaActual }} de {{ getTotalPaginas() }}
+            </p>
+          }
+        </div>
+
+        @for (medicoEntry of getMedicosPaginados(); track medicoEntry.key) {
+          <article class="medico-card" data-testid="medico-card">
+            <button
+              type="button"
+              class="medico-card__cabecera"
+              (click)="toggleMedicoExpansion(medicoEntry.key)"
+              [attr.aria-expanded]="isMedicoExpandido(medicoEntry.key)"
+            >
+              <span class="material-symbols-outlined medico-card__avatar">person</span>
+              <span class="medico-card__datos">
+                <strong>{{ getMedicoInfo(medicoEntry.key).nombre }} {{ getMedicoInfo(medicoEntry.key).apellido }}</strong>
+                <span>{{ getEspecialidadesUnicas(medicoEntry.value).join(", ") }}</span>
+                <span class="medico-card__centro">
+                  <span class="material-symbols-outlined">location_on</span>
+                  {{ textoCentros(medicoEntry.value) }}
+                </span>
+              </span>
+              <span class="medico-card__cuenta">{{ getTurnosDisponiblesPorMedico(medicoEntry.value) }} turnos</span>
+              <span class="material-symbols-outlined">{{ isMedicoExpandido(medicoEntry.key) ? "expand_less" : "expand_more" }}</span>
+            </button>
+
+            @if (isMedicoExpandido(medicoEntry.key)) {
+              <div class="medico-card__dias">
+                @for (fecha of getFechasOrdenadas(medicoEntry.value); track fecha) {
+                  <div class="dia">
+                    <button
+                      type="button"
+                      class="dia__cabecera"
+                      (click)="toggleDiaExpansion(medicoEntry.key, fecha)"
+                      [attr.aria-expanded]="isDiaExpandido(medicoEntry.key, fecha)"
                     >
-                    <!-- Acordeón por día -->
-                    @for (fecha of getFechasOrdenadas(medicoEntry.value); track fecha) {
-                      <div
-                        class="dia-acordeon"
-                        >
-                        <div
-                          class="dia-header"
-                          [class.expandido]="isDiaExpandido(medicoEntry.key, fecha)"
-                          (click)="toggleDiaExpansion(medicoEntry.key, fecha)"
+                      <span class="dia__fecha">
+                        <span class="material-symbols-outlined">calendar_today</span>
+                        {{ fecha | date : "EEEE d 'de' MMMM" }}
+                      </span>
+                      <span class="dia__cuenta">{{ getTurnosDisponiblesPorDia(getSlotsPorDia(medicoEntry.value, fecha)) }}</span>
+                      <span class="material-symbols-outlined">{{ isDiaExpandido(medicoEntry.key, fecha) ? "expand_less" : "expand_more" }}</span>
+                    </button>
+                    @if (isDiaExpandido(medicoEntry.key, fecha)) {
+                      <div class="slots-chips">
+                        @for (slot of getSlotsPorDia(medicoEntry.value, fecha); track slot.id + slot.horaInicio) {
+                          <button
+                            type="button"
+                            class="slot-chip"
+                            [class.slot-chip--ocupado]="slot.ocupado || slotAfectadoPorExcepcion(slot)"
+                            [class.slot-chip--elegido]="slotSeleccionado?.id === slot.id"
+                            [attr.aria-disabled]="slot.ocupado || slotAfectadoPorExcepcion(slot)"
+                            [attr.title]="tituloSlot(slot)"
+                            (click)="seleccionarSlot(slot, $event)"
                           >
-                          <div class="dia-fecha">
-                            <span class="material-symbols-outlined">calendar_today</span>
-                            <span class="fecha-texto">{{
-                              fecha | date : "EEEE dd/MM/yyyy"
-                            }}</span>
-                          </div>
-                          <div class="dia-info">
-                            <div class="dia-badge">
-                              <span class="badge-number">{{
-                                getTurnosDisponiblesPorDia(
-                                getSlotsPorDia(medicoEntry.value, fecha)
-                                )
-                              }}</span>
-                              <span class="badge-text">turnos</span>
-                            </div>
-                            @if (
-                              getPrimerTurnoDia(
-                              getSlotsPorDia(medicoEntry.value, fecha)
-                              ); as primer
-                              ) {
-                              <div
-                                class="dia-primer-turno"
-                                >
-                                <span class="material-symbols-outlined">schedule</span>
-                                {{ primer.horaInicio }}
-                              </div>
+                            @if (slot.ocupado || slotAfectadoPorExcepcion(slot)) {
+                              <span class="material-symbols-outlined">lock</span>
                             }
-                          </div>
-                          <div class="dia-expand-icon">
-                            @if (!isDiaExpandido(medicoEntry.key, fecha)) {
-                              <span
-                                class="material-symbols-outlined"
-                              >expand_more</span>
-                            }
-                            @if (isDiaExpandido(medicoEntry.key, fecha)) {
-                              <span
-                                class="material-symbols-outlined"
-                              >expand_less</span>
-                            }
-                          </div>
-                        </div>
-                        <!-- Turnos del día -->
-                        @if (isDiaExpandido(medicoEntry.key, fecha)) {
-                          <div
-                            class="dia-turnos"
-                            >
-                            <div class="turnos-grid-compacto">
-                              @for (slot of getSlotsPorDia(medicoEntry.value, fecha); track slot) {
-                                <div
-                                  class="turno-chip"
-                  [class.turno-ocupado]="
-                    slot.ocupado || slotAfectadoPorExcepcion(slot)
-                  "
-                                  [class.turno-seleccionado]="slotSeleccionado?.id === slot.id"
-                                  (click)="seleccionarSlot(slot, $event)"
-                                  >
-                                  <div class="chip-hora">
-                                    <span class="material-symbols-outlined">schedule</span>
-                                    {{ slot.horaInicio }} - {{ slot.horaFin }}
-                                  </div>
-                                  <!-- Ubicación agrupada -->
-                                  <div class="chip-location-info">
-                                    <div class="chip-location-item">
-                                      <span class="material-symbols-outlined">door_open</span>
-                                      {{ slot.consultorioNombre }}
-                                    </div>
-                                    <div class="chip-location-item">
-                                      <span class="material-symbols-outlined">local_hospital</span>
-                                      {{ slot.nombreCentro }}
-                                    </div>
-                                  </div>
-                                  <!-- Estado disponible -->
-                                  @if (!slot.ocupado && !slotAfectadoPorExcepcion(slot)) {
-                                    <div
-                                      class="chip-estado disponible"
-                                      >
-                                      <span class="material-symbols-outlined">check_circle</span>
-                                      <span>Disponible</span>
-                                    </div>
-                                  }
-                                  <!-- Estado ocupado -->
-                                  @if (slot.ocupado || slotAfectadoPorExcepcion(slot)) {
-                                    <div
-                                      class="chip-estado ocupado"
-                                      >
-                                      <span class="material-symbols-outlined">lock</span>
-                                      <span>No Disponible</span>
-                                    </div>
-                                  }
-                                </div>
-                              }
-                            </div>
-                          </div>
+                            {{ formatearHora(slot.horaInicio) }}
+                          </button>
                         }
                       </div>
                     }
@@ -535,251 +261,158 @@
                 }
               </div>
             }
-            <!-- CONTROLES DE PAGINACIÓN -->
-            @if (getTotalPaginas() > 1) {
-              <div class="paginacion-controles">
-                <button
-                  class="btn btn-secondary btn-paginacion"
-                  [disabled]="paginaActual === 1"
-                  (click)="cambiarPagina(paginaActual - 1)"
-                  >
-                  <span class="material-symbols-outlined">arrow_back_ios</span>
-                  Anterior
-                </button>
-                <div class="numeros-pagina">
-                  @for (numPagina of getNumeroPaginas(); track numPagina) {
-                    <button
-                      class="btn btn-secondary btn-numero-pagina"
-                      [class.active]="paginaActual === numPagina"
-                      (click)="cambiarPagina(numPagina)"
-                      >
-                      {{ numPagina }}
-                    </button>
-                  }
-                </div>
-                <button
-                  class="btn btn-secondary btn-paginacion"
-                  [disabled]="paginaActual === getTotalPaginas()"
-                  (click)="cambiarPagina(paginaActual + 1)"
-                  >
-                  Siguiente
-                  <span class="material-symbols-outlined">arrow_forward_ios</span>
-                </button>
-              </div>
-            }
-          </div>
+          </article>
         }
-      </div>
-    </div>
 
-    <!-- MENSAJE CUANDO NO HAY TURNOS -->
-    @if (filtrosAplicados && !showCalendar && turnosDisponibles.length === 0) {
-      <div class="row">
-        <div class="col-12">
-          <div class="no-turnos-card">
-            <div class="no-turnos-content">
-              <span class="material-symbols-outlined">event_busy</span>
-              <h4>No hay turnos disponibles</h4>
-              <p>No se encontraron turnos con los filtros seleccionados:</p>
-              <ul class="filtros-aplicados-lista">
-                @if (centroAtencionSeleccionado) {
-                  <li>
-                    <strong>Centro:</strong> {{ getCentroAtencionNombre(centroAtencionSeleccionado) }}
-                  </li>
-                }
-                @if (especialidadSeleccionada) {
-                  <li>
-                    <strong>Especialidad:</strong> {{ especialidadSeleccionada }}
-                  </li>
-                }
-                @if (staffMedicoSeleccionado) {
-                  <li>
-                    <strong>Médico:</strong> {{ getStaffMedicoNombre(staffMedicoSeleccionado) }}
-                  </li>
-                }
-              </ul>
-              <p class="mt-3">Probá con otros filtros. Si no aparece un horario, podés anotarte en la lista de espera.</p>
-              <button
-                class="btn btn-paciente-primary"
-                (click)="limpiarTodosFiltros()"
-                >
-                <span class="material-symbols-outlined">filter_alt</span>
-                Limpiar Filtros
-              </button>
-              @if (estaAutenticado && !esOperador) {
+        @if (getTotalPaginas() > 1) {
+          <div class="paginacion">
+            <button type="button" class="btn btn-secondary" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+              <span class="material-symbols-outlined">arrow_back_ios</span>
+              Anterior
+            </button>
+            <div class="paginacion__numeros">
+              @for (numPagina of getNumeroPaginas(); track numPagina) {
                 <button
                   type="button"
-                  class="btn btn-secondary"
-                  (click)="abrirListaEspera()"
+                  class="paginacion__numero"
+                  [class.activo]="paginaActual === numPagina"
+                  (click)="cambiarPagina(numPagina)"
                 >
-                  <span class="material-symbols-outlined">schedule</span>
-                  Anotarme en la lista de espera
+                  {{ numPagina }}
                 </button>
               }
             </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    @if (mostrarListaEspera && estaAutenticado && !esOperador) {
-      <div class="row mt-3">
-        <div class="col-12">
-          <app-lista-espera-form></app-lista-espera-form>
-        </div>
-      </div>
-    }
-
-    <!-- INFORMACIÓN SOBRE LOS COLORES -->
-    @if (showCalendar && turnosDisponibles.length > 0) {
-      <div class="row mt-3">
-        <div class="col-12">
-          <div class="legend-card">
-            <div class="legend-content">
-              <h5>Reserva tu Turno!</h5>
-              <div class="legend-items">
-                <div class="legend-item">
-                  <div class="legend-color available"></div>
-                  <span>Turnos Disponibles (Hacer clic para reservar)</span>
-                </div>
-                <div class="legend-item">
-                  <div class="legend-color occupied"></div>
-                  <span>Turnos Ocupados</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- MODAL RESERVAR TURNO -->
-    @if (showBookingModal) {
-      <div class="modal-contextual">
-        <div class="modal-content card" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h3 class="modal-title">
-              <span class="material-symbols-outlined">event_available</span>
-              Reservar Turno
-            </h3>
-            <button type="button" class="btn btn-close" (click)="closeBookingModal()">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="turno-details">
-              <div class="detail-item">
-                <span class="material-symbols-outlined">medical_services</span>
-                <strong>Especialidad:</strong>
-                {{ selectedTurnoDisponible?.meta?.especialidad }}
-              </div>
-              <div class="detail-item">
-                <span class="material-symbols-outlined">person</span>
-                <strong>Médico:</strong>
-                {{ selectedTurnoDisponible?.meta?.medico }}
-              </div>
-              <div class="detail-item">
-                <span class="material-symbols-outlined">local_hospital</span>
-                <strong>Centro:</strong>
-                {{ selectedTurnoDisponible?.meta?.centro }}
-              </div>
-              <div class="detail-item">
-                <span class="material-symbols-outlined">door_open</span>
-                <strong>Consultorio:</strong>
-                {{ selectedTurnoDisponible?.meta?.consultorio }}
-              </div>
-              <div class="detail-item">
-                <span class="material-symbols-outlined">calendar_today</span>
-                <strong>Fecha:</strong>
-                {{ $safeNavigationMigration(selectedTurnoDisponible?.start) | date : "EEEE, dd MM yyyy" }}
-              </div>
-              <div class="detail-item">
-                <span class="material-symbols-outlined">schedule</span>
-                <strong>Horario:</strong>
-                {{ $safeNavigationMigration(selectedTurnoDisponible?.start) | date : "HH:mm" }} -
-                {{ $safeNavigationMigration(selectedTurnoDisponible?.end) | date : "HH:mm" }}
-              </div>
-            </div>
-            <div class="confirmation-text">
-              @if (estaAutenticado) {
-                <p>
-                  <span class="material-symbols-outlined">info</span>
-                  <strong>¿Deseas reservar este turno?</strong>
-                </p>
-              }
-              @if (estaAutenticado && mensajeReservaBloqueada) {
-                <p class="text-danger mb-0">{{ mensajeReservaBloqueada }}</p>
-              }
-              @if (estaAutenticado && !mensajeReservaBloqueada) {
-                <p>Una vez confirmado, el turno quedará reservado a tu nombre.</p>
-              }
-              @if (!estaAutenticado) {
-                <p>
-                  <span class="material-symbols-outlined">info</span>
-                  <strong>Inicia sesión para continuar</strong>
-                </p>
-              }
-              @if (!estaAutenticado) {
-                <p>
-                  Para reservar este turno necesitas iniciar sesión con tu cuenta de paciente.
-                  El turno quedará guardado y podrás completar la reserva después del inicio de sesión.
-                </p>
-              }
-            </div>
-          </div>
-          <div class="modal-footer">
             <button
               type="button"
               class="btn btn-secondary"
-              (click)="closeBookingModal()"
-              >
-              Cancelar
+              [disabled]="paginaActual === getTotalPaginas()"
+              (click)="cambiarPagina(paginaActual + 1)"
+            >
+              Siguiente
+              <span class="material-symbols-outlined">arrow_forward_ios</span>
             </button>
-            <!-- Botón para usuarios autenticados -->
+          </div>
+        }
+      </section>
+    }
+  </div>
+
+  @if (mostrarListaEspera && estaAutenticado && !esOperador) {
+    <div class="agenda-espera">
+      <app-lista-espera-form></app-lista-espera-form>
+    </div>
+  }
+
+  @if (showBookingModal) {
+    <div class="modal-contextual">
+      <div class="modal-content card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <span class="material-symbols-outlined">event_available</span>
+            Reservar Turno
+          </h3>
+          <button type="button" class="btn btn-close" (click)="closeBookingModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="turno-details">
+            <div class="detail-item">
+              <span class="material-symbols-outlined">medical_services</span>
+              <strong>Especialidad:</strong>
+              {{ selectedTurnoDisponible?.meta?.especialidad }}
+            </div>
+            <div class="detail-item">
+              <span class="material-symbols-outlined">person</span>
+              <strong>Médico:</strong>
+              {{ selectedTurnoDisponible?.meta?.medico }}
+            </div>
+            <div class="detail-item">
+              <span class="material-symbols-outlined">local_hospital</span>
+              <strong>Centro:</strong>
+              {{ selectedTurnoDisponible?.meta?.centro }}
+            </div>
+            <div class="detail-item">
+              <span class="material-symbols-outlined">door_open</span>
+              <strong>Consultorio:</strong>
+              {{ selectedTurnoDisponible?.meta?.consultorio }}
+            </div>
+            <div class="detail-item">
+              <span class="material-symbols-outlined">calendar_today</span>
+              <strong>Fecha:</strong>
+              {{ selectedTurnoDisponible?.start | date : "EEEE, dd MM yyyy" }}
+            </div>
+            <div class="detail-item">
+              <span class="material-symbols-outlined">schedule</span>
+              <strong>Horario:</strong>
+              {{ selectedTurnoDisponible?.start | date : "HH:mm" }} -
+              {{ selectedTurnoDisponible?.end | date : "HH:mm" }}
+            </div>
+          </div>
+          <div class="confirmation-text">
             @if (estaAutenticado) {
-              <button
-                type="button"
-                class="btn btn-primary"
-                (click)="confirmarReservaTurno()"
-                [disabled]="isBooking || !!mensajeReservaBloqueada"
-                >
-                <span class="material-symbols-outlined">check</span>
-                {{ isBooking ? "Reservando..." : (mensajeReservaBloqueada ? "Centro en solo lectura" : "Confirmar Reserva") }}
-              </button>
+              <p>
+                <span class="material-symbols-outlined">info</span>
+                <strong>¿Deseas reservar este turno?</strong>
+              </p>
             }
-            <!-- Botón para usuarios anónimos -->
+            @if (estaAutenticado && mensajeReservaBloqueada) {
+              <p class="text-danger mb-0">{{ mensajeReservaBloqueada }}</p>
+            }
+            @if (estaAutenticado && !mensajeReservaBloqueada) {
+              <p>Una vez confirmado, el turno quedará reservado a tu nombre.</p>
+            }
             @if (!estaAutenticado) {
-              <button
-                type="button"
-                class="btn btn-primary"
-                (click)="seleccionarTurno(slotSeleccionado)"
-                >
-                <span class="material-symbols-outlined">login</span>
-                Iniciar sesión para reservar
-              </button>
+              <p>
+                <span class="material-symbols-outlined">info</span>
+                <strong>Inicia sesión para continuar</strong>
+              </p>
+            }
+            @if (!estaAutenticado) {
+              <p>
+                Para reservar este turno necesitas iniciar sesión con tu cuenta de paciente.
+                El turno quedará guardado y podrás completar la reserva después del inicio de sesión.
+              </p>
             }
           </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeBookingModal()">Cancelar</button>
+          @if (estaAutenticado) {
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="confirmarReservaTurno()"
+              [disabled]="isBooking || !!mensajeReservaBloqueada"
+            >
+              <span class="material-symbols-outlined">check</span>
+              {{ isBooking ? "Reservando..." : (mensajeReservaBloqueada ? "Centro en solo lectura" : "Confirmar Reserva") }}
+            </button>
+          }
+          @if (!estaAutenticado) {
+            <button type="button" class="btn btn-primary" (click)="seleccionarTurno(slotSeleccionado)">
+              <span class="material-symbols-outlined">login</span>
+              Iniciar sesión para reservar
+            </button>
+          }
+        </div>
       </div>
-    }
+    </div>
+  }
 
-    <!-- Backdrop para cerrar modal cuando se hace clic fuera -->
-    @if (showBookingModal) {
-      <div
-        class="modal-backdrop"
-        (click)="closeBookingModal()"
-      ></div>
-    }
+  @if (showBookingModal) {
+    <div class="modal-backdrop" (click)="closeBookingModal()"></div>
+  }
 
-    <!-- MODAL DE MAPA DE CENTROS -->
-    @if (showMapaModal) {
-      <app-centros-mapa-modal
-        [centros]="centrosAtencionCompletos"
-        [especialidades]="especialidadesCompletas"
-        [slotsDisponibles]="slotsOriginales"
-        [especialidadSeleccionadaInicial]="especialidadSeleccionada"
-        (centroSeleccionado)="onCentroSeleccionadoDelMapa($event)"
-        (modalCerrado)="cerrarMapaModal()"
-        >
-      </app-centros-mapa-modal>
-    }
+  @if (showMapaModal) {
+    <app-centros-mapa-modal
+      [centros]="centrosAtencionCompletos"
+      [especialidades]="especialidadesCompletas"
+      [slotsDisponibles]="slotsOriginales"
+      [especialidadSeleccionadaInicial]="especialidadSeleccionada"
+      (centroSeleccionado)="onCentroSeleccionadoDelMapa($event)"
+      (modalCerrado)="cerrarMapaModal()"
+    >
+    </app-centros-mapa-modal>
+  }
+</div>
