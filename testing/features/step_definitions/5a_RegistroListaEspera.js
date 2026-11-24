@@ -187,7 +187,8 @@ When(
           pacienteId,
           especialidadId: especialidad.id,
           centroAtencionId: centro.id,
-          urgenciaMedica: "BAJA",
+          urgenciaMedica: "URGENTE",
+          fechaSolicitud: "2000-01-01T00:00:00",
           estado: "PENDIENTE",
         },
       });
@@ -221,6 +222,12 @@ Then("el sistema confirma su ingreso a la lista exitosamente", function () {
     200,
     `Falló ingreso a lista. Status: ${lastStatus} ${texto}`
   );
+  const creada = this.listaEsperaBody && this.listaEsperaBody.data;
+  assert.strictEqual(creada && creada.urgenciaMedica, "BAJA", "El paciente no elige la urgencia");
+  assert.ok(
+    creada && creada.fechaSolicitud && !String(creada.fechaSolicitud).startsWith("2000-"),
+    "La fecha de ingreso la pone el servidor"
+  );
   console.log("🎉 Flujo completo verificado correctamente.");
 });
 
@@ -243,6 +250,8 @@ Then("ve su solicitud de {string}", function (especialidadNombre) {
       solicitud.estado === "PENDIENTE"
   );
   assert.ok(propia, `No apareció la solicitud de ${especialidadNombre}`);
+  assert.strictEqual(propia.urgenciaMedica, "BAJA");
+  assert.ok(propia.posicion >= 1, "La solicitud pendiente tiene que mostrar el puesto");
   this.listaEsperaId = propia.id;
 });
 

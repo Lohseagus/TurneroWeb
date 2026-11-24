@@ -31,8 +31,10 @@ import unpsjb.labprog.backend.business.repository.MedicoRepository;
 import unpsjb.labprog.backend.business.service.AgendaService;
 import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ConfiguracionExcepcionalService;
+import unpsjb.labprog.backend.business.service.FeriadoService;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.dto.ConfiguracionExcepcionalDTO;
+import unpsjb.labprog.backend.dto.FeriadoResultadoDTO;
 import unpsjb.labprog.backend.dto.TurnoDTO;
 import unpsjb.labprog.backend.dto.TurnoPublicoDTO;
 import unpsjb.labprog.backend.model.DiaDeLaSemana;
@@ -52,6 +54,9 @@ public class AgendaPresenter {
 
     @Autowired
     private ConfiguracionExcepcionalService configuracionExcepcionalService;
+
+    @Autowired
+    private FeriadoService feriadoService;
 
     @Autowired
     private EsquemaTurnoRepository esquemaTurnoRepository;
@@ -87,9 +92,15 @@ public class AgendaPresenter {
     }
 
     /**
-     * Día excepcional por id: el personal solo toca los de sus centros. Un feriado
-     * no tiene centro (vale para todos) y no se decide acá.
+     * Día excepcional por id: el personal solo toca los de sus centros.
+     * Los feriados se autorizan en {@link FeriadoService}.
      */
+    private boolean esFeriado(Integer configId) {
+        return configuracionExcepcionalService.findByIdDTO(configId)
+                .map(config -> "FERIADO".equals(config.getTipo()) && config.isActivo())
+                .orElse(false);
+    }
+
     private void exigirConfiguracion(Integer configId) {
         configuracionExcepcionalService.findByIdDTO(configId).ifPresent(config -> {
             if (config.getCentroAtencionId() != null) {
@@ -330,8 +341,14 @@ public class AgendaPresenter {
             
             switch (tipoAgenda.toUpperCase()) {
                 case "FERIADO":
-                    configDTO = configuracionExcepcionalService.crearFeriadoDTO(fecha, descripcion);
-                    break;
+                    Integer centroFeriado = params.get("centroId") != null
+                            ? Integer.valueOf(params.get("centroId").toString()) : null;
+                    FeriadoResultadoDTO feriado = feriadoService.crear(fecha, descripcion, centroFeriado);
+                    String aviso = feriado.getTurnosCancelados() == 0
+                            ? "Feriado cargado. No había turnos activos ese día."
+                            : "Feriado cargado. Se cancelaron " + feriado.getTurnosCancelados()
+                                    + " turnos y se avisó a los pacientes.";
+                    return Response.ok(feriado, aviso);
                 case "MANTENIMIENTO":
                     if (esquemaTurnoId == null) {
                         return Response.error(null, "EsquemaTurno es requerido para mantenimiento");
@@ -357,6 +374,20 @@ public class AgendaPresenter {
             throw e;
         } catch (Exception e) {
             return Response.error(null, "Error al crear día excepcional: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/feriados/afectados")
+    public ResponseEntity<Object> contarTurnosDeFeriado(
+            @RequestParam String fecha,
+            @RequestParam(required = false) Integer centroId) {
+        try {
+            int cantidad = feriadoService.contarAfectados(LocalDate.parse(fecha), centroId);
+            return Response.ok(Map.of("cantidad", cantidad), "Turnos que se cancelarían");
+        } catch (AccessDeniedException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            return Response.error(null, e.getMessage());
         }
     }
 
@@ -422,8 +453,12 @@ public class AgendaPresenter {
     
     @DeleteMapping("/dia-excepcional/{configId}")
     public ResponseEntity<Object> eliminarDiaExcepcional(@PathVariable Integer configId) {
-        exigirConfiguracion(configId);
         try {
+            if (esFeriado(configId)) {
+                feriadoService.eliminar(configId);
+                return Response.ok(null, "Feriado eliminado");
+            }
+            exigirConfiguracion(configId);
             configuracionExcepcionalService.eliminarConfiguracion(configId);
             return Response.ok(null, "Día excepcional eliminado correctamente");
         } catch (AccessDeniedException e) {
@@ -453,11 +488,17 @@ public class AgendaPresenter {
      */
     @PutMapping("/dia-excepcional/{configId}")
     public ResponseEntity<Object> actualizarDiaExcepcional(@PathVariable Integer configId, @RequestBody Map<String, Object> params) {
-        exigirConfiguracion(configId);
         try {
             LocalDate fecha = LocalDate.parse((String) params.get("fecha"));
             String tipoAgenda = (String) params.get("tipoAgenda");
             String descripcion = (String) params.get("descripcion");
+            if ("FERIADO".equalsIgnoreCase(tipoAgenda)) {
+                FeriadoResultadoDTO feriado = feriadoService.actualizar(configId, fecha, descripcion);
+                return Response.ok(feriado, feriado.getTurnosCancelados() == 0
+                        ? "Feriado actualizado"
+                        : "Feriado actualizado. Se cancelaron " + feriado.getTurnosCancelados() + " turnos.");
+            }
+            exigirConfiguracion(configId);
             Integer esquemaTurnoId = params.get("esquemaTurnoId") != null ? 
                 Integer.valueOf(params.get("esquemaTurnoId").toString()) : null;
             centroAccess.exigirEsquemaTurno(esquemaTurnoId);

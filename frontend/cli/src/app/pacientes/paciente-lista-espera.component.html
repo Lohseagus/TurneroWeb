@@ -14,6 +14,12 @@
           <div>
             <strong>{{ solicitud.especialidadNombre }}</strong>
             <span>{{ solicitud.centroAtencionNombre }}</span>
+            <span>
+              @if (solicitud.posicion) {
+                Puesto {{ solicitud.posicion }}
+              }
+              · Urgencia {{ etiquetaUrgencia(solicitud.urgenciaMedica) }}
+            </span>
             @if (solicitud.medicoPreferidoNombre) {
               <span>{{ solicitud.medicoPreferidoNombre }}</span>
             }

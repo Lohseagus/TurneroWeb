@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import unpsjb.labprog.backend.business.repository.ConfiguracionExcepcionalRepository;
 import unpsjb.labprog.backend.business.repository.ConsultorioRepository;
 import unpsjb.labprog.backend.business.repository.EsquemaTurnoRepository;
+import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
 import unpsjb.labprog.backend.dto.ConfiguracionExcepcionalDTO;
 import unpsjb.labprog.backend.model.ConfiguracionExcepcional;
 import unpsjb.labprog.backend.model.Consultorio;
@@ -33,6 +34,9 @@ public class ConfiguracionExcepcionalService {
     
     @Autowired
     private EsquemaTurnoRepository esquemaTurnoRepository;
+
+    @Autowired
+    private StaffMedicoRepository staffMedicoRepository;
 
     /**
      * Crear un feriado (aplica a todo el sistema)
@@ -108,9 +112,38 @@ public class ConfiguracionExcepcionalService {
     /**
      * Verificar si una fecha es feriado
      */
+    /**
+     * Feriado de todo el sistema. Un feriado de un centro no cuenta acá.
+     */
     public boolean esFeriado(LocalDate fecha) {
-        return repository.existsByFechaAndTipoAndActivoTrue(
-            fecha, ConfiguracionExcepcional.TipoExcepcion.FERIADO);
+        return esFeriadoParaCentro(fecha, null);
+    }
+
+    /**
+     * Bloquea si hay un feriado global o uno del centro pedido.
+     * Un centro null solo mira los globales.
+     */
+    public boolean esFeriadoParaCentro(LocalDate fecha, Integer centroId) {
+        return feriadosDelDia(fecha).stream().anyMatch(feriado -> feriadoAplica(feriado, centroId));
+    }
+
+    public static boolean feriadoAplica(ConfiguracionExcepcional config, Integer centroId) {
+        if (config == null || !config.isActivo() || config.getTipo() != ConfiguracionExcepcional.TipoExcepcion.FERIADO) {
+            return false;
+        }
+        if (config.getCentroAtencion() == null) {
+            return true;
+        }
+        return centroId != null && centroId.equals(config.getCentroAtencion().getId());
+    }
+
+    private List<ConfiguracionExcepcional> feriadosDelDia(LocalDate fecha) {
+        if (fecha == null || repository == null) {
+            return List.of();
+        }
+        List<ConfiguracionExcepcional> delDia = repository.findByTipoAndFechaAndActivoTrue(
+                ConfiguracionExcepcional.TipoExcepcion.FERIADO, fecha);
+        return delDia == null ? List.of() : delDia;
     }
 
     /**
@@ -234,7 +267,19 @@ public class ConfiguracionExcepcionalService {
     public List<ConfiguracionExcepcional> obtenerConfiguracionesPorCentro(LocalDate fechaInicio, 
                                                                           LocalDate fechaFin, 
                                                                           Integer centroId) {
-        return repository.findByFechaBetweenAndCentroAtencion_IdAndActivoTrue(fechaInicio, fechaFin, centroId);
+        List<ConfiguracionExcepcional> delCentro = new java.util.ArrayList<>(
+                repository.findByFechaBetweenAndCentroAtencion_IdAndActivoTrue(fechaInicio, fechaFin, centroId));
+        List<ConfiguracionExcepcional> delRango = repository.findByFechaBetweenAndActivoTrue(fechaInicio, fechaFin);
+        if (delRango != null) {
+            for (ConfiguracionExcepcional config : delRango) {
+                if (config.getTipo() == ConfiguracionExcepcional.TipoExcepcion.FERIADO
+                        && config.getCentroAtencion() == null
+                        && delCentro.stream().noneMatch(ya -> ya.getId() != null && ya.getId().equals(config.getId()))) {
+                    delCentro.add(config);
+                }
+            }
+        }
+        return delCentro;
     }
 
     /**
@@ -371,7 +416,8 @@ public class ConfiguracionExcepcionalService {
                 
                 switch (tipo) {
                     case FERIADO:
-                        return actualizarFeriado(configId, fecha, descripcion);
+                        throw new IllegalArgumentException(
+                                "Los feriados se cargan indicando si son de un centro o de todo el sistema.");
                     case MANTENIMIENTO:
                         if (esquemaTurnoId != null) {
                             EsquemaTurno esquema = esquemaTurnoRepository.findById(esquemaTurnoId)
@@ -393,7 +439,8 @@ public class ConfiguracionExcepcionalService {
         
         switch (tipo) {
             case FERIADO:
-                return crearFeriado(fecha, descripcion);
+                throw new IllegalArgumentException(
+                        "Los feriados se cargan indicando si son de un centro o de todo el sistema.");
             case MANTENIMIENTO:
                 if (esquemaTurnoId != null) {
                     EsquemaTurno esquema = esquemaTurnoRepository.findById(esquemaTurnoId)
@@ -565,7 +612,7 @@ public class ConfiguracionExcepcionalService {
         if (fecha == null) {
             return null;
         }
-        if (esFeriado(fecha)) {
+        if (esFeriadoParaCentro(fecha, centroDeLaReserva(consultorioId, staffMedicoId))) {
             return "No se pueden reservar turnos en un feriado";
         }
         LocalTime fin = horaFin != null ? horaFin : horaInicio;
@@ -575,6 +622,22 @@ public class ConfiguracionExcepcionalService {
         }
         if (staffMedicoId != null && cubreAusencia(staffMedicoId, fecha, horaInicio, fin)) {
             return "No se pueden reservar turnos: el médico está ausente en ese horario";
+        }
+        return null;
+    }
+
+    private Integer centroDeLaReserva(Integer consultorioId, Integer staffMedicoId) {
+        if (consultorioId != null && consultorioRepository != null) {
+            var consultorio = consultorioRepository.findById(consultorioId);
+            if (consultorio != null && consultorio.isPresent() && consultorio.get().getCentroAtencion() != null) {
+                return consultorio.get().getCentroAtencion().getId();
+            }
+        }
+        if (staffMedicoId != null && staffMedicoRepository != null) {
+            var staff = staffMedicoRepository.findById(staffMedicoId);
+            if (staff != null && staff.isPresent() && staff.get().getCentroAtencion() != null) {
+                return staff.get().getCentroAtencion().getId();
+            }
         }
         return null;
     }

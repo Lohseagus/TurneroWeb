@@ -9,6 +9,9 @@
         <p class="text-muted mb-0">
           Feriados, mantenimiento, horarios especiales y ausencias de profesionales
         </p>
+        @if (aviso) {
+          <p class="mb-0 mt-2">{{ aviso }}</p>
+        }
       </div>
       <button class="btn btn-primary btn-lg" (click)="abrirModalNuevo()">
         <i class="fas fa-plus me-2"></i>Agregar Día Excepcional
@@ -168,10 +171,10 @@
                       @if (!dia.centroNombre) {
                         <div>
                           <span class="badge bg-info text-dark">
-                            <i class="fas fa-globe me-1"></i>General
+                            <i class="fas fa-globe me-1"></i>{{ dia.tipo === 'FERIADO' ? 'Global' : 'General' }}
                           </span>
                           <br />
-                          <small class="text-muted">(Todos los centros)</small>
+                          <small class="text-muted">{{ dia.tipo === 'FERIADO' ? 'Todos los centros' : 'Sin centro' }}</small>
                         </div>
                       }
                     </td>
@@ -212,6 +215,7 @@
                     </td>
                     <td class="text-center">
                       <div class="btn-group btn-group-sm">
+                        @if (puedeEditar(dia)) {
                         <button class="btn btn-outline-primary" (click)="editar(dia)">
                           <i class="fas fa-edit"></i>
                         </button>
@@ -221,6 +225,7 @@
                           >
                           <i class="fas fa-trash"></i>
                         </button>
+                        }
                       </div>
                     </td>
                   </tr>
@@ -301,6 +306,30 @@
                           placeholder="Ej: Día del Trabajador, Día de la Independencia, etc."
                         ></textarea>
                       </div>
+                      @if (esSuperadmin) {
+                        <div class="col-md-6">
+                          <label class="form-label">Alcance</label>
+                          <select class="form-select" [(ngModel)]="alcanceFeriado" name="alcance">
+                            <option value="global">Global, todos los centros</option>
+                            <option value="centro">Un centro</option>
+                          </select>
+                        </div>
+                        @if (alcanceFeriado === 'centro') {
+                          <div class="col-md-6">
+                            <label class="form-label">Centro</label>
+                            <select class="form-select" [(ngModel)]="diaActual.centroAtencionId" name="centroFeriado">
+                              <option [ngValue]="undefined">Elegí un centro</option>
+                              @for (centro of centros; track centro.id) {
+                                <option [ngValue]="centro.id">{{ centro.nombre }}</option>
+                              }
+                            </select>
+                          </div>
+                        }
+                      } @else {
+                        <div class="col-12">
+                          <p class="text-muted mb-0">El feriado queda solo para tu centro. Los de todo el sistema los carga un superadmin.</p>
+                        </div>
+                      }
                     }
                     <!-- Solo para mantenimiento y atención especial -->
                     @if (diaActual.tipo !== 'FERIADO') {

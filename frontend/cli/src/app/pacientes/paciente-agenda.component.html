@@ -299,7 +299,10 @@
 
   @if (mostrarListaEspera && estaAutenticado && !esOperador) {
     <div class="agenda-espera">
-      <app-lista-espera-form></app-lista-espera-form>
+      <app-lista-espera-form
+        [especialidadNombre]="especialidadSeleccionada"
+        [centroId]="centroAtencionSeleccionado"
+      ></app-lista-espera-form>
     </div>
   }
 

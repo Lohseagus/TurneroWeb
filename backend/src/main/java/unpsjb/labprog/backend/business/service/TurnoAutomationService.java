@@ -41,6 +41,9 @@ public class TurnoAutomationService {
     @Autowired
     private ReglasReservaTurno reglasReserva;
 
+    @Autowired
+    private ListaEsperaService listaEsperaService;
+
     @Value("${turnos.auto-cancel.enabled:true}")
     private Boolean autoCancelEnabled;
     
@@ -69,8 +72,7 @@ public class TurnoAutomationService {
             logger.info("🔄 Iniciando proceso de cancelación automática de turnos...");
             
             // Misma regla que el job de medianoche (zona cerrada por centro, PROGRAMADO y REAGENDADO).
-            // No ofrece el hueco a la lista de espera: eso queda para el lote de lista de espera.
-            // El de medianoche sí llama a cancelarTurno, que reasigna.
+            // Después de cancelar, ofrece el hueco a la lista de espera si todavía sirve.
             ZonedDateTime ahoraArgentina = ZonedDateTime.now(ARGENTINA_ZONE);
             LocalDateTime ahora = ahoraArgentina.toLocalDateTime();
             int horas = reglasReserva != null ? reglasReserva.horasParaBuscarCandidatos() : horasAnticipacion;
@@ -134,6 +136,10 @@ public class TurnoAutomationService {
         );
 
         logger.debug("✅ Turno ID {} cancelado y registrado en auditoría", turno.getId());
+
+        if (listaEsperaService != null) {
+            listaEsperaService.ofrecerHuecoLiberado(turno);
+        }
 
         // Notificar al paciente por email
         notificarCancelacionAutomatica(turno);

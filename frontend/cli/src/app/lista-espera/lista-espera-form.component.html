@@ -191,6 +191,12 @@
         </div>
       </div>
 
+      @if (isPatientMode) {
+        <p class="form-text d-flex align-items-center gap-xs mb-lg">
+          <span class="material-symbols-outlined info-icon">info</span>
+          Te anotamos con prioridad normal. La urgencia la define el centro y el puesto sale por fecha de ingreso.
+        </p>
+      } @else {
       <!-- Nivel de urgencia médica -->
       <div class="form-group mb-lg">
         <label class="form-label" for="urgenciaMedica">
@@ -209,6 +215,7 @@
           Seleccione el nivel de urgencia para esta solicitud
         </small>
       </div>
+      }
     </form>
   </div>
 
@@ -227,8 +234,8 @@
       (click)="guardar()"
       [disabled]="!form.valid"
       aria-label="Guardar solicitud en lista de espera">
-      <span class="material-symbols-outlined me-2">save</span>
-      Guardar
+      <span class="material-symbols-outlined me-2">{{ isPatientMode ? 'schedule' : 'save' }}</span>
+      {{ isPatientMode ? 'Anotarme' : 'Guardar' }}
     </button>
   </div>
 </div>

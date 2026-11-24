@@ -25,6 +25,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.exception.TenantAccessException;
+import unpsjb.labprog.backend.exception.TurnoTomadoException;
 import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ExportService;
 import unpsjb.labprog.backend.business.service.RecordatorioService;
@@ -139,6 +140,8 @@ public class TurnoPresenter {
             throw e;
         } catch (TenantAccessException e) {
             return Response.forbidden(e.getMessage());
+        } catch (TurnoTomadoException e) {
+            return Response.conflicto(e.getMessage());
         } catch (unpsjb.labprog.backend.exception.OverlapException e) {
             // Retornar CONFLICT con los detalles de los turnos en conflicto para que
             // el frontend pueda mostrar un modal y reintentar con confirmación
@@ -163,6 +166,8 @@ public class TurnoPresenter {
             throw e;
         } catch (TenantAccessException e) {
             return Response.forbidden(e.getMessage());
+        } catch (TurnoTomadoException e) {
+            return Response.conflicto(e.getMessage());
         } catch (unpsjb.labprog.backend.exception.OverlapException e) {
             return Response.response(HttpStatus.CONFLICT, e.getMessage(), e.getConflicts());
         } catch (IllegalArgumentException e) {
@@ -308,6 +313,8 @@ public class TurnoPresenter {
             return Response.ok(savedTurno, "Turno asignado correctamente.");
         } catch (AccessDeniedException e) {
             throw e;
+        } catch (TurnoTomadoException e) {
+            return Response.conflicto(e.getMessage());
         } catch (unpsjb.labprog.backend.exception.OverlapException e) {
             return Response.response(HttpStatus.CONFLICT, e.getMessage(), e.getConflicts());
         } catch (IllegalArgumentException e) {
@@ -509,6 +516,8 @@ public class TurnoPresenter {
             return Response.ok(turno, "Turno reagendado correctamente");
         } catch (AccessDeniedException e) {
             throw e;
+        } catch (TurnoTomadoException e) {
+            return Response.conflicto(e.getMessage());
         } catch (unpsjb.labprog.backend.exception.OverlapException e) {
             return Response.response(HttpStatus.CONFLICT, e.getMessage(), e.getConflicts());
         } catch (IllegalArgumentException e) {

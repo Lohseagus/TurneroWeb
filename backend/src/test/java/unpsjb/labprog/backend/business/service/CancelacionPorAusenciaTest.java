@@ -73,6 +73,8 @@ class CancelacionPorAusenciaTest {
     private SuscripcionAccessService suscripcionAccessService;
     @Mock
     private ConfiguracionExcepcionalService configuracionExcepcionalService;
+    @Mock
+    private ReglasReservaTurno reglasReserva;
 
     @InjectMocks
     private TurnoService turnoService;
@@ -89,6 +91,7 @@ class CancelacionPorAusenciaTest {
 
         turnoService.cancelarTurno(15, "Ausencia del médico: vacaciones", "medico@turnero.com", false, "AUSENCIA");
 
+        verify(listaEsperaService, never()).ofrecerHuecoLiberado(any());
         verify(listaEsperaService, never()).buscarPacienteParaReasignar(any());
         verify(emailService).sendAppointmentCancellationEmail(
                 eq("maria@turnero.com"), any(), any(), eq(3), eq(15), eq("AUSENCIA"));
@@ -106,7 +109,24 @@ class CancelacionPorAusenciaTest {
 
         turnoService.cancelarTurno(15, "el paciente avisó", "operador@turnero.com");
 
-        verify(listaEsperaService).buscarPacienteParaReasignar(turno);
+        verify(listaEsperaService).ofrecerHuecoLiberado(turno);
+    }
+
+    @Test
+    void laCancelacionDeMedianocheOfreceElHueco() {
+        when(configuracionService.isHabilitadaCancelacionAutomatica()).thenReturn(true);
+        when(reglasReserva.horasParaBuscarCandidatos()).thenReturn(48);
+        when(reglasReserva.correspondeCancelacionAutomatica(any(), any())).thenReturn(true);
+        Turno turno = turnoFuturo();
+        when(repository.findTurnosParaCancelacionAutomatica(any(), any(), any())).thenReturn(List.of(turno));
+        when(repository.findById(15)).thenReturn(Optional.of(turno));
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(centroAccess.puedeOperar(any())).thenReturn(true);
+        when(userService.findByEmail("maria@turnero.com")).thenReturn(Optional.empty());
+
+        turnoService.cancelarTurnosNoConfirmadosAutomaticamente();
+
+        verify(listaEsperaService).ofrecerHuecoLiberado(turno);
     }
 
     @Test

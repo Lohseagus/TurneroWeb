@@ -300,6 +300,10 @@ public class SecurityConfig {
                                         "/api/turno/{id:\\d+}/cancelar",
                                         "/api/turno/{id:\\d+}/reagendar").hasRole("PACIENTE")
                                 .requestMatchers(HttpMethod.POST, "/api/lista-espera").hasRole("PACIENTE")
+                                // El médico puede cambiar la urgencia de una solicitud de un paciente suyo.
+                                // El servicio rechaza si no lo es. El resto de la cola sigue siendo de mostrador.
+                                .requestMatchers(HttpMethod.PUT, "/api/lista-espera/{id:\\d+}")
+                                        .hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
                                 // Ausencias: el médico solo las suyas, admin y operador las de su centro.
                                 // Va antes del GET general de agenda, que no incluye al operador.
                                 .requestMatchers("/api/agenda/ausencias", "/api/agenda/ausencias/**")

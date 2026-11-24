@@ -84,6 +84,13 @@ public class Turno {
     @Column(name = "asistio")
     private Boolean asistio; // null = no informado, true = asistió, false = no asistió
 
+    /**
+     * Sobreturno pedido a propósito por el mostrador. No entra en el índice único
+     * del horario: el resto de los turnos activos sí, uno por médico y hora de inicio.
+     */
+    @Column(name = "sobreturno")
+    private Boolean sobreturno;
+
     public void confirmarTurno() {
         if (this.estado != EstadoTurno.PROGRAMADO) {
             throw new IllegalStateException("Solo se pueden confirmar turnos en estado PROGRAMADO.");

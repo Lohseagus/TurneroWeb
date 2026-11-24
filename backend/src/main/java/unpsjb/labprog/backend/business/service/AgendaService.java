@@ -189,7 +189,9 @@ public class AgendaService {
         
         public boolean validarDisponibilidad(LocalDate fecha, LocalTime horaInicio, Integer consultorioId,
                 Integer staffMedicoId) {
-            if (configuracionExcepcionalService.esFeriado(fecha)) {
+            Integer centroId = consultorioId == null ? null
+                    : consultorioService.findById(consultorioId).map(ConsultorioDTO::getCentroId).orElse(null);
+            if (configuracionExcepcionalService.esFeriadoParaCentro(fecha, centroId)) {
                 return false;
             }
 
@@ -212,7 +214,11 @@ public class AgendaService {
         }
         
         public boolean esFechaExcepcional(LocalDate fecha, Integer esquemaTurnoId) {
-            return configuracionExcepcionalService.esFeriado(fecha) ||
+            Integer centroId = esquemaTurnoId == null ? null
+                    : esquemaTurnoRepository.findById(esquemaTurnoId)
+                            .map(esquema -> esquema.getCentroAtencion() == null ? null : esquema.getCentroAtencion().getId())
+                            .orElse(null);
+            return configuracionExcepcionalService.esFeriadoParaCentro(fecha, centroId) ||
                    configuracionExcepcionalService.tieneMantenimiento(fecha, esquemaTurnoId) ||
                    configuracionExcepcionalService.obtenerAtencionEspecial(fecha, esquemaTurnoId).isPresent();
         }
@@ -651,8 +657,10 @@ public class AgendaService {
 
                 
                 // Verificar si es feriado (afecta todo el día)
+                Integer centroDelEsquema = esquemaTurnoFinal.getCentroAtencion() == null
+                        ? null : esquemaTurnoFinal.getCentroAtencion().getId();
                 boolean esFeriado = configuracionesDelDia.stream()
-                    .anyMatch(c -> c.getTipo() == ConfiguracionExcepcional.TipoExcepcion.FERIADO);
+                    .anyMatch(c -> ConfiguracionExcepcionalService.feriadoAplica(c, centroDelEsquema));
                 
                 
                 if (esFeriado) {
@@ -679,7 +687,9 @@ public class AgendaService {
                         List<ConfiguracionExcepcional> configuracionesEspecificas = configuracionesDelDia.stream()
                             .filter(c -> {
                                 // Incluir feriados (aplican a todos)
-                                if (c.getTipo() == ConfiguracionExcepcional.TipoExcepcion.FERIADO) {
+                                if (ConfiguracionExcepcionalService.feriadoAplica(c,
+                                        esquemaTurnoFinal.getCentroAtencion() == null
+                                                ? null : esquemaTurnoFinal.getCentroAtencion().getId())) {
                                     return true;
                                 }
                                 // Incluir mantenimientos del consultorio específico

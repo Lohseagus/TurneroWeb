@@ -1,7 +1,6 @@
 package unpsjb.labprog.backend.business.service;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -106,7 +105,7 @@ public class RecordatorioService {
     /**
      * Construye los detalles HTML del recordatorio de turno para el email
      */
-    private String construirDetallesRecordatorio(Turno turno) {
+    String construirDetallesRecordatorio(Turno turno) {
         StringBuilder detalles = new StringBuilder();
 
         detalles.append("<h3>Recordatorio de Confirmación de Turno</h3>");
@@ -147,15 +146,16 @@ public class RecordatorioService {
 
         detalles.append("<p><strong>Número de Turno:</strong> #").append(turno.getId()).append("</p>");
 
-        // Información sobre límites de confirmación
-        int diasMin = configuracionService.getDiasMinConfirmacion();
-        LocalTime horaCorte = configuracionService.getHoraCorteConfirmacion();
-        LocalDate fechaLimite = LocalDate.now().plusDays(diasMin);
+        // La confirmación cierra dias_min antes del turno, la misma ventana que la reserva.
+        java.time.LocalDateTime limite = limiteParaConfirmar(turno);
 
         detalles.append("<hr>");
         detalles.append(
-                "<p><strong style='color: #d32f2f;'>IMPORTANTE:</strong> Debe confirmar este turno antes del <strong>");
-        detalles.append(fechaLimite).append(" a las ").append(horaCorte).append("</strong></p>");
+                "<p><strong style='color: #d32f2f;'>IMPORTANTE:</strong> Tenés que confirmar este turno antes del <strong>");
+        detalles.append(limite.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                .append(" a las ")
+                .append(limite.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")))
+                .append("</strong></p>");
         detalles.append("<p>Si no confirma a tiempo, el turno será cancelado automáticamente.</p>");
 
         // Instrucciones de confirmación
@@ -169,6 +169,21 @@ public class RecordatorioService {
         detalles.append("</ul>");
 
         return detalles.toString();
+    }
+
+    /**
+     * Cierra {@code dias_min_confirmacion} días antes del inicio del turno
+     * (misma zona que la cancelación automática). No se cuenta desde hoy.
+     */
+    java.time.LocalDateTime limiteParaConfirmar(Turno turno) {
+        Integer centroId = null;
+        if (turno.getCentroAtencion() != null) {
+            centroId = turno.getCentroAtencion().getId();
+        } else if (turno.getStaffMedico() != null && turno.getStaffMedico().getCentroAtencion() != null) {
+            centroId = turno.getStaffMedico().getCentroAtencion().getId();
+        }
+        int diasMin = Math.max(1, configuracionService.getDiasMinConfirmacion(centroId));
+        return java.time.LocalDateTime.of(turno.getFecha(), turno.getHoraInicio()).minusHours(diasMin * 24L);
     }
 
 }

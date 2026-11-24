@@ -29,6 +29,19 @@ export class PacienteListaEsperaComponent implements OnInit {
     this.cargar();
   }
 
+  etiquetaUrgencia(valor: string): string {
+    switch (valor) {
+      case "URGENTE":
+        return "urgente";
+      case "ALTA":
+        return "alta";
+      case "MEDIA":
+        return "media";
+      default:
+        return "normal";
+    }
+  }
+
   get pendientes(): ListaEspera[] {
     return this.solicitudes.filter((solicitud) => solicitud.estado === "PENDIENTE");
   }

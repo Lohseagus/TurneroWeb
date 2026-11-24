@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,9 +46,11 @@ public class ConfiguracionExcepcional {
     // Para mantenimientos y atención especial
     private Integer duracion;
     
-    // Relaciones opcionales
+    // Relaciones opcionales. En un feriado, null es de todo el sistema.
+    // ddl-auto=update deja la columna nullable: no hay que rellenar filas viejas.
     @ManyToOne(optional = true)
-    private CentroAtencion centroAtencion;  // NULL para feriados globales
+    @JoinColumn(name = "centro_atencion_id", nullable = true)
+    private CentroAtencion centroAtencion;
     
     @ManyToOne(optional = true) 
     private Consultorio consultorio;        // Para mantenimientos específicos
@@ -68,7 +71,7 @@ public class ConfiguracionExcepcional {
     }
 
     public enum TipoExcepcion {
-        FERIADO,           // Aplica a todo el sistema
+        FERIADO,           // Sin centro: todo el sistema. Con centro: solo ese centro.
         MANTENIMIENTO,     // Aplica a un consultorio específico
         ATENCION_ESPECIAL, // Horarios especiales para un esquema específico
         AUSENCIA_MEDICO    // El profesional no atiende en el rango

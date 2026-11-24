@@ -27,6 +27,8 @@ import { PacienteSesionService } from '../pacientes/paciente-sesion.service';
 export class ListaEsperaFormComponent implements OnInit {
   @Input() data?: ListaEspera | null;
   @Input() operatorContext: boolean = false;
+  @Input() especialidadNombre: string | null = null;
+  @Input() centroId: number | null = null;
 
   @Output() save = new EventEmitter<ListaEspera>();
   @Output() cancel = new EventEmitter<void>();
@@ -102,13 +104,6 @@ export class ListaEsperaFormComponent implements OnInit {
   private pacienteIdResuelto: number | null = null;
 
   ngOnInit() {
-    // 🚀 Recargar la página solo una vez para evitar bug de contexto no cargado
-    if (!sessionStorage.getItem('reloaded-lista-espera')) {
-      sessionStorage.setItem('reloaded-lista-espera', 'true');
-      window.location.reload();
-      return;
-    }
-
     this.aplicarModo(this.authService.getCurrentPatientId());
     // El storage del login no existe cuando un médico entra a la vista de paciente.
     if (!this.operatorContext && !this.data && this.pacienteIdResuelto == null) {
@@ -175,6 +170,7 @@ export class ListaEsperaFormComponent implements OnInit {
     this.especialidadService.all().subscribe({
       next: (res: DataPackage<any[]>) => {
         this.especialidades = res && res.data ? res.data : [];
+        this.precargarFiltros();
       },
       error: (err) => {
         console.error('Error cargando especialidades:', err);
@@ -186,6 +182,7 @@ export class ListaEsperaFormComponent implements OnInit {
     this.centroService.all().subscribe({
       next: (res: DataPackage<any[]>) => {
         this.centros = res && res.data ? res.data : [];
+        this.precargarFiltros();
       },
       error: (err) => {
         console.error('Error cargando centros:', err);
@@ -260,21 +257,20 @@ export class ListaEsperaFormComponent implements OnInit {
 
 
       if (this.isPatientMode) {
-        // Modo paciente: llamar directamente a create y manejar respuesta
         this.listaEsperaService.create(solicitud).subscribe({
           next: (resp) => {
             if (resp.status_code === 200) {
-              console.log('✅ Solicitud creada exitosamente:', resp.data);
-              this.toastService.success('Solicitud guardada con éxito');
+              const puesto = resp.data?.posicion ? ` Quedaste en el puesto ${resp.data.posicion}.` : '';
+              this.toastService.success(
+                `Te anotamos en la lista de espera.${puesto} La urgencia la define el centro.`
+              );
               this.router.navigate(['/paciente-dashboard']);
             } else {
-              console.error('❌ Error creando solicitud:', resp.status_text);
-              this.toastService.error(`Error: ${resp.status_text}`);
+              this.toastService.error(resp.status_text || 'No se pudo anotar en la lista de espera.');
             }
           },
           error: (err) => {
-            console.error('❌ Error creando solicitud:', err);
-            this.toastService.error('Error al guardar la solicitud');
+            this.toastService.error(err?.error?.status_text || 'No se pudo anotar en la lista de espera. Intentá de nuevo.');
           }
         });
       } else {
@@ -282,7 +278,7 @@ export class ListaEsperaFormComponent implements OnInit {
         this.save.emit(solicitud);
       }
     } else {
-      console.warn('⚠️ Formulario inválido:', this.form.errors);
+      this.toastService.error('Completá especialidad y centro para anotarte.');
 
       // Mostrar qué campos están inválidos
       Object.keys(this.form.controls).forEach(key => {
@@ -296,6 +292,26 @@ export class ListaEsperaFormComponent implements OnInit {
 
   cerrar() {
     this.cancel.emit();
+  }
+
+  private precargarFiltros(): void {
+    if (this.data) {
+      return;
+    }
+    const parche: { especialidadId?: number; centroAtencionId?: number } = {};
+    if (this.centroId && !this.form.get('centroAtencionId')?.value) {
+      parche.centroAtencionId = Number(this.centroId);
+    }
+    if (this.especialidadNombre && !this.form.get('especialidadId')?.value) {
+      const buscada = this.especialidadNombre.trim().toLowerCase();
+      const encontrada = this.especialidades.find((esp) => (esp.nombre || '').trim().toLowerCase() === buscada);
+      if (encontrada) {
+        parche.especialidadId = encontrada.id;
+      }
+    }
+    if (Object.keys(parche).length) {
+      this.form.patchValue(parche);
+    }
   }
 
   // Utility: normaliza valores de fecha (Date o string) a yyyy-MM-dd (valor aceptado por input[type=date])

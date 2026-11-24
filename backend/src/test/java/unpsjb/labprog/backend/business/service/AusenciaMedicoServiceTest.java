@@ -94,10 +94,11 @@ class AusenciaMedicoServiceTest {
         when(staffMedicoRepository.findById(8)).thenReturn(Optional.of(staff));
         when(repository.findAusenciasVigentes(any(), any(), any())).thenReturn(List.of());
         Turno futuro = turno(20, hoy.plusDays(5), EstadoTurno.CONFIRMADO);
+        Turno reagendado = turno(23, hoy.plusDays(4), EstadoTurno.REAGENDADO);
         Turno hoyMismo = turno(21, hoy, EstadoTurno.PROGRAMADO);
         Turno pasado = turno(22, hoy.minusDays(2), EstadoTurno.PROGRAMADO);
         when(turnoRepository.findAfectablesPorAusencia(eq(8), eq(hoy.plusDays(1)), eq(hoy.plusDays(6)), any()))
-                .thenReturn(List.of(futuro, hoyMismo, pasado));
+                .thenReturn(List.of(futuro, reagendado, hoyMismo, pasado));
         when(repository.save(any())).thenAnswer(invocation -> {
             ConfiguracionExcepcional guardada = invocation.getArgument(0);
             guardada.setId(70);
@@ -109,9 +110,17 @@ class AusenciaMedicoServiceTest {
         verify(turnoService).cancelarTurno(
                 eq(20), eq("Ausencia del médico: vacaciones"), eq("medico@turnero.com"), eq(false),
                 eq(AusenciaMedicoService.TIPO_DEEP_LINK));
+        verify(turnoService).cancelarTurno(
+                eq(23), eq("Ausencia del médico: vacaciones"), eq("medico@turnero.com"), eq(false),
+                eq(AusenciaMedicoService.TIPO_DEEP_LINK));
         verify(turnoService, never()).cancelarTurno(eq(21), any(), any(), anyBoolean(), any());
         verify(turnoService, never()).cancelarTurno(eq(22), any(), any(), anyBoolean(), any());
-        assertEquals(1, resultado.getCancelados().size());
+        org.mockito.ArgumentCaptor<java.util.Collection<EstadoTurno>> estados = org.mockito.ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(turnoRepository).findAfectablesPorAusencia(eq(8), eq(hoy.plusDays(1)), eq(hoy.plusDays(6)), estados.capture());
+        assertTrue(estados.getValue().contains(EstadoTurno.REAGENDADO));
+        assertTrue(estados.getValue().contains(EstadoTurno.CONFIRMADO));
+        assertTrue(estados.getValue().contains(EstadoTurno.PROGRAMADO));
+        assertEquals(2, resultado.getCancelados().size());
         assertEquals(2, resultado.getRequierenGestionManual().size());
         assertEquals(70, resultado.getAusencia().getId());
     }
