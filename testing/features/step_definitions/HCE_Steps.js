@@ -56,6 +56,10 @@ function limpiarHistoria() {
     DELETE FROM hce_medicacion;
     DELETE FROM hce_vacuna;
     DELETE FROM hce_perfil;
+    DELETE FROM encuesta_respuesta WHERE turno_id = ${TURNO_ID};
+    DELETE FROM encuesta_invitacion WHERE turno_id = ${TURNO_ID};
+    DELETE FROM notificaciones WHERE turno_id = ${TURNO_ID};
+    DELETE FROM audit_log WHERE turno_id = ${TURNO_ID};
     DELETE FROM turno WHERE id = ${TURNO_ID};
     DELETE FROM staff_medico WHERE id = ${STAFF_OTRO_ID};
     DELETE FROM medico WHERE id = ${MEDICO_OTRO_ID};
