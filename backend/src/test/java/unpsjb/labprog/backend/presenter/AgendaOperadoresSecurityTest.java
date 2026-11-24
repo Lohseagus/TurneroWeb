@@ -44,6 +44,7 @@ import unpsjb.labprog.backend.business.repository.TurnoRepository;
 import unpsjb.labprog.backend.business.service.AgendaService;
 import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.ConfiguracionExcepcionalService;
+import unpsjb.labprog.backend.business.service.FeriadoService;
 import unpsjb.labprog.backend.business.service.EncuestaInvitacionService;
 import unpsjb.labprog.backend.business.service.OperadorService;
 import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
@@ -115,6 +116,8 @@ class AgendaOperadoresSecurityTest {
     private AgendaService agendaService;
     @MockitoBean
     private ConfiguracionExcepcionalService configuracionExcepcionalService;
+    @MockitoBean
+    private FeriadoService feriadoService;
     @MockitoBean
     private OperadorService operadorService;
     @MockitoBean

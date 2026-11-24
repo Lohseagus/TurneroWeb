@@ -339,6 +339,14 @@ export class TurnoService {
 
 
 
+  contarTurnosFeriado(fecha: string, centroId?: number | null): Observable<DataPackage<{ cantidad: number }>> {
+    let params = new HttpParams().set('fecha', fecha);
+    if (centroId) {
+      params = params.set('centroId', String(centroId));
+    }
+    return this.http.get<DataPackage<{ cantidad: number }>>(`${this.agendaUrl}/feriados/afectados`, { params });
+  }
+
   /** Obtiene días excepcionales por rango de fechas */
   getDiasExcepcionales(fechaInicio: string, fechaFin: string, centroId?: number): Observable<DataPackage<any[]>> {
     let params = new HttpParams()

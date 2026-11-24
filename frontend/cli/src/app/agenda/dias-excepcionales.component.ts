@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TurnoService } from '../turnos/turno.service';
+import { UserContextService } from '../services/user-context.service';
+import { Role } from '../inicio-sesion/auth.service';
 import { EsquemaTurnoService } from '../esquemaTurno/esquemaTurno.service';
 import { CentroAtencionService } from '../centrosAtencion/centroAtencion.service';
 import { DiaExcepcional } from './diaExcepcional';
@@ -30,6 +32,8 @@ export class DiasExcepcionalesComponent implements OnInit {
   anios: number[] = [];
   showModal = false;
   editando = false;
+  aviso = '';
+  alcanceFeriado: 'global' | 'centro' = 'centro';
   
   diaActual: DiaExcepcional = {
     fecha: '',
@@ -41,7 +45,8 @@ export class DiasExcepcionalesComponent implements OnInit {
     private turnoService: TurnoService,
     private esquemaTurnoService: EsquemaTurnoService,
     private centroService: CentroAtencionService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private userContext: UserContextService
   ) {
     // Generar años (actual y próximos 2)
     const anioActual = new Date().getFullYear();
@@ -128,12 +133,34 @@ export class DiasExcepcionalesComponent implements OnInit {
     });
   }
 
+  get esSuperadmin(): boolean {
+    return this.userContext.hasRole(Role.SUPERADMIN);
+  }
+
+  get centroPropio(): number | null {
+    return this.userContext.tenantId;
+  }
+
+  puedeEditar(dia: DiaExcepcional): boolean {
+    if (dia.tipo !== 'FERIADO') {
+      return true;
+    }
+    const centro = dia.centroAtencionId ?? dia.centroId;
+    if (!centro) {
+      return this.esSuperadmin;
+    }
+    return this.esSuperadmin || centro === this.centroPropio;
+  }
+
   abrirModalNuevo() {
     this.editando = false;
+    this.aviso = '';
+    this.alcanceFeriado = this.esSuperadmin ? 'global' : 'centro';
     this.diaActual = {
       fecha: '',
       tipo: 'FERIADO',
-      descripcionExcepcion: ''
+      descripcionExcepcion: '',
+      centroAtencionId: this.esSuperadmin ? undefined : this.centroPropio ?? undefined
     };
     this.showModal = true;
   }
@@ -232,6 +259,20 @@ export class DiasExcepcionalesComponent implements OnInit {
       descripcion: this.diaActual.descripcionExcepcion
     };
 
+    if (this.diaActual.tipo === 'FERIADO') {
+      if (this.esSuperadmin && this.alcanceFeriado === 'global') {
+        params.centroId = null;
+      } else {
+        params.centroId = this.esSuperadmin
+          ? Number(this.diaActual.centroAtencionId)
+          : this.centroPropio;
+        if (!params.centroId) {
+          this.aviso = 'Elegí el centro del feriado.';
+          return;
+        }
+      }
+    }
+
     // Solo agregar esquemaTurnoId si no es feriado
     if (this.diaActual.tipo !== 'FERIADO' && this.diaActual.esquemaTurnoId) {
       params.esquemaTurnoId = this.diaActual.esquemaTurnoId;
@@ -264,21 +305,46 @@ export class DiasExcepcionalesComponent implements OnInit {
       params.duracion = this.diaActual.duracion;
     }
 
-    // Usar el método apropiado según si estamos editando o creando
-    const operacion = this.editando ? 
+    if (this.diaActual.tipo === 'FERIADO' && !this.editando) {
+      const centro = params.centroId || null;
+      this.turnoService.contarTurnosFeriado(this.diaActual.fecha, centro).subscribe({
+        next: (respuesta) => {
+          const cantidad = respuesta.data?.cantidad ?? 0;
+          const texto = cantidad === 0
+            ? 'No hay turnos activos ese día. ¿Cargás el feriado?'
+            : `Se van a cancelar ${cantidad} turno${cantidad === 1 ? '' : 's'} de ese día y se avisa a los pacientes. El horario no vuelve a la lista de espera. ¿Seguimos?`;
+          if (confirm(texto)) {
+            this.enviarDia(params);
+          }
+        },
+        error: () => {
+          if (confirm('Este feriado cancela los turnos activos de ese día y avisa a los pacientes. ¿Seguimos?')) {
+            this.enviarDia(params);
+          }
+        }
+      });
+      return;
+    }
+    this.enviarDia(params);
+  }
+
+  private enviarDia(params: any): void {
+    const operacion = this.editando ?
       this.turnoService.actualizarDiaExcepcional(this.diaActual.id!, params) :
       this.turnoService.crearDiaExcepcional(params);
 
     operacion.subscribe({
-      next: () => {
-        alert(`Día excepcional ${this.editando ? 'actualizado' : 'creado'} correctamente`);
+      next: (respuesta) => {
+        const cancelados = respuesta.data?.turnosCancelados;
+        const base = `Día excepcional ${this.editando ? 'actualizado' : 'creado'}.`;
+        this.aviso = typeof cancelados === 'number' && cancelados > 0
+          ? `${base} Se cancelaron ${cancelados} turnos.`
+          : base;
         this.cerrarModal();
         this.cargarDiasExcepcionales();
       },
       error: (error) => {
-        // console.error('Error al guardar día excepcional:', error);
-        const mensaje = error.error?.status_text || error.error?.message || 'Error al guardar el día excepcional';
-        alert(mensaje);
+        this.aviso = error.error?.status_text || error.error?.message || 'No se pudo guardar el día excepcional.';
       }
     });
   }

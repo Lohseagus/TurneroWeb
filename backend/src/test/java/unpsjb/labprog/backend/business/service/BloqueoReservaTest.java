@@ -39,13 +39,16 @@ class BloqueoReservaTest {
 
     @Test
     void unFeriadoUnMantenimientoOUnaAusenciaRechazanLaReservaNueva() {
-        when(repository.existsByFechaAndTipoAndActivoTrue(lunes, ConfiguracionExcepcional.TipoExcepcion.FERIADO))
-                .thenReturn(true);
+        ConfiguracionExcepcional global = new ConfiguracionExcepcional();
+        global.setTipo(ConfiguracionExcepcional.TipoExcepcion.FERIADO);
+        global.setActivo(true);
+        when(repository.findByTipoAndFechaAndActivoTrue(ConfiguracionExcepcional.TipoExcepcion.FERIADO, lunes))
+                .thenReturn(List.of(global));
         assertEquals("No se pueden reservar turnos en un feriado",
                 configuracionExcepcionalService.motivoBloqueoReserva(lunes, LocalTime.of(10, 0),
                         LocalTime.of(10, 30), 4, 8));
 
-        when(repository.existsByFechaAndTipoAndActivoTrue(any(), any())).thenReturn(false);
+        when(repository.findByTipoAndFechaAndActivoTrue(any(), any())).thenReturn(List.of());
         ConfiguracionExcepcional mantenimiento = ventana(LocalTime.of(9, 0), LocalTime.of(12, 0));
         mantenimiento.setTipo(ConfiguracionExcepcional.TipoExcepcion.MANTENIMIENTO);
         when(repository.findByFechaAndConsultorio_IdAndActivoTrue(lunes, 4)).thenReturn(List.of(mantenimiento));
@@ -63,7 +66,7 @@ class BloqueoReservaTest {
 
     @Test
     void laVentanaHorariaYOtroProfesionalNoBloqueanElResto() {
-        when(repository.existsByFechaAndTipoAndActivoTrue(any(), any())).thenReturn(false);
+        when(repository.findByTipoAndFechaAndActivoTrue(any(), any())).thenReturn(List.of());
         when(repository.findByFechaAndConsultorio_IdAndActivoTrue(any(), anyInt())).thenReturn(List.of());
         when(repository.findAusenciasVigentes(eq(8), eq(lunes), any()))
                 .thenReturn(List.of(ventana(LocalTime.of(9, 0), LocalTime.of(12, 0))));
@@ -73,6 +76,36 @@ class BloqueoReservaTest {
                 lunes, LocalTime.of(14, 0), LocalTime.of(14, 30), 4, 8));
         assertNull(configuracionExcepcionalService.motivoBloqueoReserva(
                 lunes, LocalTime.of(10, 0), LocalTime.of(10, 30), 4, 9));
+    }
+
+    @Test
+    void unFeriadoDeUnCentroNoBloqueaOtroCentro() {
+        unpsjb.labprog.backend.model.CentroAtencion centro = new unpsjb.labprog.backend.model.CentroAtencion();
+        centro.setId(1);
+        ConfiguracionExcepcional delCentro = new ConfiguracionExcepcional();
+        delCentro.setTipo(ConfiguracionExcepcional.TipoExcepcion.FERIADO);
+        delCentro.setActivo(true);
+        delCentro.setCentroAtencion(centro);
+        when(repository.findByTipoAndFechaAndActivoTrue(ConfiguracionExcepcional.TipoExcepcion.FERIADO, lunes))
+                .thenReturn(List.of(delCentro));
+        when(repository.findByFechaAndConsultorio_IdAndActivoTrue(any(), anyInt())).thenReturn(List.of());
+        when(repository.findAusenciasVigentes(any(), any(), any())).thenReturn(List.of());
+
+        unpsjb.labprog.backend.model.Consultorio consultorioAjeno = new unpsjb.labprog.backend.model.Consultorio();
+        unpsjb.labprog.backend.model.CentroAtencion otro = new unpsjb.labprog.backend.model.CentroAtencion();
+        otro.setId(2);
+        consultorioAjeno.setCentroAtencion(otro);
+        when(consultorioRepository.findById(9)).thenReturn(java.util.Optional.of(consultorioAjeno));
+
+        unpsjb.labprog.backend.model.Consultorio consultorioPropio = new unpsjb.labprog.backend.model.Consultorio();
+        consultorioPropio.setCentroAtencion(centro);
+        when(consultorioRepository.findById(4)).thenReturn(java.util.Optional.of(consultorioPropio));
+
+        assertNull(configuracionExcepcionalService.motivoBloqueoReserva(
+                lunes, LocalTime.of(10, 0), LocalTime.of(10, 30), 9, 8));
+        assertEquals("No se pueden reservar turnos en un feriado",
+                configuracionExcepcionalService.motivoBloqueoReserva(lunes, LocalTime.of(10, 0),
+                        LocalTime.of(10, 30), 4, 8));
     }
 
     private static ConfiguracionExcepcional ventana(LocalTime inicio, LocalTime fin) {
