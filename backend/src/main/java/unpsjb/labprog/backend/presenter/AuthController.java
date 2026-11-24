@@ -1,5 +1,7 @@
 package unpsjb.labprog.backend.presenter;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -754,8 +756,7 @@ public class AuthController {
 
             if (!user.isEnabled() || !user.isAccountNonLocked()) {
                 logger.warn("Login con Google rechazado: cuenta deshabilitada ({})", user.getEmail());
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Response.error(null, "La cuenta está deshabilitada."));
+                return errorPlano(HttpStatus.FORBIDDEN, "La cuenta está deshabilitada.");
             }
 
             // Generamos los tokens JWT de nuestra aplicación para el usuario encontrado o creado.
@@ -766,9 +767,18 @@ public class AuthController {
         } else {
             // El token de Google es inválido.
             logger.warn("Intento de login con Google con token inválido");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Response.error(null, "Token de Google inválido."));
+            return errorPlano(HttpStatus.UNAUTHORIZED, "Token de Google inválido.");
         }
+    }
+
+    /** Sobre plano, con el HTTP status real. No anida otro ResponseEntity. */
+    private ResponseEntity<Object> errorPlano(HttpStatus status, String mensaje) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status_code", status.value());
+        body.put("status_text", mensaje);
+        body.put("message", mensaje);
+        body.put("data", null);
+        return ResponseEntity.status(status).body(body);
     }
 
     /**

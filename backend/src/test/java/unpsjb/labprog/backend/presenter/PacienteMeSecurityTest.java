@@ -25,6 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import unpsjb.labprog.backend.business.service.AltaFichaPropia;
+import unpsjb.labprog.backend.business.service.FichaCentroGuard;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.JwtAuthenticationFilter;
@@ -68,6 +69,9 @@ class PacienteMeSecurityTest {
 
     @MockitoBean
     private PacienteService pacienteService;
+
+    @MockitoBean
+    private FichaCentroGuard fichaCentro;
 
     @Test
     void operadorLeeSuFichaSinPasarPorElId() throws Exception {

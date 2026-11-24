@@ -23,6 +23,7 @@ class SesionFalsa {
 
 class TurnosFalsos {
   pedidos: number[] = [];
+  estados: unknown[] = [];
   private respuesta = new Subject<any>();
 
   getByPacienteId(id: number) {
@@ -30,7 +31,8 @@ class TurnosFalsos {
     return this.respuesta.asObservable();
   }
 
-  updateEstado() {
+  updateEstado(...args: unknown[]) {
+    this.estados.push(args);
     return of({});
   }
 
@@ -115,6 +117,31 @@ describe('PacienteDashboardComponent con la ficha de la sesión', () => {
     expect(texto).toContain('Reintentar');
   });
 
+  it('muestra un turno pasado con su estado y no lo pasa a completo', async () => {
+    await montar();
+    turnos.emitir([
+      turno(7, '2020-01-15', 'PROGRAMADO'),
+      turno(8, '2020-03-02', 'AUSENTE'),
+      turno(9, '2099-06-01', 'CONFIRMADO')
+    ]);
+    fixture.detectChanges();
+
+    fixture.componentInstance.setFilter('past');
+    fixture.detectChanges();
+
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('Programado');
+    expect(texto).toContain('Ausente');
+    expect(texto).not.toContain('Confirmado');
+    expect(turnos.estados).toEqual([]);
+
+    fixture.componentInstance.setFilter('upcoming');
+    fixture.detectChanges();
+    const proximos = fixture.nativeElement.textContent as string;
+    expect(proximos).toContain('Confirmado');
+    expect(proximos).not.toContain('Ausente');
+  });
+
   it('si no se puede leer la ficha no se queda cargando', async () => {
     await montar();
     fixture.destroy();
@@ -129,3 +156,18 @@ describe('PacienteDashboardComponent con la ficha de la sesión', () => {
     expect(texto).not.toContain('Cargando turnos');
   });
 });
+
+function turno(id: number, fecha: string, estado: string) {
+  return {
+    id,
+    fecha,
+    horaInicio: '09:00',
+    horaFin: '09:30',
+    staffMedicoNombre: 'Ana',
+    staffMedicoApellido: 'López',
+    especialidadStaffMedico: 'Clínica',
+    nombreCentro: 'Centro Norte',
+    estado,
+    puedeConfirmar: true
+  };
+}
