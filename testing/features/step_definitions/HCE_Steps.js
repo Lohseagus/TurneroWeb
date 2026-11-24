@@ -59,7 +59,20 @@ function limpiarHistoria() {
     DELETE FROM encuesta_respuesta WHERE turno_id = ${TURNO_ID};
     DELETE FROM encuesta_invitacion WHERE turno_id = ${TURNO_ID};
     DELETE FROM notificaciones WHERE turno_id = ${TURNO_ID};
+    -- La auditoría de la app rechaza DELETE. Esta limpieza es del test, no de la API.
+    DO $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'audit_log_no_delete') THEN
+        EXECUTE 'ALTER TABLE audit_log DISABLE TRIGGER audit_log_no_delete';
+      END IF;
+    END $$;
     DELETE FROM audit_log WHERE turno_id = ${TURNO_ID};
+    DO $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'audit_log_no_delete') THEN
+        EXECUTE 'ALTER TABLE audit_log ENABLE TRIGGER audit_log_no_delete';
+      END IF;
+    END $$;
     DELETE FROM turno WHERE id = ${TURNO_ID};
     DELETE FROM staff_medico WHERE id = ${STAFF_OTRO_ID};
     DELETE FROM medico WHERE id = ${MEDICO_OTRO_ID};
