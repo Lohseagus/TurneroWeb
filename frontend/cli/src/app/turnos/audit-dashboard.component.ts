@@ -7,6 +7,16 @@ import { TurnoService } from './turno.service';
 import { AuditLog, AuditFilter, AuditPage } from './turno';
 import { DataPackage } from '../data.package';
 import { TurnoModalComponent } from './turno-modal.component';
+import {
+  ACCIONES_AUDITORIA,
+  ENTIDADES_AUDITORIA,
+  ORIGENES_AUDITORIA,
+  ROLES_AUDITORIA,
+  contarFiltros,
+  esOrigenSistema,
+  etiquetaDe,
+  etiquetaOrigen,
+} from './audit-ui';
 
 @Component({
   selector: 'app-audit-dashboard',
@@ -37,37 +47,22 @@ export class AuditDashboardComponent implements OnInit {
   selectedAction: string = '';
   selectedUser: string = '';
   selectedEntityType: string = '';
+  selectedRole: string = '';
+  selectedSource: string = '';
 
   // === ORDENAMIENTO ===
   sortField: string = 'performedAt';
   sortDirection: 'asc' | 'desc' = 'desc';
 
   // === OPCIONES PARA FILTROS ===
-  availableActions: string[] = [
-    'CREATE', 'UPDATE_STATUS', 'CANCEL', 'CONFIRM',
-    'RESCHEDULE', 'COMPLETE', 'DELETE', 'LOGIN', 'LOGOUT'
-  ];
+  readonly acciones = ACCIONES_AUDITORIA;
+  readonly entidades = ENTIDADES_AUDITORIA;
+  readonly roles = ROLES_AUDITORIA;
+  readonly origenes = ORIGENES_AUDITORIA;
+  readonly etiquetaDe = etiquetaDe;
+  readonly etiquetaOrigen = etiquetaOrigen;
+  readonly esOrigenSistema = esOrigenSistema;
 
-  availableEntityTypes: string[] = [
-    'TURNO', 'USUARIO', 'OPERADOR', 'CONSULTORIO',
-    'CENTRO_ATENCION', 'ESPECIALIDAD', 'MEDICO'
-  ];
-
-  /**
-   * TODO: Implementar filtrado multi-tenant para auditoría
-   * 
-   * ESTADO ACTUAL:
-   * - Backend NO filtra auditoría por centro automáticamente
-   * - AuditLog no tiene relación directa con CentroAtencion
-   * - Los logs se filtran indirectamente a través de las entidades auditadas
-   * 
-   * SOLUCIÓN RECOMENDADA:
-   * 1. Backend: Agregar campo centroAtencionId a AuditLog
-   * 2. Backend: Implementar filtrado en AuditLogService usando TenantContext
-   * 3. Frontend (SUPERADMIN): Agregar selector de centro para ver auditoría específica
-   * 
-   * POR AHORA: SUPERADMIN y ADMIN ven toda la auditoría (sin filtrar)
-   */
   constructor(
     private turnoService: TurnoService,
     private router: Router,
@@ -301,6 +296,8 @@ export class AuditDashboardComponent implements OnInit {
     this.filters.action = this.selectedAction || undefined;
     this.filters.user = this.selectedUser || undefined;
     this.filters.entityType = this.selectedEntityType || undefined;
+    this.filters.role = this.selectedRole || undefined;
+    this.filters.source = this.selectedSource || undefined;
     this.filters.dateFrom = this.dateFrom || undefined;
     this.filters.dateTo = this.dateTo || undefined;
     this.filters.page = 0; // Reset a primera página
@@ -317,6 +314,8 @@ export class AuditDashboardComponent implements OnInit {
     this.selectedAction = '';
     this.selectedUser = '';
     this.selectedEntityType = '';
+    this.selectedRole = '';
+    this.selectedSource = '';
     this.dateFrom = '';
     this.dateTo = '';
     this.filters.page = 0;
@@ -328,6 +327,8 @@ export class AuditDashboardComponent implements OnInit {
     this.filters.action = undefined;
     this.filters.user = undefined;
     this.filters.entityType = undefined;
+    this.filters.role = undefined;
+    this.filters.source = undefined;
     this.filters.dateFrom = undefined;
     this.filters.dateTo = undefined;
 
@@ -589,6 +590,18 @@ export class AuditDashboardComponent implements OnInit {
   /** Método trackBy para optimizar el renderizado de la tabla */
   trackByLogId(index: number, log: AuditLog): any {
     return log.id || index;
+  }
+
+  get filtrosActivos(): number {
+    return contarFiltros({
+      rol: this.selectedRole,
+      usuario: this.selectedUser,
+      entidad: this.selectedEntityType,
+      accion: this.selectedAction,
+      origen: this.selectedSource,
+      desde: this.dateFrom,
+      hasta: this.dateTo,
+    });
   }
 
   /** Determina el tipo de entidad afectada por el log */

@@ -2,13 +2,16 @@ package unpsjb.labprog.backend.presenter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +41,8 @@ public class AuditLogPresenter {
         try {
             List<AuditLog> auditHistory = auditLogService.getTurnoAuditHistory(turnoId);
             return Response.ok(auditHistory, "Historial de auditoría del turno recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            return prohibido(e);
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar el historial de auditoría: " + e.getMessage());
         }
@@ -66,6 +71,8 @@ public class AuditLogPresenter {
                     "numberOfElements", auditHistory.getNumberOfElements());
 
             return Response.ok(response, "Historial de auditoría paginado recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            return prohibido(e);
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar el historial paginado: " + e.getMessage());
         }
@@ -378,41 +385,63 @@ public class AuditLogPresenter {
             @RequestParam(required = false) String entidad,
             @RequestParam(required = false) String usuario,
             @RequestParam(required = false) String tipoAccion,
+            @RequestParam(required = false) String rol,
+            @RequestParam(required = false) String origen,
+            @RequestParam(required = false) Integer centroId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaDesde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaHasta,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "performedAt,DESC") String sort) {
         try {
-            // Parsear el parámetro sort
+            if (origen != null && !origen.isBlank()
+                    && !origen.equalsIgnoreCase("SISTEMA") && !origen.equalsIgnoreCase("USUARIO")) {
+                return Response.error(null, "El origen tiene que ser SISTEMA o USUARIO");
+            }
             String[] sortParts = sort.split(",");
             String sortBy = sortParts[0];
             String sortDir = sortParts.length > 1 ? sortParts[1] : "DESC";
 
-            // Validar parámetros de ordenamiento
             if (!isValidSortBy(sortBy)) {
-                return Response.error(null, "Parámetro sortBy inválido. Valores permitidos: performedAt, performedBy, action, entityType");
+                return Response.error(null, "Parámetro sortBy inválido. Valores permitidos: performedAt, performedBy, action, entityType, source, actorRole");
             }
             if (!sortDir.equalsIgnoreCase("ASC") && !sortDir.equalsIgnoreCase("DESC")) {
                 return Response.error(null, "Parámetro sortDir debe ser 'ASC' o 'DESC'");
             }
 
-            Page<AuditLog> pageResult = auditLogService.findByFilters(entidad, usuario, tipoAccion, fechaDesde, fechaHasta, page, size, sortBy, sortDir);
+            Page<AuditLog> pageResult = auditLogService.findByFilters(
+                    entidad, usuario, tipoAccion, rol, origen, centroId,
+                    fechaDesde, fechaHasta, page, size, sortBy, sortDir);
 
-            Map<String, Object> response = Map.of(
-                "content", pageResult.getContent(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements(),
-                "currentPage", pageResult.getNumber(),
-                "pageSize", pageResult.getSize(),
-                "sortBy", sortBy,
-                "sortDir", sortDir
-            );
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("content", pageResult.getContent());
+            response.put("totalPages", pageResult.getTotalPages());
+            response.put("totalElements", pageResult.getTotalElements());
+            response.put("currentPage", pageResult.getNumber());
+            response.put("pageSize", pageResult.getSize());
+            response.put("size", pageResult.getSize());
+            response.put("numberOfElements", pageResult.getNumberOfElements());
+            response.put("first", pageResult.isFirst());
+            response.put("last", pageResult.isLast());
+            response.put("sortBy", sortBy);
+            response.put("sortDir", sortDir);
 
             return Response.ok(response, "Historial de auditoría recuperado correctamente");
+        } catch (AccessDeniedException e) {
+            return prohibido(e);
         } catch (Exception e) {
             return Response.error(null, "Error al recuperar el historial de auditoría: " + e.getMessage());
         }
+    }
+
+    private ResponseEntity<Object> prohibido(AccessDeniedException e) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status_code", 403);
+        body.put("status_text", e.getMessage() == null || e.getMessage().isBlank()
+                ? "No tenés permiso para esta operación"
+                : e.getMessage());
+        body.put("data", null);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
     /**
@@ -467,7 +496,9 @@ public class AuditLogPresenter {
             sortBy.equals("performedAt") ||
             sortBy.equals("performedBy") ||
             sortBy.equals("action") ||
-            sortBy.equals("entityType")
+            sortBy.equals("entityType") ||
+            sortBy.equals("source") ||
+            sortBy.equals("actorRole")
         );
     }
 }

@@ -93,6 +93,9 @@ export interface AuditLog {
     reason?: string;
     performedBy: string;
     performedAt: string;
+    actorRole?: string;
+    source?: string;
+    centroAtencionId?: number;
     oldValues?: any;
     newValues?: any;
 }
@@ -105,6 +108,8 @@ export interface AuditFilter {
     action?: string;
     user?: string;
     entityType?: string;
+    role?: string;
+    source?: string;
     dateFrom?: string;
     dateTo?: string;
     turnoId?: number;

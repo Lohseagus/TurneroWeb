@@ -481,7 +481,7 @@ export class OperadorDashboardComponent implements OnInit {
   }
 
   goToReportes() {
-    this.router.navigate(["/turnos/audit-dashboard"]);
+    this.router.navigate(["/lista-espera-estadisticas"]);
   }
 
   viewNotifications() {

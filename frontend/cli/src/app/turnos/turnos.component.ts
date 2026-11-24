@@ -54,7 +54,7 @@ export class TurnosComponent {
   ) {}
 
   get puedeVerAuditoria(): boolean {
-    return this.userContext.hasRole(Role.ADMINISTRADOR);
+    return this.userContext.hasAnyRole([Role.ADMINISTRADOR, Role.SUPERADMIN]);
   }
 
   irABusquedaAvanzada(): void {

@@ -1628,6 +1628,97 @@
   }
 }
 
+.filtro-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--section-gap);
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.filtro-bar__busqueda {
+  display: flex;
+  flex: 1 1 180px;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: 0 var(--space-sm);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.filtro-bar__busqueda .material-symbols-outlined {
+  color: var(--text-secondary);
+  font-size: 20px;
+}
+
+.filtro-bar__busqueda input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0;
+  color: var(--text-main);
+  background: transparent;
+  border: 0;
+}
+
+.filtro-bar__busqueda input:focus {
+  outline: none;
+}
+
+.filtro-select,
+.filtro-fecha {
+  flex: 0 1 150px;
+  max-width: 100%;
+  padding: 0.5rem 0.65rem;
+  color: var(--text-main);
+  background: var(--color-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.filtro-limpiar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.7rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.filtro-cuenta {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.origen-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--border-radius-full, 999px);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.origen-sistema {
+  color: #6b4f16;
+  background: #f8e7c2;
+}
+
+.origen-usuario {
+  color: #0d4f3c;
+  background: #d7f3e8;
+}
+
 @media (prefers-contrast: high) {
   .stat-card,
   .chart-card,

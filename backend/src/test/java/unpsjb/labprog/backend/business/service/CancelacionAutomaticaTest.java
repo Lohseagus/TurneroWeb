@@ -21,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import unpsjb.labprog.backend.business.repository.AuditLogRepository;
 import unpsjb.labprog.backend.business.repository.TurnoRepository;
 import unpsjb.labprog.backend.model.AuditLog;
+import unpsjb.labprog.backend.model.AuditSource;
 import unpsjb.labprog.backend.model.EstadoTurno;
 import unpsjb.labprog.backend.model.Paciente;
 import unpsjb.labprog.backend.model.Turno;
@@ -71,6 +72,7 @@ class CancelacionAutomaticaTest {
         verify(auditLogRepository).save(captor.capture());
         AuditLog log = captor.getValue();
         assertEquals("SISTEMA", log.getPerformedBy());
+        assertEquals(AuditSource.SISTEMA, log.getSource());
         assertEquals(9, log.getTurno().getId());
         assertEquals("REAGENDADO", log.getEstadoAnterior());
         assertEquals("CANCELADO", log.getEstadoNuevo());

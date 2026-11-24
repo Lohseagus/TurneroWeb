@@ -390,7 +390,21 @@ END $$;
 
 DELETE FROM encuesta_respuesta;
 DELETE FROM encuesta_invitacion;
+-- La app rechaza UPDATE y DELETE de audit_log. Este script es la limpieza de la
+-- población demo: baja el disparador solo para este borrado y lo vuelve a activar.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'audit_log_no_delete') THEN
+    EXECUTE 'ALTER TABLE audit_log DISABLE TRIGGER audit_log_no_delete';
+  END IF;
+END $$;
 DELETE FROM audit_log WHERE entity_type = 'TURNO' OR turno_id IS NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'audit_log_no_delete') THEN
+    EXECUTE 'ALTER TABLE audit_log ENABLE TRIGGER audit_log_no_delete';
+  END IF;
+END $$;
 DELETE FROM notificaciones;
 DELETE FROM deep_link_token;
 DELETE FROM lista_espera;
