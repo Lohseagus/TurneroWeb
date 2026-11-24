@@ -313,7 +313,17 @@ export class InicioSesionComponent implements OnInit {
         
         // Usar TurnoService para asignar el turno (endpoint correcto: POST /turno/asignar)
         this.turnoService.asignarTurno(turnoDTO).subscribe({
-          next: () => {
+          next: (response) => {
+            if (response?.status_code && response.status_code >= 400) {
+              this.modalService.alert(
+                'Error en la Reserva',
+                response.status_text || 'No se pudo reservar el turno.'
+              );
+              localStorage.removeItem('turnoSeleccionadoId');
+              this.router.navigate(['/paciente-dashboard']);
+              this.isLoading = false;
+              return;
+            }
             console.log('✅ Turno reservado automáticamente con éxito');
             this.modalService.alert(
               '¡Reserva Exitosa!',

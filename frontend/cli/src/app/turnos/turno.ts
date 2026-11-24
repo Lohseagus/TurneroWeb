@@ -9,6 +9,7 @@ export interface Turno {
 
     // ⭐ CAMPOS DE ASISTENCIA (ACTUALIZADOS)
     asistio?: boolean;             // Indica si el paciente asistió al turno
+    puedeConfirmar?: boolean;      // true si hoy cae en la ventana de confirmación
 
 
     // Campos de paciente

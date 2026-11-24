@@ -51,6 +51,9 @@ public class TurnoDTO {
 
     private Boolean asistio;
 
+    /** True si hoy cae en la ventana de confirmación de este turno. */
+    private Boolean puedeConfirmar;
+
     // Se completan al cancelar para que la respuesta traiga la marca de tiempo
     private LocalDateTime fechaCancelacion;
     private LocalDateTime updatedAt;

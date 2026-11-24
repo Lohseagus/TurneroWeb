@@ -1220,19 +1220,26 @@ public class AuditLogService {
      */
     @Transactional
     public AuditLog logTurnoCancelledAutomatically(Long turnoId, Long pacienteId, String motivo) {
-        try {
+        return logTurnoCancelledAutomatically(turnoId, pacienteId, motivo, "PROGRAMADO");
+    }
 
-            // Usar el constructor genérico de AuditLog que existe en la entidad
+    /**
+     * La auditoría no tiene una columna de acción de sistema. El actor queda en
+     * performedBy y en newValues ({@code actor=SISTEMA}) hasta el lote de auditoría.
+     */
+    public AuditLog logTurnoCancelledAutomatically(Long turnoId, Long pacienteId, String motivo, String estadoAnterior) {
+        try {
+            String previo = estadoAnterior == null || estadoAnterior.isBlank() ? "PROGRAMADO" : estadoAnterior;
             AuditLog auditLog = new AuditLog(
-                    AuditLog.EntityTypes.TURNO, // entityType
-                    turnoId, // entityId
-                    "CANCELLED_AUTO", // action
-                    "SYSTEM_AUTO_CANCELLATION", // performedBy
-                    "PROGRAMADO", // previousStatus
-                    "CANCELADO", // newStatus
-                    "estado=PROGRAMADO", // oldValues
-                    "estado=CANCELADO, motivo=" + motivo, // newValues
-                    motivo // reason
+                    AuditLog.EntityTypes.TURNO,
+                    turnoId,
+                    "CANCELLED_AUTO",
+                    "SYSTEM_AUTO_CANCELLATION",
+                    previo,
+                    "CANCELADO",
+                    "estado=" + previo,
+                    "estado=CANCELADO, actor=SISTEMA, motivo=" + motivo,
+                    motivo
             );
 
             AuditLog saved = auditLogRepository.save(auditLog);

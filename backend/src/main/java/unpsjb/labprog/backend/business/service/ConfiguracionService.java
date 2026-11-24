@@ -62,6 +62,36 @@ public class ConfiguracionService {
                 });
     }
 
+    /**
+     * Días mínimos de anticipación para el centro del turno. Si ese centro tiene
+     * override, gana. Si no, vale la global (o 2).
+     */
+    public int getDiasMinConfirmacion(Integer centroId) {
+        if (centroId != null) {
+            Optional<Configuracion> override = configuracionRepository.findAll().stream()
+                    .filter(c -> "turnos.dias_min_confirmacion".equals(c.getClave())
+                            && c.getCentroAtencion() != null
+                            && centroId.equals(c.getCentroAtencion().getId())
+                            && c.getValorInt() != null)
+                    .findFirst();
+            if (override.isPresent()) {
+                return override.get().getValorInt();
+            }
+        }
+        return getDiasMinConfirmacion();
+    }
+
+    /** El mayor dias_min entre la global y los overrides de centro. Lo usan los jobs. */
+    public int getMayorDiasMinConfirmacion() {
+        int mayor = getDiasMinConfirmacion();
+        for (Configuracion config : configuracionRepository.findAll()) {
+            if ("turnos.dias_min_confirmacion".equals(config.getClave()) && config.getValorInt() != null) {
+                mayor = Math.max(mayor, config.getValorInt());
+            }
+        }
+        return mayor;
+    }
+
     public int getDiasMaxNoConfirm() {
         return findConfiguracionConOverride("turnos.dias_max_no_confirm")
                 .map(Configuracion::getValorInt)

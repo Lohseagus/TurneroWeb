@@ -286,15 +286,17 @@ export class PacienteReagendarTurnoComponent implements OnInit {
       horaFin: this.slotSeleccionado.horaFin,
       staffMedicoId: this.slotSeleccionado.staffMedicoId,
       consultorioId: this.slotSeleccionado.consultorioId,
-      motivo: this.motivoReagendamiento.trim(),
-      usuario: `PACIENTE_${this.currentTurno.pacienteId}`
+      motivo: this.motivoReagendamiento.trim()
     };
 
     // Usar el endpoint específico de reagendamiento que modifica el turno existente
     this.turnoService.reagendar(this.turnoId, reagendamientoData).subscribe({
       next: (response) => {
-        console.log('Turno reagendado exitosamente:', response);
         this.isProcessing = false;
+        if (response?.status_code && response.status_code >= 400) {
+          this.errorMessage = response.status_text || 'No se pudo reagendar el turno.';
+          return;
+        }
         
         // Cerrar modal
         this.mostrarModal = false;

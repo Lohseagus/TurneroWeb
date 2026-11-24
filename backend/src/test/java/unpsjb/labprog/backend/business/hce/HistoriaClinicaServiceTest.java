@@ -3,11 +3,15 @@ package unpsjb.labprog.backend.business.hce;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -35,10 +39,13 @@ import unpsjb.labprog.backend.business.repository.VacunaRepository;
 import unpsjb.labprog.backend.dto.hce.ConsultaWriteDTO;
 import unpsjb.labprog.backend.dto.hce.EnmiendaDTO;
 import unpsjb.labprog.backend.dto.hce.EnmiendaWriteDTO;
+import unpsjb.labprog.backend.business.service.TurnoService;
 import unpsjb.labprog.backend.model.CentroAtencion;
+import unpsjb.labprog.backend.model.EstadoTurno;
 import unpsjb.labprog.backend.model.Medico;
 import unpsjb.labprog.backend.model.Paciente;
 import unpsjb.labprog.backend.model.Role;
+import unpsjb.labprog.backend.model.Turno;
 import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.model.hce.Consulta;
 import unpsjb.labprog.backend.model.hce.Enmienda;
@@ -64,6 +71,7 @@ class HistoriaClinicaServiceTest {
     @Mock private AdjuntoClinicoRepository adjuntoRepository;
     @Mock private RecetaRepository recetaRepository;
     @Mock private OrdenEstudioRepository ordenRepository;
+    @Mock private TurnoService turnoService;
 
     @InjectMocks
     private HistoriaClinicaService service;
@@ -135,6 +143,51 @@ class HistoriaClinicaServiceTest {
         dto.setTallaCm(170.0);
 
         assertEquals(24.22, service.actualizar(4L, dto).getImc(), 0.001);
+    }
+
+    @Test
+    void cerrarLaConsultaDejaCompletoElTurnoConfirmado() {
+        Consulta consulta = consultaConTurno(8L, EstadoTurno.CONFIRMADO, true);
+        prepararCierre(consulta);
+        assertEquals("CERRADA", service.cerrar(8L).getEstado());
+        verify(turnoService).completarTurno(15, "medico@turnero.com");
+    }
+
+    @Test
+    void cerrarLaConsultaCompletaAlPacientePresente() {
+        Consulta consulta = consultaConTurno(9L, EstadoTurno.PROGRAMADO, true);
+        prepararCierre(consulta);
+        service.cerrar(9L);
+        assertEquals(EstadoTurno.CONFIRMADO, consulta.getTurno().getEstado());
+        verify(turnoService).completarTurno(eq(15), eq("medico@turnero.com"));
+    }
+
+    @Test
+    void cerrarLaConsultaNoCompletaUnAusente() {
+        Consulta consulta = consultaConTurno(10L, EstadoTurno.AUSENTE, false);
+        prepararCierre(consulta);
+        service.cerrar(10L);
+        verify(turnoService, never()).completarTurno(anyInt(), anyString());
+    }
+
+    private void prepararCierre(Consulta consulta) {
+        when(consultaRepository.findById(consulta.getId())).thenReturn(Optional.of(consulta));
+        when(consultaRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(diagnosticoRepository.findByConsulta_IdOrderByIdAsc(consulta.getId())).thenReturn(List.of());
+        when(enmiendaRepository.findByConsulta_IdOrderByCreadaEnAsc(consulta.getId())).thenReturn(List.of());
+        User user = usuarioMedico();
+        when(guard.usuarioActual()).thenReturn(user);
+        when(guard.exigirMedico(user)).thenReturn(consulta.getMedico());
+    }
+
+    private Consulta consultaConTurno(Long id, EstadoTurno estadoTurno, boolean presente) {
+        Consulta consulta = consulta(id, EstadoConsulta.BORRADOR);
+        Turno turno = new Turno();
+        turno.setId(15);
+        turno.setEstado(estadoTurno);
+        turno.setAsistio(presente);
+        consulta.setTurno(turno);
+        return consulta;
     }
 
     private Consulta consulta(Long id, EstadoConsulta estado) {

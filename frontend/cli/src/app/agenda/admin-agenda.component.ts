@@ -734,7 +734,12 @@ export class AdminAgendaComponent implements OnInit, OnDestroy {
     // console.log('Enviando turno DTO (admin):', turnoDTO);
 
     this.turnoService.asignarTurno(turnoDTO).subscribe({
-      next: () => {
+      next: (response) => {
+        if (response?.status_code && response.status_code >= 400) {
+          this.toastService.error(response.status_text || 'No se pudo asignar el turno.');
+          this.isAssigning = false;
+          return;
+        }
         this.toastService.success('Turno asignado correctamente');
         
         // Actualizar inmediatamente el slot en el array local

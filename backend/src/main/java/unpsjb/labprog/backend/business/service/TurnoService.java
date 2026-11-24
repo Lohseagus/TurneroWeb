@@ -46,6 +46,7 @@ import unpsjb.labprog.backend.model.Turno;
 import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.business.repository.OperadorRepository;
 import unpsjb.labprog.backend.business.repository.UserRepository;
+import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
 import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.exception.TenantAccessException;
@@ -104,6 +105,9 @@ public class TurnoService {
     @Autowired
     private ConfiguracionExcepcionalService configuracionExcepcionalService;
 
+    @Autowired
+    private ReglasReservaTurno reglasReserva;
+
     // === VALIDACIONES DE TRANSICIÓN DE ESTADO ===
 
     // Parámetro de configuración: días máximos para confirmar un turno antes de la
@@ -115,21 +119,31 @@ public class TurnoService {
     private static final Map<EstadoTurno, List<EstadoTurno>> VALID_TRANSITIONS = new HashMap<>();
 
     static {
-        // PROGRAMADO puede ir a: CONFIRMADO, CANCELADO, REAGENDADO
+        // Máquina de estados. AUSENTE solo se alcanza marcando la asistencia
+        // (PUT /asistencia); PUT /estado no lo acepta.
+        // PROGRAMADO → CONFIRMADO, CANCELADO, REAGENDADO, AUSENTE
         VALID_TRANSITIONS.put(EstadoTurno.PROGRAMADO,
+                Arrays.asList(EstadoTurno.CONFIRMADO, EstadoTurno.CANCELADO, EstadoTurno.REAGENDADO,
+                        EstadoTurno.AUSENTE));
+
+        // CONFIRMADO → COMPLETO, CANCELADO, REAGENDADO, AUSENTE
+        VALID_TRANSITIONS.put(EstadoTurno.CONFIRMADO,
+                Arrays.asList(EstadoTurno.COMPLETO, EstadoTurno.CANCELADO, EstadoTurno.REAGENDADO,
+                        EstadoTurno.AUSENTE));
+
+        // REAGENDADO → CONFIRMADO, CANCELADO (se puede volver a mover: sigue siendo REAGENDADO)
+        VALID_TRANSITIONS.put(EstadoTurno.REAGENDADO,
                 Arrays.asList(EstadoTurno.CONFIRMADO, EstadoTurno.CANCELADO, EstadoTurno.REAGENDADO));
 
-        // CONFIRMADO puede ir a: COMPLETO, CANCELADO, REAGENDADO
-        VALID_TRANSITIONS.put(EstadoTurno.CONFIRMADO,
-                Arrays.asList(EstadoTurno.COMPLETO, EstadoTurno.CANCELADO, EstadoTurno.REAGENDADO));
-
-        // REAGENDADO puede ir a: CONFIRMADO, CANCELADO
-        VALID_TRANSITIONS.put(EstadoTurno.REAGENDADO,
-                Arrays.asList(EstadoTurno.CONFIRMADO, EstadoTurno.CANCELADO));
-
-        // CANCELADO y COMPLETO son estados finales (no pueden cambiar)
+        // AUSENTE, CANCELADO y COMPLETO son finales
+        VALID_TRANSITIONS.put(EstadoTurno.AUSENTE, Arrays.asList());
         VALID_TRANSITIONS.put(EstadoTurno.CANCELADO, Arrays.asList());
         VALID_TRANSITIONS.put(EstadoTurno.COMPLETO, Arrays.asList());
+    }
+
+    /** Transiciones legales desde un estado. La usa el test de la máquina. */
+    public static List<EstadoTurno> transicionesPermitidas(EstadoTurno desde) {
+        return List.copyOf(VALID_TRANSITIONS.getOrDefault(desde, List.of()));
     }
 
     // ===== MÉTODOS DE CONSULTA CON MULTI-TENENCIA =====
@@ -192,6 +206,9 @@ public class TurnoService {
     @Transactional
     public TurnoDTO save(TurnoDTO dto, String performedBy, String currentUserEmail) {
         try {
+            if ((dto.getId() == null || dto.getId() == 0) && reglasReserva != null) {
+                reglasReserva.aplicarIdentidadDeReserva(dto);
+            }
             if (dto.getId() != null && dto.getId() != 0) {
                 repository.findById(dto.getId()).ifPresent(this::validarAccesoCentroTurno);
             }
@@ -236,13 +253,30 @@ public class TurnoService {
             // tiene que quedar en un centro de quien lo guarda.
             validarAccesoCentroTurno(turno);
 
-            // Validar solapamiento: si el DTO indica permitirSolapamiento==true, entonces
-            // se permitirá crear el turno aun cuando exista conflicto (sobreturno confirmado
-            // por el usuario). En caso contrario, se retornará un CONFLICT con detalles.
-            boolean permitir = dto.getPermitirSolapamiento() != null && dto.getPermitirSolapamiento();
-            validarSolapamiento(turno, permitir);
-
+            // El paciente no manda el estado: el alta arranca PROGRAMADO y, si cae en la
+            // zona cerrada, pasa a CONFIRMADO más abajo.
             boolean isNewTurno = dto.getId() == null || dto.getId() == 0;
+            if (isNewTurno && esPacienteAutenticado()) {
+                turno.setEstado(EstadoTurno.PROGRAMADO);
+            }
+            boolean cambiaHorario = false;
+            if (!isNewTurno && turno.getId() != null) {
+                cambiaHorario = repository.findById(turno.getId())
+                        .map(previo -> horarioDistinto(previo, turno))
+                        .orElse(false);
+            }
+            boolean permitir = Boolean.TRUE.equals(dto.getPermitirSolapamiento())
+                    && reglasReserva != null && reglasReserva.puedeRegistrarSobreturno();
+            LocalDateTime ahora = LocalDateTime.now(ReglasReservaTurno.ZONA);
+            if (reglasReserva != null && (isNewTurno || cambiaHorario)) {
+                reglasReserva.validarReserva(turno, permitir, ahora);
+                if ((turno.getEstado() == null || turno.getEstado() == EstadoTurno.PROGRAMADO)
+                        && reglasReserva.naceConfirmado(turno, ahora)) {
+                    turno.setEstado(EstadoTurno.CONFIRMADO);
+                }
+            } else {
+                validarSolapamiento(turno, permitir);
+            }
             if (isNewTurno) {
                 Integer centroSuscripcionId = dto.getCentroId();
                 if (centroSuscripcionId == null && dto.getStaffMedicoId() != null) {
@@ -467,6 +501,17 @@ public class TurnoService {
     @Transactional
     public TurnoDTO cancelarTurno(Integer id, String motivo, String performedBy,
             boolean reasignarDesdeListaEspera, String tipoDeepLink) {
+        return cancelarTurno(id, motivo, performedBy, reasignarDesdeListaEspera, tipoDeepLink, false);
+    }
+
+    /**
+     * @param cancelacionAutomatica el job no aplica el plazo del paciente (no se
+     *        cancela el mismo día a mano). Sigue ofreciendo el hueco a la lista
+     *        de espera cuando {@code reasignarDesdeListaEspera} es true.
+     */
+    @Transactional
+    public TurnoDTO cancelarTurno(Integer id, String motivo, String performedBy,
+            boolean reasignarDesdeListaEspera, String tipoDeepLink, boolean cancelacionAutomatica) {
         Optional<Turno> turnoOpt = repository.findById(id);
         if (turnoOpt.isEmpty()) {
             throw new IllegalArgumentException("Turno no encontrado con ID: " + id);
@@ -487,7 +532,7 @@ public class TurnoService {
         validarPermisosCancelacion(performedBy);
 
         // Validaciones de negocio para cancelación
-        validarCancelacion(turno);
+        validarCancelacion(turno, cancelacionAutomatica);
 
         // Validar que se proporcione un motivo válido para la cancelación
         if (!isValidCancellationReason(motivo)) {
@@ -637,9 +682,8 @@ public class TurnoService {
         // Validaciones de negocio para confirmación
         validarConfirmacion(turno);
 
-        // Validación de ventana de confirmación
-        String rol = determinarRolUsuario(performedBy);
-        validarVentanaConfirmacion(turno, rol);
+        // Ventana: entre dias_max_no_confirm y dias_min_confirmacion antes del turno.
+        validarVentanaConfirmacion(turno, performedBy);
 
         turno.setEstado(EstadoTurno.CONFIRMADO);
         Turno savedTurno = repository.save(turno);
@@ -662,60 +706,36 @@ public class TurnoService {
         return toDTO(savedTurno);
     }
 
-    // Método simplificado para validar confirmación de turno
-    // Solo verifica que el turno no sea para una fecha pasada
-    // La cancelación automática de turnos no confirmados sigue funcionando via @Scheduled
     private void validarVentanaConfirmacion(Turno turno, String rol) {
-        ZoneId zoneId = ZoneId.of("America/Argentina/Buenos_Aires");
-        LocalDate hoy = LocalDate.now(zoneId);
-        
-        // Solo validar que el turno no sea para una fecha pasada
-        if (turno.getFecha().isBefore(hoy)) {
-            throw new IllegalArgumentException(
-                    "No se puede confirmar un turno para una fecha pasada");
+        if (reglasReserva == null) {
+            return;
         }
-        
-        //  Los turnos pueden confirmarse en cualquier momento antes de la fecha del turno
-        //  La cancelación automática de turnos no confirmados sigue activa (ver método cancelarTurnosNoConfirmadosAutomaticamente)
-        System.out.println("✅ Validación de confirmación: Turno para " + turno.getFecha() + " puede confirmarse (hoy: " + hoy + ", rol: " + rol + ")");
+        reglasReserva.validarVentanaConfirmacion(turno, LocalDateTime.now(ReglasReservaTurno.ZONA));
+        System.out.println("✅ Validación de confirmación: turno " + turno.getId() + " dentro de la ventana (rol: " + rol + ")");
     }
 
     // Cancelación automática actualizada
 
-    @Scheduled(cron = "0 0 0 * * ?", zone = "America/Argentina/Buenos_Aires") // ✅ CORREGIDO: especificar zona
+    @Scheduled(cron = "0 0 0 * * ?", zone = "America/Argentina/Buenos_Aires")
     @Transactional
     public void cancelarTurnosNoConfirmadosAutomaticamente() {
         if (!configuracionService.isHabilitadaCancelacionAutomatica()) {
             System.out.println("Cancelación automática deshabilitada por configuración");
             return;
         }
-        ZoneId zoneId = ZoneId.of("America/Argentina/Buenos_Aires");
-        LocalDate hoy = LocalDate.now(zoneId);  // ✅ CORREGIDO: usar zona horaria de Argentina
-        int diasMin = configuracionService.getDiasMinConfirmacion();
-        LocalDate fechaLimite = hoy.plusDays(diasMin);
-
-        System.out.println(String.format("Ejecutando cancelación automática para turnos del: %s (límite: %d días)",
-                fechaLimite, diasMin));
-
-        List<Turno> turnosACancelar = repository.findByEstadoInAndFecha(
-                Arrays.asList(EstadoTurno.PROGRAMADO, EstadoTurno.REAGENDADO),
-                fechaLimite);
-
-        System.out.println("Turnos a evaluar para cancelación: " +
-                turnosACancelar.size());
+        // Misma ventana que el job horario: PROGRAMADO y REAGENDADO adentro de la zona
+        // cerrada. Este camino sí ofrece el hueco a la lista de espera.
+        LocalDateTime ahora = LocalDateTime.now(ReglasReservaTurno.ZONA);
+        List<Turno> turnosACancelar = candidatosCancelacionAutomatica(ahora);
+        System.out.println("Turnos a evaluar para cancelación de medianoche: " + turnosACancelar.size());
 
         for (Turno turno : turnosACancelar) {
             try {
-                String motivo = String.format(
-                        "Cancelado automáticamente por falta de confirmación. " +
-                                "El turno debía confirmarse antes de %d días de anticipación",
-                        diasMin);
-
-                cancelarTurno(turno.getId(), motivo, "SYSTEM_AUTO");
-
-                System.out.println("Turno ID " + turno.getId() +
-                        " cancelado automáticamente");
-
+                int horas = reglasReserva.horasZonaCerrada(ReglasReservaTurno.centroId(turno));
+                String motivo = "Cancelado automáticamente por falta de confirmación. "
+                        + "El turno entró en las " + horas + " horas previas sin confirmarse.";
+                cancelarTurno(turno.getId(), motivo, "SISTEMA", true, "CANCELACION", true);
+                System.out.println("Turno ID " + turno.getId() + " cancelado automáticamente");
             } catch (Exception e) {
                 System.err.println("Error al cancelar automáticamente turno ID " +
                         turno.getId() + ": " + e.getMessage());
@@ -723,6 +743,20 @@ public class TurnoService {
         }
 
         System.out.println("Cancelación automática completada");
+    }
+
+    /** Candidatos de los dos jobs. El predicado fino está en ReglasReservaTurno. */
+    public List<Turno> candidatosCancelacionAutomatica(LocalDateTime ahora) {
+        if (reglasReserva == null) {
+            return List.of();
+        }
+        LocalDateTime limite = ahora.plusHours(reglasReserva.horasParaBuscarCandidatos());
+        List<Turno> candidatos = new java.util.ArrayList<>();
+        candidatos.addAll(repository.findTurnosParaCancelacionAutomatica(EstadoTurno.PROGRAMADO, ahora, limite));
+        candidatos.addAll(repository.findTurnosParaCancelacionAutomatica(EstadoTurno.REAGENDADO, ahora, limite));
+        return candidatos.stream()
+                .filter(turno -> reglasReserva.correspondeCancelacionAutomatica(turno, ahora))
+                .collect(Collectors.toList());
     }
 
     // Nota: Los recordatorios automáticos ahora son manejados por
@@ -777,12 +811,42 @@ public class TurnoService {
             throw new IllegalArgumentException(
                     "El motivo de reagendamiento es obligatorio y debe tener al menos 5 caracteres");
         }
+        if (nuevosDatos.getFecha() == null || nuevosDatos.getHoraInicio() == null || nuevosDatos.getHoraFin() == null) {
+            throw new IllegalArgumentException("Indicá la fecha y el horario del nuevo turno.");
+        }
 
-        // Actualizar datos del turno
+        if (nuevosDatos.getStaffMedicoId() != null) {
+            StaffMedico staff = staffMedicoRepository.findById(nuevosDatos.getStaffMedicoId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Médico no encontrado con ID: " + nuevosDatos.getStaffMedicoId()));
+            turno.setStaffMedico(staff);
+            turno.setMedico(staff.getMedico());
+            turno.setEspecialidad(staff.getEspecialidad());
+            turno.setCentroAtencion(staff.getCentroAtencion());
+        }
+        if (nuevosDatos.getConsultorioId() != null) {
+            Consultorio consultorio = consultorioRepository.findById(nuevosDatos.getConsultorioId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Consultorio no encontrado con ID: " + nuevosDatos.getConsultorioId()));
+            turno.setConsultorio(consultorio);
+        }
+
+        // Actualizar datos del turno y aplicar las mismas reglas que una reserva.
         turno.setFecha(nuevosDatos.getFecha());
         turno.setHoraInicio(nuevosDatos.getHoraInicio());
         turno.setHoraFin(nuevosDatos.getHoraFin());
-        turno.setEstado(EstadoTurno.REAGENDADO);
+        validarAccesoCentroTurno(turno);
+        LocalDateTime ahora = LocalDateTime.now(ReglasReservaTurno.ZONA);
+        boolean sobreturno = Boolean.TRUE.equals(nuevosDatos.getPermitirSolapamiento())
+                && reglasReserva != null && reglasReserva.puedeRegistrarSobreturno();
+        if (reglasReserva != null) {
+            reglasReserva.validarReserva(turno, sobreturno, ahora);
+        }
+        if (reglasReserva != null && reglasReserva.naceConfirmado(turno, ahora)) {
+            turno.setEstado(EstadoTurno.CONFIRMADO);
+        } else {
+            turno.setEstado(EstadoTurno.REAGENDADO);
+        }
 
         Turno savedTurno = repository.save(turno);
 
@@ -836,12 +900,18 @@ public class TurnoService {
 
         turno.setAsistio(asistio);
 
+        EstadoTurno destino = turno.getEstado();
         if (asistio && turno.getEstado() == EstadoTurno.PROGRAMADO) {
-            turno.setEstado(EstadoTurno.CONFIRMADO);
-        } else if (!asistio && (turno.getEstado() == EstadoTurno.CONFIRMADO ||
-                turno.getEstado() == EstadoTurno.PROGRAMADO)) {
-            turno.setEstado(EstadoTurno.AUSENTE);
+            destino = EstadoTurno.CONFIRMADO;
+        } else if (!asistio && (turno.getEstado() == EstadoTurno.CONFIRMADO
+                || turno.getEstado() == EstadoTurno.PROGRAMADO)) {
+            destino = EstadoTurno.AUSENTE;
         }
+        if (destino != turno.getEstado() && !isValidStateTransition(turno.getEstado(), destino)) {
+            throw new IllegalStateException(
+                    "Transición de estado inválida de " + turno.getEstado() + " a " + destino);
+        }
+        turno.setEstado(destino);
 
         // Guardar cambios
         Turno savedTurno = repository.save(turno);
@@ -897,6 +967,10 @@ public class TurnoService {
         // Si es una cancelación, delegar al método específico que tiene toda la lógica
         if (newState == EstadoTurno.CANCELADO) {
             return cancelarTurno(id, motivo, performedBy);
+        }
+        if (newState == EstadoTurno.AUSENTE) {
+            throw new IllegalStateException(
+                    "La inasistencia se registra marcando la asistencia del paciente.");
         }
 
         Optional<Turno> turnoOpt = repository.findById(id);
@@ -988,6 +1062,7 @@ public class TurnoService {
             case PROGRAMADO:
             case CANCELADO:
             case REAGENDADO:
+            case AUSENTE:
                 auditLogService.logStatusChange(savedTurno, previousStatus.name(), performedBy,
                         motivo != null ? motivo : "Cambio de estado");
                 // Nota: Para reagendamiento completo se debe usar el método reagendarTurno()
@@ -1004,6 +1079,10 @@ public class TurnoService {
 
     // Métodos de validación de reglas de negocio
     private void validarCancelacion(Turno turno) {
+        validarCancelacion(turno, false);
+    }
+
+    private void validarCancelacion(Turno turno, boolean cancelacionAutomatica) {
         // Validar que el turno puede ser modificado
         if (!canTurnoBeModified(turno)) {
             throw new IllegalStateException("No se puede cancelar un turno que ya está cancelado");
@@ -1015,12 +1094,13 @@ public class TurnoService {
                     turno.getEstado() + " a CANCELADO");
         }
 
-        // No se pueden cancelar turnos el mismo día de la cita sin justificación válida
-        // La validación permite cancelar hasta el día anterior (antes de las 00:00 del día de la cita)
-        // Usar zona horaria de Argentina para comparación correcta
-        LocalDate hoy = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires"));
+        // El paciente no cancela el mismo día. El job sí, si el turno todavía no empezó:
+        // eso ya lo filtró la regla compartida de la zona cerrada.
+        if (cancelacionAutomatica) {
+            return;
+        }
+        LocalDate hoy = LocalDate.now(ReglasReservaTurno.ZONA);
         if (!turno.getFecha().isAfter(hoy)) {
-            // El turno es hoy o ya pasó
             throw new IllegalStateException("No se pueden cancelar turnos el mismo día de la cita o turnos pasados");
         }
     }
@@ -1044,8 +1124,9 @@ public class TurnoService {
             throw new IllegalStateException("No se puede reagendar un turno cancelado");
         }
 
-        // Validar transiciones de estado válidas
-        if (!isValidStateTransition(turno.getEstado(), EstadoTurno.REAGENDADO)) {
+        // Un turno ya reagendado se puede volver a mover.
+        if (turno.getEstado() != EstadoTurno.REAGENDADO
+                && !isValidStateTransition(turno.getEstado(), EstadoTurno.REAGENDADO)) {
             throw new IllegalStateException("Transición de estado inválida de " +
                     turno.getEstado() + " a REAGENDADO");
         }
@@ -1083,6 +1164,10 @@ public class TurnoService {
 
         // Nuevo campo de observaciones
         dto.setObservaciones(turno.getObservaciones());
+        dto.setAsistio(turno.getAsistio());
+        if (reglasReserva != null && turno.getFecha() != null && turno.getHoraInicio() != null) {
+            dto.setPuedeConfirmar(reglasReserva.puedeConfirmar(turno, LocalDateTime.now(ReglasReservaTurno.ZONA)));
+        }
 
         // Validar si consultorio no es null antes de acceder a sus propiedades
         if (turno.getConsultorio() != null) {
@@ -1242,7 +1327,22 @@ public class TurnoService {
         }
     }
 
+    private boolean esPacienteAutenticado() {
+        User user = AuditContext.getCurrentUserObject();
+        return user != null && user.getRole() == Role.PACIENTE;
+    }
+
+    private static boolean horarioDistinto(Turno previo, Turno nuevo) {
+        return !java.util.Objects.equals(previo.getFecha(), nuevo.getFecha())
+                || !java.util.Objects.equals(previo.getHoraInicio(), nuevo.getHoraInicio())
+                || !java.util.Objects.equals(previo.getHoraFin(), nuevo.getHoraFin());
+    }
+
     private void validarSolapamiento(Turno turno, boolean permitirSolapamiento) {
+        if (reglasReserva != null) {
+            reglasReserva.validarSolapamientoMedico(turno, permitirSolapamiento);
+            return;
+        }
         // Buscar turnos existentes del mismo médico en la misma fecha
         List<Turno> turnosExistentes = repository.findByFechaAndStaffMedico_Id(
                 turno.getFecha(),

@@ -283,8 +283,7 @@ export class TurnoService {
 
   /** Confirma un turno */
   confirmar(id: number): Observable<DataPackage<Turno>> {
-    const currentUser = this.getCurrentUser();
-    return this.http.put<DataPackage<Turno>>(`${this.url}/${id}/confirmar`, { usuario: currentUser });
+    return this.http.put<DataPackage<Turno>>(`${this.url}/${id}/confirmar`, {});
   }
 
   /** Reagenda un turno */
@@ -604,9 +603,9 @@ export class TurnoService {
     });
   }
 
-  /** Confirma un turno con usuario */
-  confirmarConUsuario(id: number, usuario?: string): Observable<DataPackage<Turno>> {
-    return this.http.put<DataPackage<Turno>>(`${this.url}/${id}/confirmar`, { usuario });
+  /** Confirma un turno. El backend toma la cuenta del token, no el nombre del body. */
+  confirmarConUsuario(id: number, _usuario?: string): Observable<DataPackage<Turno>> {
+    return this.http.put<DataPackage<Turno>>(`${this.url}/${id}/confirmar`, {});
   }
 
   /** Reagenda un turno con motivo y usuario */
