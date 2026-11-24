@@ -60,6 +60,9 @@ public class ListaEsperaService {
     @Autowired
     private TurnoRepository turnoRepository;
 
+    @Autowired
+    private ReglasReservaTurno reglasReserva;
+
     /**
      * Obtiene todas las entradas de la lista de espera con filtrado automático multi-tenencia.
      * - SUPERADMIN: Ve todas las listas de espera globalmente
@@ -537,6 +540,9 @@ public class ListaEsperaService {
 
             // 2. Crear nuevo turno para el paciente (ahora retorna TurnoDTO)
             TurnoDTO nuevoTurnoDTO = crearNuevoTurno(solicitud, turnoDisponible);
+            if (nuevoTurnoDTO == null) {
+                return false;
+            }
 
             // 3. Marcar la solicitud como CUBIERTA
             solicitud.setEstado("CUBIERTA");
@@ -597,11 +603,22 @@ public class ListaEsperaService {
             // Asignar consultorio
             nuevoTurno.setConsultorio(turnoCancelado.getConsultorio());
 
-            // Estado inicial
             nuevoTurno.setEstado(EstadoTurno.PROGRAMADO);
             nuevoTurno.setObservaciones("Reasignado desde lista de espera");
 
-            // Guardar directamente en el repositorio
+            if (reglasReserva != null) {
+                LocalDateTime ahora = LocalDateTime.now(ReglasReservaTurno.ZONA);
+                try {
+                    reglasReserva.validarReserva(nuevoTurno, false, ahora);
+                } catch (RuntimeException e) {
+                    System.err.println("No se reasigna el turno: " + e.getMessage());
+                    return null;
+                }
+                if (reglasReserva.naceConfirmado(nuevoTurno, ahora)) {
+                    nuevoTurno.setEstado(EstadoTurno.CONFIRMADO);
+                }
+            }
+
             Turno turnoGuardado = turnoRepository.save(nuevoTurno);
 
             // Convertir a DTO usando el método privado de conversión

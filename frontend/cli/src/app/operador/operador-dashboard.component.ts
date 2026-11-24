@@ -271,7 +271,8 @@ export class OperadorDashboardComponent implements OnInit {
   }
 
   canConfirm(turno: any): boolean {
-    return turno.status === "programado" || turno.status === "reagendado";
+    const pendiente = turno.status === "programado" || turno.status === "reagendado";
+    return pendiente && turno.puedeConfirmar !== false;
   }
 
   canReschedule(turno: any): boolean {
@@ -361,6 +362,7 @@ export class OperadorDashboardComponent implements OnInit {
       specialty: turno.especialidadStaffMedico,
       location: turno.nombreCentro,
       status: turno.estado?.toLowerCase() || "programado",
+      puedeConfirmar: turno.puedeConfirmar,
     };
   }
 
@@ -381,19 +383,17 @@ export class OperadorDashboardComponent implements OnInit {
     if (confirm(confirmMessage)) {
       this.turnoService.confirmar(turno.id).subscribe({
         next: (response) => {
-          console.log("Turno confirmado exitosamente:", response);
-          // Actualizar el estado localmente
+          if (response?.status_code && response.status_code >= 400) {
+            alert(response.status_text || "No se pudo confirmar el turno.");
+            return;
+          }
           turno.status = "confirmado";
-          // Mostrar mensaje de éxito
           alert("Turno confirmado exitosamente.");
-          // Recargar la lista de turnos para reflejar cambios
           this.cargarTurnos();
         },
         error: (error) => {
-          console.error("Error confirmando el turno:", error);
-          alert(
-            "No se pudo confirmar el turno. Por favor, intenta nuevamente."
-          );
+          const mensaje = error?.error?.status_text || "No se pudo confirmar el turno. Por favor, intenta nuevamente.";
+          alert(mensaje);
         },
       });
     }

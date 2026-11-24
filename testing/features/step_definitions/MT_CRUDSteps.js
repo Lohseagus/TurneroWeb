@@ -983,16 +983,19 @@ Given('existe un turno en el centro {int}', function (centroId) {
   };
   
   const result = POST(ENDPOINTS.TURNOS, turnoData, superadminLogin.accessToken);
-  if (result.statusCode === 200 || result.statusCode === 201) {
-    this.lastCreatedTurno = result.response.data;
-  }
+  assert.ok(result.statusCode === 200 || result.statusCode === 201,
+    `No se pudo crear el turno del centro ${centroId}: ${JSON.stringify(result.response)}`);
+  this.lastCreatedTurno = result.response.data;
 });
 
 When('modifico la hora del turno a {string}', function (nuevaHora) {
   const turnoId = this.lastCreatedTurno?.id || 1;
+  const partes = nuevaHora.split(':').map(Number);
+  const total = (partes[0] || 0) * 60 + (partes[1] || 0) + 20;
+  const horaFin = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}:00`;
   const updateData = {
-    horaInicio: `${nuevaHora}:00`,
-    horaFin: `${nuevaHora.split(':')[0]}:30:00`,
+    horaInicio: `${String(partes[0]).padStart(2, '0')}:${String(partes[1] || 0).padStart(2, '0')}:00`,
+    horaFin,
     consultorioId: this.lastCreatedTurno?.consultorioId || 1,
     staffMedicoId: this.lastCreatedTurno?.staffMedicoId || 1,
     pacienteId: this.lastCreatedTurno?.pacienteId || 1,
@@ -1004,7 +1007,8 @@ When('modifico la hora del turno a {string}', function (nuevaHora) {
 });
 
 Then('la modificación es exitosa', function () {
-  assert.ok(this.statusCode === 200, `Se esperaba 200, recibido: ${this.statusCode}`);
+  assert.ok(this.statusCode === 200,
+    `Se esperaba 200, recibido: ${this.statusCode} ${this.response && this.response.status_text}`);
 });
 
 Then('el turno tiene la nueva hora', function () {
@@ -1450,26 +1454,26 @@ Given('existe un turno programado para hoy en el centro {int}', function (centro
   let diasHastaDisponible = diaNum - diaActual;
   if (diasHastaDisponible <= 0) diasHastaDisponible += 7;
   
-  const fechaDisponible = new Date(hoy);
-  fechaDisponible.setDate(hoy.getDate() + diasHastaDisponible);
-  const fecha = `${fechaDisponible.getFullYear()}-${String(fechaDisponible.getMonth() + 1).padStart(2, '0')}-${String(fechaDisponible.getDate()).padStart(2, '0')}`;
-  
-  const minutos = 8 * 60 + (turnoSlot % 8) * 20;
-  turnoSlot += 1;
   const aHora = (total) => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}:00`;
-  const turnoData = {
-    pacienteId: 1,
-    consultorioId: consultorio.id,
-    staffMedicoId: staffMedico.id,
-    fecha: fecha,
-    horaInicio: aHora(minutos),
-    horaFin: aHora(minutos + 20)
-  };
-  
-  const result = POST(ENDPOINTS.TURNOS, turnoData, superadminLogin.accessToken);
-  if (result.statusCode === 200 || result.statusCode === 201) {
-    this.lastCreatedTurno = result.response.data;
+  let result = null;
+  for (let intento = 0; intento < 16 && !(result && (result.statusCode === 200 || result.statusCode === 201)); intento += 1) {
+    const minutos = 8 * 60 + (intento % 8) * 30;
+    const semanas = Math.floor(intento / 8) + 1;
+    const dia = new Date(hoy);
+    dia.setDate(hoy.getDate() + diasHastaDisponible + semanas * 7);
+    const fechaIntento = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
+    result = POST(ENDPOINTS.TURNOS, {
+      pacienteId: 1,
+      consultorioId: consultorio.id,
+      staffMedicoId: staffMedico.id,
+      fecha: fechaIntento,
+      horaInicio: aHora(minutos),
+      horaFin: aHora(minutos + 30)
+    }, superadminLogin.accessToken);
   }
+  assert.ok(result && (result.statusCode === 200 || result.statusCode === 201),
+    `No se pudo crear el turno de hoy: ${JSON.stringify(result && result.response)}`);
+  this.lastCreatedTurno = result.response.data;
 });
 
 Then('el turno cambia a estado CONFIRMADO', function () {

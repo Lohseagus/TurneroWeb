@@ -1141,7 +1141,12 @@ export class PacienteAgendaComponent implements OnInit, OnDestroy {
     };
 
     this.turnoService.asignarTurno(turnoDTO).subscribe({
-      next: () => {
+      next: (response) => {
+        if (response?.status_code && response.status_code >= 400) {
+          this.modalService.alert("Error al Reservar", response.status_text || "No se pudo reservar el turno.");
+          this.isBooking = false;
+          return;
+        }
         this.modalService.alert("¡Reserva Exitosa!", "¡Turno reservado exitosamente!");
         this.actualizarSlotReservado(this.slotSeleccionado!.id);
         this.closeBookingModal();

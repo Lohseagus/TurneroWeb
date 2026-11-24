@@ -35,6 +35,12 @@ public class TurnoAutomationService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private TurnoService turnoService;
+
+    @Autowired
+    private ReglasReservaTurno reglasReserva;
+
     @Value("${turnos.auto-cancel.enabled:true}")
     private Boolean autoCancelEnabled;
     
@@ -62,21 +68,15 @@ public class TurnoAutomationService {
         try {
             logger.info("🔄 Iniciando proceso de cancelación automática de turnos...");
             
-            // Obtener fecha/hora actual en zona horaria de Argentina (UTC-3)
+            // Misma regla que el job de medianoche (zona cerrada por centro, PROGRAMADO y REAGENDADO).
+            // No ofrece el hueco a la lista de espera: eso queda para el lote de lista de espera.
+            // El de medianoche sí llama a cancelarTurno, que reasigna.
             ZonedDateTime ahoraArgentina = ZonedDateTime.now(ARGENTINA_ZONE);
             LocalDateTime ahora = ahoraArgentina.toLocalDateTime();
-            
-            // Calcular fecha límite: ahora + horas de anticipación configuradas
-            LocalDateTime limiteConfirmacion = ahora.plusHours(horasAnticipacion);
-            logger.info("📅 Fecha/hora actual (Argentina UTC-3): {} | Límite de confirmación: {} ({} horas)", 
-                       ahora, limiteConfirmacion, horasAnticipacion);
-            
-            // Buscar turnos PROGRAMADOS cuya fecha/hora sea dentro del límite y no hayan sido confirmados
-            List<Turno> turnosACancelar = turnoRepository.findTurnosParaCancelacionAutomatica(
-                EstadoTurno.PROGRAMADO,
-                ahora,
-                limiteConfirmacion
-            );
+            int horas = reglasReserva != null ? reglasReserva.horasParaBuscarCandidatos() : horasAnticipacion;
+            logger.info("📅 Fecha/hora actual (Argentina UTC-3): {} | Ventana compartida: {} horas", ahora, horas);
+
+            List<Turno> turnosACancelar = turnoService.candidatosCancelacionAutomatica(ahora);
             
             if (turnosACancelar.isEmpty()) {
                 logger.info("✅ No hay turnos para cancelar automáticamente");
@@ -119,18 +119,18 @@ public class TurnoAutomationService {
             turno.getHoraInicio()
         );
 
-        // Cambiar estado a CANCELADO
+        String estadoPrevio = turno.getEstado() == null ? "PROGRAMADO" : turno.getEstado().name();
+        int horas = reglasReserva != null
+                ? reglasReserva.horasZonaCerrada(ReglasReservaTurno.centroId(turno))
+                : horasAnticipacion;
         turno.setEstado(EstadoTurno.CANCELADO);
-        // No existe observaciones ni fechaModificacion en Turno, si se requiere guardar motivo, hacerlo en auditoría
 
-        // Guardar cambios
         turnoRepository.save(turno);
-
-        // Registrar en auditoría
         auditLogService.logTurnoCancelledAutomatically(
             turno.getId() != null ? turno.getId().longValue() : null,
             turno.getPaciente() != null && turno.getPaciente().getId() != null ? turno.getPaciente().getId().longValue() : null,
-            String.format("Cancelación automática por falta de confirmación %d horas antes", horasAnticipacion)
+            String.format("Cancelación automática por falta de confirmación dentro de las %d horas previas", horas),
+            estadoPrevio
         );
 
         logger.debug("✅ Turno ID {} cancelado y registrado en auditoría", turno.getId());
@@ -205,12 +205,7 @@ public class TurnoAutomationService {
         // Usar zona horaria de Argentina
         ZonedDateTime ahoraArgentina = ZonedDateTime.now(ARGENTINA_ZONE);
         LocalDateTime ahora = ahoraArgentina.toLocalDateTime();
-        LocalDateTime limiteConfirmacion = ahora.plusHours(horasAnticipacion);
-        return turnoRepository.countTurnosParaCancelacionAutomatica(
-            EstadoTurno.PROGRAMADO,
-            ahora,
-            limiteConfirmacion
-        );
+        return turnoService.candidatosCancelacionAutomatica(ahora).size();
     }
     
     /**

@@ -129,11 +129,21 @@ When('el paciente abre el enlace de esa cancelación', function () {
   this.ausencia.tokenPaciente = validacion.response.data.tokens.accessToken;
 });
 
+function inicioEnArgentina(fecha, hora) {
+  const hhmmss = String(hora).length === 5 ? `${hora}:00` : String(hora);
+  return new Date(`${fecha}T${hhmmss}-03:00`);
+}
+
 When('elige un horario libre del mismo médico', function () {
   const slots = GET(`/agenda/slots-disponibles/${this.ausencia.staffMedicoId}?semanas=4`, this.ausencia.tokenPaciente);
   assert.strictEqual(slots.statusCode, 200, JSON.stringify(slots.response));
-  const libre = (slots.response.data || []).find((slot) => normalizarFecha(slot.fecha) !== this.ausencia.fechaCancelada);
-  assert.ok(libre, `No quedó un horario libre fuera de la ausencia: ${JSON.stringify(slots.response.data)}`);
+  const ahora = new Date();
+  const libre = (slots.response.data || []).find((slot) => {
+    const fecha = normalizarFecha(slot.fecha);
+    return fecha !== this.ausencia.fechaCancelada && inicioEnArgentina(fecha, slot.horaInicio) > ahora;
+  });
+  assert.ok(libre, `No quedó un horario libre en el futuro, fuera de la ausencia: ${JSON.stringify(slots.response.data)}`);
+  this.ausencia.slotNuevo = libre;
   const reserva = POST('/turno/asignar', {
     fecha: libre.fecha,
     horaInicio: libre.horaInicio,
@@ -154,7 +164,9 @@ Then('queda reservado un turno nuevo y el anterior figura cancelado', function (
   const anterior = GET(`${ENDPOINTS.TURNOS}/${this.ausencia.turnoId}`, superadmin.accessToken);
   assert.strictEqual(nuevo.statusCode, 200, JSON.stringify(nuevo.response));
   assert.strictEqual(anterior.statusCode, 200, JSON.stringify(anterior.response));
-  assert.strictEqual(nuevo.response.data.estado, 'PROGRAMADO');
+  const inicio = inicioEnArgentina(normalizarFecha(this.ausencia.slotNuevo.fecha), this.ausencia.slotNuevo.horaInicio);
+  const dentroDe48h = inicio.getTime() - Date.now() <= 48 * 60 * 60 * 1000;
+  assert.strictEqual(nuevo.response.data.estado, dentroDe48h ? 'CONFIRMADO' : 'PROGRAMADO');
   assert.strictEqual(anterior.response.data.estado, 'CANCELADO');
   assert.notStrictEqual(this.ausencia.turnoNuevoId, this.ausencia.turnoId);
 });

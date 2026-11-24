@@ -561,7 +561,8 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   }
 
   canConfirm(turno: any): boolean {
-    return turno.status === "programado" || turno.status === "reagendado";
+    const pendiente = turno.status === "programado" || turno.status === "reagendado";
+    return pendiente && turno.puedeConfirmar !== false;
   }
 
   canReschedule(turno: any): boolean {
@@ -646,6 +647,7 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
       specialty: turno.especialidadStaffMedico,
       location: turno.nombreCentro,
       status: turno.estado?.toLowerCase() || "programado",
+      puedeConfirmar: turno.puedeConfirmar,
     };
   }
 

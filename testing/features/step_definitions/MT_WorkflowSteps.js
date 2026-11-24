@@ -392,19 +392,26 @@ Given('que existe un turno del paciente {string} con el Dr. González en centro 
     }];
     crearEsquemaTurnoCompleto(staffMedico.id, consultorio.id, centroId, horariosEsquema, superadminLogin.accessToken);
     
-    const nuevoTurno = {
-      pacienteId: pacienteId,
-      consultorioId: consultorio.id,
-      staffMedicoId: staffMedico.id,
-      fecha: fechaFutura,
-      horaInicio: '11:00:00',
-      horaFin: '11:30:00'
-    };
-    
-    const result = POST(ENDPOINTS.TURNOS, nuevoTurno, superadminLogin.accessToken);
-    if (result.statusCode === 200 || result.statusCode === 201) {
-      this.savedData.turnoPaciente = result.response.data;
+    const horas = ['11:00:00', '12:00:00', '15:00:00', '16:00:00'];
+    let result = null;
+    for (const horaInicio of horas) {
+      const hora = Number(horaInicio.slice(0, 2));
+      const minuto = Number(horaInicio.slice(3, 5)) + 30;
+      result = POST(ENDPOINTS.TURNOS, {
+        pacienteId,
+        consultorioId: consultorio.id,
+        staffMedicoId: staffMedico.id,
+        fecha: fechaFutura,
+        horaInicio,
+        horaFin: `${String(hora + (minuto >= 60 ? 1 : 0)).padStart(2, '0')}:${String(minuto % 60).padStart(2, '0')}:00`
+      }, superadminLogin.accessToken);
+      if (result.statusCode === 200 || result.statusCode === 201) {
+        break;
+      }
     }
+    assert.ok(result && (result.statusCode === 200 || result.statusCode === 201),
+      `No se pudo crear el turno a reagendar: ${JSON.stringify(result && result.response)}`);
+    this.savedData.turnoPaciente = result.response.data;
   }
 });
 
@@ -676,10 +683,6 @@ When('asigno el turno al paciente {string}', function (pacienteNombre) {
   const consultorioId = this.savedData?.consultorioId || 1;
   const centro = this.savedData?.disponibilidad?.centro || 1;
   
-  // Calcular fecha de hoy
-  const hoy = new Date();
-  const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
-  
   const hora = this.savedData?.horaSeleccionada || '10:30';
   const horaParts = hora.split(':');
   const horaInt = parseInt(horaParts[0]);
@@ -693,11 +696,17 @@ When('asigno el turno al paciente {string}', function (pacienteNombre) {
     finHora += 1;
   }
   
+  const hoy = new Date();
+  const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  const instante = new Date(`${fechaHoy}T${hora}:00-03:00`);
+  const fechaTurno = instante > new Date()
+    ? fechaHoy
+    : new Date(instante.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
   const turnoData = {
     pacienteId: 1,
     consultorioId: consultorioId,
     staffMedicoId: staffMedicoId,
-    fecha: fecha,
+    fecha: fechaTurno,
     horaInicio: hora + ':00',
     horaFin: `${String(finHora).padStart(2, '0')}:${String(finMin).padStart(2, '0')}:00`
   };
@@ -741,13 +750,21 @@ When('luego marco el turno como completado', function () {
 });
 
 When('intento reagendar el turno a un horario disponible', function () {
-  const turnoId = this.savedData?.turnoPaciente?.id || this.savedData?.turnoCreado?.id || 1;
-  
-  // Endpoint correcto con campos: fecha, horaInicio, horaFin, motivo
+  const turno = this.savedData?.turnoPaciente || this.savedData?.turnoCreado;
+  const turnoId = turno?.id || 1;
+  let fecha = getFutureDate(7);
+  if (Array.isArray(turno?.fecha)) {
+    const [anio, mes, dia] = turno.fecha;
+    fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+  } else if (typeof turno?.fecha === 'string') {
+    fecha = turno.fecha.slice(0, 10);
+  }
+
+  // Mismo día del esquema (intervalo 30) y un hueco distinto del alta.
   const result = PUT(`${ENDPOINTS.TURNOS}/${turnoId}/reagendar`, {
-    fecha: getFutureDate(2),
-    horaInicio: '11:00',
-    horaFin: '11:30',
+    fecha,
+    horaInicio: '17:00:00',
+    horaFin: '17:30:00',
     motivo: 'Reagendamiento de prueba'
   }, this.accessToken);
   
@@ -979,7 +996,7 @@ Then('puedo decidir si continuar o no', function () {
 Then('el turno se crea exitosamente', function () {
   assert.ok(
     this.statusCode === 200 || this.statusCode === 201,
-    `Error al crear turno: ${this.statusCode}`
+    `Error al crear turno: ${this.statusCode} ${this.response && this.response.status_text}`
   );
 });
 
@@ -1011,7 +1028,7 @@ Then('el horario vuelve a estar disponible para otros pacientes', function () {
 Then('el turno se reagenda exitosamente', function () {
   assert.ok(
     this.statusCode === 200,
-    `Error al reagendar: ${this.statusCode}`
+    `Error al reagendar: ${this.statusCode} ${this.response && this.response.status_text}`
   );
 });
 

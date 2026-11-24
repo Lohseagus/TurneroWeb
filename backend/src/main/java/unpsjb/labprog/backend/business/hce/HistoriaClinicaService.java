@@ -40,6 +40,7 @@ import unpsjb.labprog.backend.dto.hce.PerfilClinicoDTO;
 import unpsjb.labprog.backend.dto.hce.TimelineItemDTO;
 import unpsjb.labprog.backend.dto.hce.TurnoContextoHceDTO;
 import unpsjb.labprog.backend.dto.hce.VacunaDTO;
+import unpsjb.labprog.backend.business.service.TurnoService;
 import unpsjb.labprog.backend.model.Especialidad;
 import unpsjb.labprog.backend.model.EstadoTurno;
 import unpsjb.labprog.backend.model.Medico;
@@ -89,6 +90,7 @@ public class HistoriaClinicaService {
     private final AdjuntoClinicoRepository adjuntoRepository;
     private final RecetaRepository recetaRepository;
     private final OrdenEstudioRepository ordenRepository;
+    private final TurnoService turnoService;
 
     public HistoriaClinicaService(HceAccessGuard guard, PacienteRepository pacienteRepository,
             TurnoRepository turnoRepository, ConsultaRepository consultaRepository,
@@ -98,7 +100,7 @@ public class HistoriaClinicaService {
             CodigoCie10Repository cie10Repository, CentroAtencionRepository centroRepository,
             EspecialidadRepository especialidadRepository, AccesoHistoriaClinicaRepository accesoRepository,
             AdjuntoClinicoRepository adjuntoRepository, RecetaRepository recetaRepository,
-            OrdenEstudioRepository ordenRepository) {
+            OrdenEstudioRepository ordenRepository, TurnoService turnoService) {
         this.guard = guard;
         this.pacienteRepository = pacienteRepository;
         this.turnoRepository = turnoRepository;
@@ -116,6 +118,7 @@ public class HistoriaClinicaService {
         this.adjuntoRepository = adjuntoRepository;
         this.recetaRepository = recetaRepository;
         this.ordenRepository = ordenRepository;
+        this.turnoService = turnoService;
     }
 
     @Transactional(readOnly = true)
@@ -431,9 +434,37 @@ public class HistoriaClinicaService {
         consulta.setCerradaEn(LocalDateTime.now());
         consulta.setActualizadaEn(consulta.getCerradaEn());
         consultaRepository.save(consulta);
+        completarTurnoDeLaConsulta(consulta);
         guard.auditar(consulta.getPaciente(), AccionAuditoriaHce.CERRAR_CONSULTA, "CONSULTA", String.valueOf(id),
                 consulta.getCentroAtencion().getId(), "Cierre de consulta");
         return aConsulta(consulta);
+    }
+
+    /**
+     * El flujo sacar → confirmar → asistir termina acá: cerrar la consulta deja el
+     * turno COMPLETO si estaba confirmado o el paciente figura presente.
+     */
+    private void completarTurnoDeLaConsulta(Consulta consulta) {
+        Turno turno = consulta.getTurno();
+        if (turno == null || turno.getId() == null || turnoService == null) {
+            return;
+        }
+        if (turno.getEstado() == EstadoTurno.COMPLETO || turno.getEstado() == EstadoTurno.CANCELADO
+                || turno.getEstado() == EstadoTurno.AUSENTE) {
+            return;
+        }
+        boolean presente = Boolean.TRUE.equals(turno.getAsistio());
+        boolean confirmado = turno.getEstado() == EstadoTurno.CONFIRMADO;
+        if (!confirmado && !presente) {
+            return;
+        }
+        if (!confirmado) {
+            turno.setEstado(EstadoTurno.CONFIRMADO);
+            turnoRepository.save(turno);
+        }
+        User user = guard.usuarioActual();
+        String quien = user != null && user.getEmail() != null ? user.getEmail() : "CIERRE_CONSULTA";
+        turnoService.completarTurno(turno.getId(), quien);
     }
 
     @Transactional

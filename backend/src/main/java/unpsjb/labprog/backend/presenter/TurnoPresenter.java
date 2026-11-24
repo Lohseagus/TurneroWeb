@@ -31,7 +31,9 @@ import unpsjb.labprog.backend.business.service.RecordatorioService;
 import unpsjb.labprog.backend.business.service.PacienteAccessGuard;
 import unpsjb.labprog.backend.business.service.OperadorResumenService;
 import unpsjb.labprog.backend.business.service.TurnoService;
+import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.config.JwtTokenProvider;
+import unpsjb.labprog.backend.model.User;
 import unpsjb.labprog.backend.dto.CancelacionDataDTO;
 import unpsjb.labprog.backend.dto.TurnoDTO;
 import unpsjb.labprog.backend.dto.TurnoFilterDTO;
@@ -84,6 +86,15 @@ public class TurnoPresenter {
         // Fallback: header X-User-ID (para compatibilidad)
         String user = request.getHeader("X-User-ID");
         return user != null ? user : "UNKNOWN";
+    }
+
+    /** El que confirma es la cuenta del token, nunca el nombre que mande el body. */
+    private String usuarioAutenticado() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user != null && user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail().trim();
+        }
+        throw new AccessDeniedException("Tenés que iniciar sesión para confirmar el turno");
     }
 
     @GetMapping
@@ -297,8 +308,12 @@ public class TurnoPresenter {
             return Response.ok(savedTurno, "Turno asignado correctamente.");
         } catch (AccessDeniedException e) {
             throw e;
+        } catch (unpsjb.labprog.backend.exception.OverlapException e) {
+            return Response.response(HttpStatus.CONFLICT, e.getMessage(), e.getConflicts());
         } catch (IllegalArgumentException e) {
             return Response.dbError(e.getMessage());
+        } catch (IllegalStateException e) {
+            return Response.error(null, e.getMessage());
         } catch (Exception e) {
             return Response.error(null, "Error al asignar el turno.");
         }
@@ -393,18 +408,7 @@ public class TurnoPresenter {
             HttpServletRequest request) {
         centroAccess.exigirTurno(id);
         try {
-            String user = null;
-
-            // Intentar obtener usuario del body primero
-            if (body != null) {
-                user = body.get("usuario");
-            }
-
-            // Si no viene usuario en el body, usar el método anterior como fallback
-            if (user == null || user.trim().isEmpty()) {
-                user = getCurrentUser(request);
-            }
-
+            String user = usuarioAutenticado();
             TurnoDTO turno = service.confirmarTurno(id, user);
             return Response.ok(turno, "Turno confirmado correctamente");
         } catch (AccessDeniedException e) {
@@ -489,6 +493,15 @@ public class TurnoPresenter {
             if (body.containsKey("horaFin")) {
                 nuevosDatos.setHoraFin(java.time.LocalTime.parse((String) body.get("horaFin")));
             }
+            if (body.get("staffMedicoId") instanceof Number staffId) {
+                nuevosDatos.setStaffMedicoId(staffId.intValue());
+            }
+            if (body.get("consultorioId") instanceof Number consultorioId) {
+                nuevosDatos.setConsultorioId(consultorioId.intValue());
+            }
+            if (Boolean.TRUE.equals(body.get("permitirSolapamiento"))) {
+                nuevosDatos.setPermitirSolapamiento(true);
+            }
 
             String motivo = (String) body.get("motivo");
             String user = getCurrentUser(request);
@@ -496,6 +509,8 @@ public class TurnoPresenter {
             return Response.ok(turno, "Turno reagendado correctamente");
         } catch (AccessDeniedException e) {
             throw e;
+        } catch (unpsjb.labprog.backend.exception.OverlapException e) {
+            return Response.response(HttpStatus.CONFLICT, e.getMessage(), e.getConflicts());
         } catch (IllegalArgumentException e) {
             return Response.error(null, e.getMessage());
         } catch (IllegalStateException e) {
