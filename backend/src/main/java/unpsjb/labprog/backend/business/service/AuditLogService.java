@@ -1234,13 +1234,16 @@ public class AuditLogService {
                     AuditLog.EntityTypes.TURNO,
                     turnoId,
                     "CANCELLED_AUTO",
-                    "SYSTEM_AUTO_CANCELLATION",
+                    "SISTEMA",
                     previo,
                     "CANCELADO",
                     "estado=" + previo,
                     "estado=CANCELADO, actor=SISTEMA, motivo=" + motivo,
                     motivo
             );
+            if (turnoId != null && turnoRepository != null) {
+                auditLog.setTurno(turnoRepository.getReferenceById(turnoId.intValue()));
+            }
 
             AuditLog saved = auditLogRepository.save(auditLog);
 

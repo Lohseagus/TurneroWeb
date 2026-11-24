@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -50,6 +51,7 @@ import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
 import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 import unpsjb.labprog.backend.exception.TenantAccessException;
+import unpsjb.labprog.backend.exception.TurnoTomadoException;
 
 @Service
 public class TurnoService {
@@ -107,6 +109,9 @@ public class TurnoService {
 
     @Autowired
     private ReglasReservaTurno reglasReserva;
+
+    @Autowired
+    private TurnoSlotGuard slotGuard;
 
     // === VALIDACIONES DE TRANSICIÓN DE ESTADO ===
 
@@ -277,6 +282,9 @@ public class TurnoService {
             } else {
                 validarSolapamiento(turno, permitir);
             }
+            if (isNewTurno || cambiaHorario) {
+                turno.setSobreturno(permitir);
+            }
             if (isNewTurno) {
                 Integer centroSuscripcionId = dto.getCentroId();
                 if (centroSuscripcionId == null && dto.getStaffMedicoId() != null) {
@@ -301,7 +309,7 @@ public class TurnoService {
                 }
             }
 
-            Turno saved = repository.save(turno); // Guardar el turno
+            Turno saved = guardarTurno(turno, isNewTurno || cambiaHorario);
 
             // Asegurar que el turno tenga ID después de guardar
             if (saved.getId() == null) {
@@ -574,10 +582,11 @@ public class TurnoService {
         // Enviar notificación por email si el paciente tiene email verificado
         enviarNotificacionCancelacionEmail(savedTurno, cancelacionData, validacionContacto, performedBy, tipoDeepLink);
 
-        // Una ausencia no rellena el hueco: el paciente saca un turno nuevo.
-        if (reasignarDesdeListaEspera) {
-            boolean buscarPacienteParaReasignar = listaEsperaService.buscarPacienteParaReasignar(savedTurno);
-            System.out.println("Estado buscarPacienteParaReasignar: " + buscarPacienteParaReasignar);
+        // La ausencia no ofrece el hueco: el médico no está y ese horario no se puede sacar.
+        // El resto de las cancelaciones sí, salvo que falte muy poco (lo decide la lista de espera).
+        if (reasignarDesdeListaEspera && listaEsperaService != null) {
+            boolean ofrecido = listaEsperaService.ofrecerHuecoLiberado(savedTurno);
+            System.out.println("Estado ofrecerHuecoLiberado: " + ofrecido);
         }
 
         // Cancelar invitaciones a encuesta pendientes para este turno
@@ -596,6 +605,21 @@ public class TurnoService {
         respuesta.setFechaCancelacion(ahora);
         respuesta.setUpdatedAt(ahora);
         return respuesta;
+    }
+
+    /**
+     * Alta, cambio de horario y reasignación pasan por el candado del slot.
+     * Un sobreturno pedido a propósito no lo usa.
+     */
+    private Turno guardarTurno(Turno turno, boolean ocupaSlot) {
+        try {
+            if (ocupaSlot && slotGuard != null) {
+                return slotGuard.guardar(turno);
+            }
+            return repository.save(turno);
+        } catch (DataIntegrityViolationException ex) {
+            throw new TurnoTomadoException();
+        }
     }
 
     /**
@@ -848,7 +872,8 @@ public class TurnoService {
             turno.setEstado(EstadoTurno.REAGENDADO);
         }
 
-        Turno savedTurno = repository.save(turno);
+        turno.setSobreturno(sobreturno);
+        Turno savedTurno = guardarTurno(turno, true);
 
         // Registrar auditoría de reagendamiento
         try {

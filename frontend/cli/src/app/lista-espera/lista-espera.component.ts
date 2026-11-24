@@ -37,6 +37,7 @@ export class ListaEsperaComponent implements OnInit {
     especialidades: Especialidad[] = [];
     medicos: Medico[] = [];
     cargando = false;
+    aviso = '';
 
     // Paginación
     currentPage = 0;
@@ -117,6 +118,9 @@ export class ListaEsperaComponent implements OnInit {
         this.listaEsperaService.getListaEspera(filtros).subscribe(
             (response: DataPackage) => {
                 if (response.status_code === 200) {
+                    if (this.aviso === 'No se pudo cargar la lista de espera. Intentá de nuevo.') {
+                        this.aviso = '';
+                    }
                     this.listaSolicitudes = response.data || [];
                     // al usar /buscar no hay paginación en backend, así que actualizamos contadores básicos
                     this.totalElements = this.listaSolicitudes.length;
@@ -124,37 +128,35 @@ export class ListaEsperaComponent implements OnInit {
                 }
                 this.cargando = false;
             },
-            error => {
-                console.error('Error al buscar solicitudes:', error);
+            () => {
+                this.aviso = 'No se pudo cargar la lista de espera. Intentá de nuevo.';
                 this.cargando = false;
             }
         );
     }
 
     marcarComoResueltaManual(id: number) {
-        if (confirm('¿Está seguro de marcar esta solicitud como resuelta manualmente?')) {
+        if (confirm('¿Marcás esta solicitud como resuelta?')) {
             this.listaEsperaService.marcarComoResueltaManual(id).subscribe(
                 (response: DataPackage) => {
                     if (response.status_code === 200) {
-                        alert('Solicitud marcada como resuelta manualmente');
+                        this.aviso = 'Solicitud marcada como resuelta.';
                         this.buscarSolicitudes();
                     } else {
-                        alert(`Error: ${response.status_text}`);
+                        this.aviso = response.status_text || 'No se pudo marcar la solicitud.';
                     }
                 },
-                error => {
-                    console.error('Error al marcar solicitud como resuelta:', error);
-                    alert('Error al marcar la solicitud como resuelta');
+                () => {
+                    this.aviso = 'No se pudo marcar la solicitud como resuelta.';
                 }
             );
         }
     }
 
     mostrarInfoContacto(paciente: ListaEspera) {
-        const mensaje = `Información de contacto:
-      Teléfono: ${paciente.pacienteTelefono}
-      Email: ${paciente.pacienteEmail}`;
-        alert(mensaje);
+        const telefono = paciente.pacienteTelefono || 'sin teléfono';
+        const email = paciente.pacienteEmail || 'sin email';
+        this.aviso = `Contacto de ${paciente.pacienteNombre || ''} ${paciente.pacienteApellido || ''}: ${telefono} · ${email}`;
     }
 
     // Métodos de paginación
@@ -179,6 +181,17 @@ export class ListaEsperaComponent implements OnInit {
             pages.push(i);
         }
         return pages;
+    }
+
+    etiquetaEstado(estado: string): string {
+        switch (estado) {
+            case 'PENDIENTE': return 'Pendiente';
+            case 'CUBIERTA': return 'Cubierta';
+            case 'RESUELTA': return 'Resuelta';
+            case 'RESUELTA_POR_OTRO_MEDIO': return 'Resuelta a mano';
+            case 'CANCELADA': return 'Cancelada';
+            default: return estado || 'Sin estado';
+        }
     }
 
     getEstadoClass(estado: string): string {
@@ -218,15 +231,15 @@ export class ListaEsperaComponent implements OnInit {
             this.listaEsperaService.create(solicitud).subscribe({
                 next: (resp) => {
                     if (resp.status_code === 200) {
+                        this.aviso = 'Solicitud anotada en la lista de espera.';
                         this.buscarSolicitudes();
                         this.modalService.close();
                     } else {
-                        alert(`Error: ${resp.status_text}`);
+                        this.aviso = resp.status_text || 'No se pudo crear la solicitud.';
                     }
                 },
                 error: (err) => {
-                    console.error('Error creando solicitud:', err);
-                    alert('Error creando la solicitud');
+                    this.aviso = err?.error?.status_text || 'No se pudo crear la solicitud.';
                 }
             });
         });
@@ -249,15 +262,15 @@ export class ListaEsperaComponent implements OnInit {
             this.listaEsperaService.update(solicitud.id!, updated).subscribe({
                 next: (resp) => {
                     if (resp.status_code === 200) {
+                        this.aviso = 'Solicitud actualizada.';
                         this.buscarSolicitudes();
                         this.modalService.close();
                     } else {
-                        alert(`Error: ${resp.status_text}`);
+                        this.aviso = resp.status_text || 'No se pudo actualizar la solicitud.';
                     }
                 },
                 error: (err) => {
-                    console.error('Error actualizando solicitud:', err);
-                    alert('Error actualizando la solicitud');
+                    this.aviso = err?.error?.status_text || 'No se pudo actualizar la solicitud.';
                 }
             });
         });

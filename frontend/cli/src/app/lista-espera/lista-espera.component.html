@@ -4,7 +4,7 @@
       <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">hourglass_empty</span>
       <div>
         <h1 class="ct-page-header__title">Lista de Espera</h1>
-        <p class="ct-page-header__subtitle">Gestión de solicitudes de turnos pendientes</p>
+        <p class="ct-page-header__subtitle">El orden es urgencia, después fecha de ingreso y, si empatan, reputación del paciente.</p>
       </div>
     </div>
     <div class="ct-page-header__actions">
@@ -15,6 +15,10 @@
     </div>
   </header>
   <div class="card p-xl mb-xl mx-auto">
+    @if (aviso) {
+      <p class="info-badge mb-lg">{{ aviso }}</p>
+    }
+
     <!-- INFO BADGE -->
     @if (totalElements > 0) {
       <div class="info-badge mb-lg">
@@ -151,6 +155,7 @@
           <table class="table table-hover align-middle lista-espera-table">
             <thead>
               <tr>
+                <th>Puesto</th>
                 <th>
                   <span class="material-symbols-outlined">person</span>
                   Paciente
@@ -188,6 +193,7 @@
             <tbody>
               @for (solicitud of listaSolicitudes; track solicitud) {
                 <tr class="solicitud-row">
+                  <td>{{ solicitud.estado === 'PENDIENTE' && solicitud.posicion ? solicitud.posicion : '—' }}</td>
                   <td>
                     <div class="entity-info">
                       <div class="entity-avatar entity-avatar-paciente">
@@ -220,7 +226,7 @@
                   <td>
                     <span class="badge-estado" [class]="getEstadoClass(solicitud.estado)">
                       <span class="material-symbols-outlined">{{ getEstadoIcon(solicitud.estado) }}</span>
-                      {{ solicitud.estado }}
+                      {{ etiquetaEstado(solicitud.estado) }}
                     </span>
                   </td>
                   <td class="text-center">

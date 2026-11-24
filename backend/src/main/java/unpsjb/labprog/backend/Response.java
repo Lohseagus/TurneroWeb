@@ -43,6 +43,15 @@ public static ResponseEntity<Object> dbError(String msj) {
 return response(HttpStatus.CONFLICT, msj, null);
 }
 
+/** HTTP 409 de verdad, no solo el status_code del cuerpo. */
+public static ResponseEntity<Object> conflicto(String msj) {
+    Map<String, Object> map = new HashMap<>();
+    map.put("status_code", HttpStatus.CONFLICT.value());
+    map.put("status_text", msj);
+    map.put("data", null);
+    return new ResponseEntity<>(map, HttpStatus.CONFLICT);
+}
+
 public static ResponseEntity<Object> serverError(String msj) {
 return response(HttpStatus.INTERNAL_SERVER_ERROR, msj, null); 
 }

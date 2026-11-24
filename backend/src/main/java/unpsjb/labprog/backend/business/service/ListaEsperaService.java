@@ -7,6 +7,7 @@ import unpsjb.labprog.backend.business.repository.*;
 import unpsjb.labprog.backend.dto.ListaEsperaDTO;
 import unpsjb.labprog.backend.dto.TurnoDTO;
 import unpsjb.labprog.backend.exception.PacienteSinFichaException;
+import unpsjb.labprog.backend.exception.TurnoTomadoException;
 import unpsjb.labprog.backend.model.*;
 import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.saas.RecursoSaas;
@@ -61,6 +62,12 @@ public class ListaEsperaService {
     private TurnoRepository turnoRepository;
 
     @Autowired
+    private StaffMedicoRepository staffMedicoRepository;
+
+    @Autowired
+    private TurnoSlotGuard slotGuard;
+
+    @Autowired
     private ReglasReservaTurno reglasReserva;
 
     /**
@@ -72,9 +79,12 @@ public class ListaEsperaService {
      * @return Lista completa de solicitudes en espera
      */
     public List<ListaEsperaDTO> findAll() {
-        return visibles().stream()
+        List<ListaEsperaDTO> lista = visibles().stream()
+                .sorted(OrdenListaEspera.COMPARADOR)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        completarPosiciones(lista);
+        return lista;
     }
 
     /** Solicitudes de los centros de la cuenta; todas si la cuenta no está limitada. */
@@ -113,27 +123,28 @@ public class ListaEsperaService {
     @Transactional
     public ListaEsperaDTO save(ListaEsperaDTO dto) {
         centroAccess.exigirCentro(dto.getCentroAtencionId());
-        // Convertir DTO a entidad
         ListaEspera listaEspera = convertToEntity(dto);
-
-        // Establece la fecha de solicitud automáticamente
-        if (listaEspera.getFechaSolicitud() == null) {
-            listaEspera.setFechaSolicitud(LocalDateTime.now());
-        }
-
-        // Establece el estado inicial si no está definido
-        if (listaEspera.getEstado() == null || listaEspera.getEstado().isEmpty()) {
+        User actor = AuditContext.getCurrentUserObject();
+        boolean medicoHabilitado = medicoPuedeFijarUrgencia(actor, listaEspera);
+        listaEspera.setUrgenciaMedica(ReglasListaEspera.urgenciaEfectiva(
+                actor, ReglasListaEspera.parsearUrgencia(dto.getUrgenciaMedica()), medicoHabilitado));
+        // La fecha de ingreso la pone el servidor. Lo que mande el cliente se descarta.
+        listaEspera.setFechaSolicitud(LocalDateTime.now(ReglasReservaTurno.ZONA));
+        if (listaEspera.getEstado() == null || listaEspera.getEstado().isEmpty()
+                || (actor != null && actor.getRole() == Role.PACIENTE)) {
             listaEspera.setEstado("PENDIENTE");
         }
 
-        // Validar la solicitud
         validarSolicitud(listaEspera);
         if (dto.getId() == null || dto.getId() == 0) {
             suscripcionAccessService.assertOperacion(dto.getCentroAtencionId(), RecursoSaas.LISTA_ESPERA);
         }
 
-        // Guardar y convertir resultado a DTO
-        return convertToDTO(repository.save(listaEspera));
+        ListaEspera guardada = repository.save(listaEspera);
+        if (ReglasListaEspera.puedeElegirUrgencia(actor, medicoHabilitado)) {
+            auditarUrgencia(guardada, null, guardada.getUrgenciaMedica().name(), actor);
+        }
+        return convertToDTO(guardada);
     }
 
     /**
@@ -153,15 +164,28 @@ public class ListaEsperaService {
             throw new RuntimeException("Entrada de lista de espera no encontrada con ID: " + dto.getId());
         }
 
-        // Convertir DTO a entidad manteniendo algunos datos existentes
+        ListaEspera previa = existing.get();
         ListaEspera listaEspera = convertToEntity(dto);
-        listaEspera.setFechaSolicitud(existing.get().getFechaSolicitud()); // Mantener fecha original
+        User actor = AuditContext.getCurrentUserObject();
+        boolean medicoHabilitado = medicoPuedeFijarUrgencia(actor, listaEspera);
+        ListaEspera.UrgenciaMedica anterior = previa.getUrgenciaMedica();
+        if (ReglasListaEspera.puedeElegirUrgencia(actor, medicoHabilitado)) {
+            listaEspera.setUrgenciaMedica(ReglasListaEspera.urgenciaEfectiva(
+                    actor, ReglasListaEspera.parsearUrgencia(dto.getUrgenciaMedica()), medicoHabilitado));
+        } else {
+            listaEspera.setUrgenciaMedica(anterior);
+        }
+        listaEspera.setFechaSolicitud(previa.getFechaSolicitud());
 
-        // Validar la solicitud
         validarSolicitud(listaEspera);
 
-        // Guardar y convertir resultado a DTO
-        return convertToDTO(repository.save(listaEspera));
+        ListaEspera guardada = repository.save(listaEspera);
+        if (guardada.getUrgenciaMedica() != anterior
+                && ReglasListaEspera.puedeElegirUrgencia(actor, medicoHabilitado)) {
+            auditarUrgencia(guardada, anterior == null ? null : anterior.name(),
+                    guardada.getUrgenciaMedica().name(), actor);
+        }
+        return convertToDTO(guardada);
     }
 
     /**
@@ -223,9 +247,11 @@ public class ListaEsperaService {
                 .orElseThrow(PacienteSinFichaException::new);
         Paciente paciente = pacienteRepository.findById(pacienteId)
                 .orElseThrow(PacienteSinFichaException::new);
-        return repository.findByPaciente(paciente).stream()
+        List<ListaEsperaDTO> propias = repository.findByPaciente(paciente).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        completarPosiciones(propias);
+        return propias;
     }
 
     /**
@@ -262,10 +288,13 @@ public class ListaEsperaService {
      * @return Lista de solicitudes con estado PENDIENTE
      */
     public List<ListaEsperaDTO> findPendientes() {
-        return visibles().stream()
+        List<ListaEsperaDTO> pendientes = visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
+                .sorted(OrdenListaEspera.COMPARADOR)
                 .map(this::convertToDTO)
                 .toList();
+        completarPosiciones(pendientes);
+        return pendientes;
     }
 
     /**
@@ -306,15 +335,12 @@ public class ListaEsperaService {
                     .orElseThrow(() -> new RuntimeException("Médico no encontrado: " + dto.getMedicoPreferidoId())));
         }
 
-        // Fechas
+        // Fechas. La de ingreso se pisa en save/update: acá queda un valor para no dejarla nula.
         entity.setFechaDeseadaDesde(dto.getFechaDeseadaDesde());
         entity.setFechaDeseadaHasta(dto.getFechaDeseadaHasta());
-        entity.setFechaSolicitud(dto.getFechaSolicitud() != null ? dto.getFechaSolicitud() : LocalDateTime.now());
+        entity.setFechaSolicitud(LocalDateTime.now(ReglasReservaTurno.ZONA));
 
-        // Otros campos
-        entity.setUrgenciaMedica(dto.getUrgenciaMedica() != null
-                ? ListaEspera.UrgenciaMedica.valueOf(dto.getUrgenciaMedica())
-                : ListaEspera.UrgenciaMedica.BAJA);
+        entity.setUrgenciaMedica(ReglasListaEspera.URGENCIA_POR_DEFECTO);
         entity.setEstado(dto.getEstado() != null ? dto.getEstado() : "PENDIENTE");
 
         return entity;
@@ -326,6 +352,28 @@ public class ListaEsperaService {
      * @param turnoCancelado El turno que fue cancelado
      * @return true si se encontró y reasignó un paciente, false en caso contrario
      */
+    /**
+     * Ofrece un turno liberado a la lista de espera.
+     *
+     * <p>No se ofrece si el inicio es dentro de las próximas
+     * {@link ReglasListaEspera#HORAS_MINIMAS_PARA_OFRECER} horas o ya pasó: no da
+     * tiempo a avisar y a que la persona llegue. Una ausencia no llama a este
+     * método, porque ese horario queda bloqueado.
+     */
+    @Transactional
+    public boolean ofrecerHuecoLiberado(Turno turnoLiberado) {
+        if (turnoLiberado == null || turnoLiberado.getFecha() == null || turnoLiberado.getHoraInicio() == null) {
+            return false;
+        }
+        LocalDateTime inicio = LocalDateTime.of(turnoLiberado.getFecha(), turnoLiberado.getHoraInicio());
+        LocalDateTime ahora = LocalDateTime.now(ReglasReservaTurno.ZONA);
+        if (!ReglasListaEspera.convieneOfrecer(inicio, ahora)) {
+            System.out.println("ℹ️ Hueco demasiado próximo, no se ofrece a la lista de espera: " + inicio);
+            return false;
+        }
+        return buscarPacienteParaReasignar(turnoLiberado);
+    }
+
     @Transactional
     public boolean buscarPacienteParaReasignar(Turno turnoCancelado) {
         System.out
@@ -340,18 +388,8 @@ public class ListaEsperaService {
                 return false;
             }
 
-            // 2. Ordenar candidatos por prioridad (urgencia médica primero, luego por fecha
-            // de solicitud)
             List<ListaEspera> candidatosOrdenados = candidatos.stream()
-                    .sorted((a, b) -> {
-                        // Primero por nivel de urgencia médica (URGENTE > ALTA > MEDIA > BAJA)
-                        int urgenciaCompare = b.getUrgenciaMedica().compareTo(a.getUrgenciaMedica());
-                        if (urgenciaCompare != 0) {
-                            return urgenciaCompare;
-                        }
-                        // Luego por antigüedad de la solicitud
-                        return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
-                    })
+                    .sorted(OrdenListaEspera.COMPARADOR)
                     .toList();
 
             // 3. Intentar reasignar al primer candidato válido
@@ -380,26 +418,25 @@ public class ListaEsperaService {
      * ordenados por prioridad (urgencia médica y tiempo de espera)
      */
     private List<ListaEspera> buscarCandidatosParaTurno(Turno turnoDisponible) {
-        LocalDate fechaTurno = turnoDisponible.getFecha();
-        Especialidad especialidad = turnoDisponible.getStaffMedico().getEspecialidad();
-        CentroAtencion centroAtencion = turnoDisponible.getStaffMedico().getCentroAtencion();
-
-        return repository.findAll().stream()
-                .filter(le -> "PENDIENTE".equals(le.getEstado()))
-                .filter(le -> especialidad.equals(le.getEspecialidad()))
-                .filter(le -> centroAtencion == null || centroAtencion.equals(le.getCentroAtencion()))
-                .filter(le -> esFechaCompatibleDTO(convertToDTO(le), fechaTurno))
-                .filter(le -> esMedicoCompatibleDTO(convertToDTO(le), turnoDisponible.getStaffMedico().getMedico()))
-                .sorted((a, b) -> {
-                    // Primero por nivel de urgencia médica (URGENTE > ALTA > MEDIA > BAJA)
-                    int urgenciaCompare = b.getUrgenciaMedica().compareTo(a.getUrgenciaMedica());
-                    if (urgenciaCompare != 0) {
-                        return urgenciaCompare;
-                    }
-                    // Luego por antigüedad de la solicitud
-                    return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
-                })
+        List<ListaEspera> todas = repository.findAll();
+        if (todas == null) {
+            return List.of();
+        }
+        java.util.Map<Integer, List<Turno>> turnosPorPaciente = new java.util.HashMap<>();
+        return todas.stream()
+                .filter(le -> ReglasListaEspera.esCompatible(le, turnoDisponible, turnosDe(le, turnosPorPaciente)))
+                .sorted(OrdenListaEspera.COMPARADOR)
                 .toList();
+    }
+
+    private List<Turno> turnosDe(ListaEspera solicitud, java.util.Map<Integer, List<Turno>> cache) {
+        if (solicitud.getPaciente() == null || solicitud.getPaciente().getId() == null || turnoRepository == null) {
+            return List.of();
+        }
+        return cache.computeIfAbsent(solicitud.getPaciente().getId(), id -> {
+            List<Turno> turnos = turnoRepository.findByPaciente_Id(id);
+            return turnos == null ? List.of() : turnos;
+        });
     }
 
     /**
@@ -429,7 +466,7 @@ public class ListaEsperaService {
 
         LocalDate hoy = LocalDate.now();
 
-        return visibles().stream()
+        List<ListaEsperaDTO> filtradas = visibles().stream()
                 .filter(le -> especialidad == null || especialidad.equals(le.getEspecialidad()))
                 .filter(le -> centroAtencion == null || centroAtencion.equals(le.getCentroAtencion()))
                 .filter(le -> medico == null || medico.equals(le.getMedicoPreferido()))
@@ -458,25 +495,25 @@ public class ListaEsperaService {
                             (tiempoEsperaMaximo == null || diasEspera <= tiempoEsperaMaximo);
                 })
                 .sorted((a, b) -> {
-                    if ("URGENCIA_TIEMPO".equals(ordenamiento)) {
-                        // Ordenar por urgencia primero, luego por tiempo de espera
-                        int urgenciaCompare = b.getUrgenciaMedica().compareTo(a.getUrgenciaMedica());
-                        if (urgenciaCompare != 0) {
-                            return urgenciaCompare;
-                        }
-                        return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
-                    } else if ("TIEMPO_ESPERA".equals(ordenamiento)) {
-                        // Ordenar solo por tiempo de espera
-                        return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
-                    } else if ("URGENCIA".equals(ordenamiento)) {
-                        // Ordenar solo por urgencia (URGENTE > ALTA > MEDIA > BAJA)
-                        return b.getUrgenciaMedica().compareTo(a.getUrgenciaMedica());
+                    if ("TIEMPO_ESPERA".equals(ordenamiento)) {
+                        return compararFecha(a, b);
                     }
-                    // Por defecto, ordenar por fecha de solicitud
-                    return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
+                    if ("URGENCIA".equals(ordenamiento)) {
+                        return Integer.compare(OrdenListaEspera.prioridad(b), OrdenListaEspera.prioridad(a));
+                    }
+                    return OrdenListaEspera.comparar(a, b);
                 })
                 .map(this::convertToDTO)
-                .toList();
+                .collect(Collectors.toList());
+        completarPosiciones(filtradas);
+        return filtradas;
+    }
+
+    private static int compararFecha(ListaEspera a, ListaEspera b) {
+        if (a.getFechaSolicitud() == null || b.getFechaSolicitud() == null) {
+            return 0;
+        }
+        return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
     }
 
     /**
@@ -489,14 +526,7 @@ public class ListaEsperaService {
         List<ListaEspera> solicitudes = visibles().stream()
                 .filter(le -> "PENDIENTE".equals(le.getEstado()))
                 .filter(le -> especialidad.equals(le.getEspecialidad()))
-                .sorted((a, b) -> {
-                    // Ordenar por nivel de urgencia (URGENTE > ALTA > MEDIA > BAJA)
-                    int urgenciaCompare = b.getUrgenciaMedica().compareTo(a.getUrgenciaMedica());
-                    if (urgenciaCompare != 0) {
-                        return urgenciaCompare;
-                    }
-                    return a.getFechaSolicitud().compareTo(b.getFechaSolicitud());
-                })
+                .sorted(OrdenListaEspera.COMPARADOR)
                 .toList();
 
         List<Map<String, Object>> ranking = new ArrayList<>();
@@ -563,6 +593,9 @@ public class ListaEsperaService {
             System.out.println("✅ Turno reasignado exitosamente");
             return true;
 
+        } catch (TurnoTomadoException e) {
+            System.out.println("ℹ️ El hueco ya fue tomado mientras se reasignaba");
+            return false;
         } catch (Exception e) {
             System.err.println("❌ ERROR al intentar reasignar turno: " + e.getMessage());
             e.printStackTrace();
@@ -604,6 +637,7 @@ public class ListaEsperaService {
             nuevoTurno.setConsultorio(turnoCancelado.getConsultorio());
 
             nuevoTurno.setEstado(EstadoTurno.PROGRAMADO);
+            nuevoTurno.setSobreturno(false);
             nuevoTurno.setObservaciones("Reasignado desde lista de espera");
 
             if (reglasReserva != null) {
@@ -619,7 +653,12 @@ public class ListaEsperaService {
                 }
             }
 
-            Turno turnoGuardado = turnoRepository.save(nuevoTurno);
+            Turno turnoGuardado;
+            try {
+                turnoGuardado = slotGuard != null ? slotGuard.guardar(nuevoTurno) : turnoRepository.save(nuevoTurno);
+            } catch (TurnoTomadoException tomado) {
+                return null;
+            }
 
             // Convertir a DTO usando el método privado de conversión
             return convertTurnoToDTO(turnoGuardado);
@@ -1030,7 +1069,7 @@ public class ListaEsperaService {
                         dto.getEspecialidadId().equals(solicitud.getEspecialidad().getId()));
 
         if (tieneSolicitudDuplicada) {
-            throw new RuntimeException("El paciente ya tiene una solicitud pendiente para esta especialidad");
+            throw new RuntimeException("Ya tenés una solicitud pendiente para esta especialidad.");
         }
 
         // Validar fechas
@@ -1041,6 +1080,119 @@ public class ListaEsperaService {
         }
 
         return true;
+    }
+
+    private boolean medicoPuedeFijarUrgencia(User user, ListaEspera solicitud) {
+        if (user == null || user.getRole() != Role.MEDICO || solicitud == null
+                || solicitud.getCentroAtencion() == null || medicoRepository == null
+                || staffMedicoRepository == null) {
+            return false;
+        }
+        Medico medico = null;
+        if (user.getEmail() != null) {
+            medico = medicoRepository.findByEmailIgnoreCase(user.getEmail()).orElse(null);
+        }
+        if (medico == null && user.getDni() != null) {
+            medico = medicoRepository.findByDni(user.getDni()).orElse(null);
+        }
+        if (medico == null || medico.getId() == null) {
+            return false;
+        }
+        List<StaffMedico> lugares = staffMedicoRepository.findByMedicoId(medico.getId());
+        if (lugares == null) {
+            return false;
+        }
+        Integer centroId = solicitud.getCentroAtencion().getId();
+        boolean atiendeAhi = lugares.stream().anyMatch(staff -> staff.getCentroAtencion() != null
+                && centroId.equals(staff.getCentroAtencion().getId()));
+        if (!atiendeAhi) {
+            return false;
+        }
+        if (solicitud.getMedicoPreferido() != null && solicitud.getMedicoPreferido().getId() != null
+                && !medico.getId().equals(solicitud.getMedicoPreferido().getId())) {
+            return false;
+        }
+        if (solicitud.getMedicoPreferido() != null && medico.getId().equals(solicitud.getMedicoPreferido().getId())) {
+            return true;
+        }
+        if (solicitud.getPaciente() == null || solicitud.getPaciente().getId() == null || turnoRepository == null) {
+            return false;
+        }
+        List<Turno> turnos = turnoRepository.findByPaciente_Id(solicitud.getPaciente().getId());
+        if (turnos == null) {
+            return false;
+        }
+        for (Turno turno : turnos) {
+            if (turno.getEstado() == EstadoTurno.CANCELADO) {
+                continue;
+            }
+            Medico delTurno = turno.getMedico();
+            if (delTurno == null && turno.getStaffMedico() != null) {
+                delTurno = turno.getStaffMedico().getMedico();
+            }
+            if (delTurno != null && medico.getId().equals(delTurno.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void auditarUrgencia(ListaEspera solicitud, String anterior, String nueva, User actor) {
+        if (auditLogService == null || solicitud == null || solicitud.getId() == null) {
+            return;
+        }
+        String quien = actor != null && actor.getEmail() != null ? actor.getEmail() : "SISTEMA";
+        Map<String, Object> detalles = new HashMap<>();
+        detalles.put("urgencia", nueva);
+        if (solicitud.getPaciente() != null) {
+            detalles.put("pacienteId", solicitud.getPaciente().getId());
+        }
+        auditLogService.logGenericAction(
+                "LISTA_ESPERA",
+                solicitud.getId(),
+                anterior == null ? "URGENCIA_ASIGNADA" : "CAMBIO_URGENCIA",
+                quien,
+                anterior,
+                nueva,
+                null,
+                detalles,
+                "Urgencia de la lista de espera definida por el personal");
+    }
+
+    private void completarPosiciones(List<ListaEsperaDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return;
+        }
+        List<ListaEspera> pendientes = repository.findByEstado("PENDIENTE");
+        if (pendientes == null) {
+            return;
+        }
+        Map<String, List<ListaEspera>> grupos = new HashMap<>();
+        for (ListaEspera solicitud : pendientes) {
+            if (solicitud.getId() == null) {
+                continue;
+            }
+            grupos.computeIfAbsent(claveCola(solicitud), clave -> new ArrayList<>()).add(solicitud);
+        }
+        Map<Long, Integer> posiciones = new HashMap<>();
+        for (List<ListaEspera> grupo : grupos.values()) {
+            grupo.sort(OrdenListaEspera.COMPARADOR);
+            int puesto = 1;
+            for (ListaEspera solicitud : grupo) {
+                posiciones.put(solicitud.getId(), puesto++);
+            }
+        }
+        for (ListaEsperaDTO dto : dtos) {
+            if (dto.getId() != null && "PENDIENTE".equals(dto.getEstado())) {
+                dto.setPosicion(posiciones.get(dto.getId()));
+            }
+        }
+    }
+
+    private static String claveCola(ListaEspera solicitud) {
+        Integer especialidad = solicitud.getEspecialidad() == null ? null : solicitud.getEspecialidad().getId();
+        Integer centro = solicitud.getCentroAtencion() == null ? null : solicitud.getCentroAtencion().getId();
+        return especialidad + ":" + centro;
     }
 
     // Convertir entidad a DTO

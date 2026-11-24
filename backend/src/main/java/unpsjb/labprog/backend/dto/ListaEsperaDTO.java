@@ -39,6 +39,9 @@ public class ListaEsperaDTO {
     // Días en espera (calculado)
     private Long diasEnEspera;
 
+    /** Puesto en la cola de su especialidad y centro. Solo si sigue pendiente. */
+    private Integer posicion;
+
     // Getters y Setters
     public Long getId() {
         return id;
@@ -190,5 +193,13 @@ public class ListaEsperaDTO {
 
     public void setDiasEnEspera(Long diasEnEspera) {
         this.diasEnEspera = diasEnEspera;
+    }
+
+    public Integer getPosicion() {
+        return posicion;
+    }
+
+    public void setPosicion(Integer posicion) {
+        this.posicion = posicion;
     }
 }

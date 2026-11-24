@@ -18,4 +18,5 @@ export interface ListaEspera {
     urgenciaMedica: string; // "BAJA", "MEDIA", "ALTA", "URGENTE"
     estado: string;
     diasEnEspera: number;
+    posicion?: number;
 }

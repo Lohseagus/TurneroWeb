@@ -22,7 +22,10 @@ import { SaasService } from "../saas/saas.service";
 import { PacienteSesionService } from "./paciente-sesion.service";
 
 @Component({ selector: "app-lista-espera-form", standalone: true, template: "<p>Lista de espera</p>" })
-class ListaEsperaStub {}
+class ListaEsperaStub {
+  @Input() especialidadNombre: string | null = null;
+  @Input() centroId: number | null = null;
+}
 
 @Component({ selector: "app-centros-mapa-modal", standalone: true, template: "" })
 class MapaStub {

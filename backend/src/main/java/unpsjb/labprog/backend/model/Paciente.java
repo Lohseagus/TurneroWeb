@@ -59,6 +59,13 @@ public class Paciente extends Persona {
     @Column(length = 120)
     private String identificadorFederado;
 
+    /**
+     * Desempate de la lista de espera. Todavía no se calcula: null vale 0.
+     * A mayor número, antes se ofrece un hueco cuando la urgencia y la fecha empatan.
+     */
+    @Column(name = "reputacion")
+    private Integer reputacion;
+
     @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private Set<PreferenciaHoraria> preferenciasHorarias = new HashSet<>();

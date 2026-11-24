@@ -36,7 +36,9 @@ import unpsjb.labprog.backend.saas.SuscripcionAccessService;
 
 /**
  * Ausencia de un profesional en un rango de fechas. Cancela los turnos futuros
- * del rango y no ofrece el hueco a la lista de espera: el paciente saca un turno nuevo.
+ * programados, confirmados y reagendados del rango. No ofrece el hueco a la lista
+ * de espera: el médico no está y ese horario no se puede volver a reservar.
+ * El paciente saca un turno nuevo.
  */
 @Service
 public class AusenciaMedicoService {
@@ -47,6 +49,9 @@ public class AusenciaMedicoService {
     public static final int MOTIVO_URGENCIA_MINIMO = 5;
 
     private static final int RANGO_MAXIMO_DIAS = 366;
+
+    static final List<EstadoTurno> ESTADOS_CANCELABLES = List.of(
+            EstadoTurno.PROGRAMADO, EstadoTurno.CONFIRMADO, EstadoTurno.REAGENDADO);
 
     @Autowired
     private ConfiguracionExcepcionalRepository repository;
@@ -77,8 +82,7 @@ public class AusenciaMedicoService {
         StaffMedico staff = staffDe(solicitud);
         Rango rango = validar(solicitud, staff, false, true, null);
         return armar(null, turnoRepository.findAfectablesPorAusencia(
-                staff.getId(), rango.inicio, rango.fin,
-                List.of(EstadoTurno.PROGRAMADO, EstadoTurno.CONFIRMADO)), rango, false);
+                staff.getId(), rango.inicio, rango.fin, ESTADOS_CANCELABLES), rango, false);
     }
 
     @Transactional
@@ -102,8 +106,7 @@ public class AusenciaMedicoService {
         auditar(ausencia, AuditLog.Actions.CREATE, performedBy);
 
         List<Turno> afectados = turnoRepository.findAfectablesPorAusencia(
-                staff.getId(), rango.inicio, rango.fin,
-                List.of(EstadoTurno.PROGRAMADO, EstadoTurno.CONFIRMADO));
+                staff.getId(), rango.inicio, rango.fin, ESTADOS_CANCELABLES);
         AusenciaResultadoDTO resultado = armar(ausencia, afectados, rango, true);
         String motivo = PREFIJO_MOTIVO + texto(solicitud.getMotivo());
         String actor = performedBy == null || performedBy.isBlank() ? "SISTEMA" : performedBy;

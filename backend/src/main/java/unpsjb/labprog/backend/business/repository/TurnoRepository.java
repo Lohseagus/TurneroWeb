@@ -45,6 +45,23 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
     // Buscar turnos por fecha y staff médico
     List<Turno> findByFechaAndStaffMedico_Id(LocalDate fecha, Integer staffMedicoId);
 
+    /**
+     * Bloquea los turnos activos de ese horario para que dos reservas no lo tomen juntas.
+     * Si no hay filas, el índice único parcial es el que corta el insert.
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT t FROM Turno t
+            WHERE t.staffMedico.id = :staffId
+              AND t.fecha = :fecha
+              AND t.horaInicio = :hora
+              AND t.estado <> unpsjb.labprog.backend.model.EstadoTurno.CANCELADO
+            """)
+    List<Turno> bloquearSlotActivo(
+            @Param("staffId") Integer staffId,
+            @Param("fecha") LocalDate fecha,
+            @Param("hora") LocalTime hora);
+
     @Query("""
         SELECT t FROM Turno t
         WHERE t.staffMedico.id = :staffId

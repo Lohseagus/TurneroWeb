@@ -30,6 +30,11 @@ public class ListaEspera {
 
     private LocalDate fechaDeseadaDesde;
     private LocalDate fechaDeseadaHasta;
+
+    /**
+     * Fecha de ingreso a la cola. La fija el servidor al crear la solicitud.
+     * El cliente no puede retrocederla para adelantarse.
+     */
     private LocalDateTime fechaSolicitud;
     @Enumerated(EnumType.STRING)
     @Column(name = "urgencia_medica", nullable = false, length = 20)
