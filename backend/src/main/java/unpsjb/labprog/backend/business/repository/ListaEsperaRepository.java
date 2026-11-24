@@ -37,6 +37,8 @@ public interface ListaEsperaRepository extends JpaRepository<ListaEspera, Long> 
          */
         List<ListaEspera> findByPaciente(Paciente paciente);
 
+        boolean existsByPaciente_IdAndCentroAtencion_Id(Integer pacienteId, Integer centroId);
+
         /**
          * Busca solicitudes por especialidad
          */

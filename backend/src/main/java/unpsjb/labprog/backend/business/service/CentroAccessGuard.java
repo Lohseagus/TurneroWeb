@@ -166,6 +166,211 @@ public class CentroAccessGuard {
         }
     }
 
+    /**
+     * Alta y baja de un centro. Solo SUPERADMIN. Sin sesión no restringe:
+     * es el modo de desarrollo y la suite Cucumber.
+     */
+    public void exigirSuperadmin() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null) {
+            return;
+        }
+        if (user.getRole() != Role.SUPERADMIN) {
+            throw new AccessDeniedException("Solo un superadmin puede crear o eliminar centros de atención");
+        }
+    }
+
+    /** SUPERADMIN edita cualquiera. Un ADMIN, solo el suyo. El operador no edita. */
+    public void exigirEdicionDeCentro(Integer centroId) {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null) {
+            return;
+        }
+        if (user.getRole() == Role.SUPERADMIN) {
+            return;
+        }
+        if (user.getRole() != Role.ADMINISTRADOR) {
+            throw new AccessDeniedException("No tenés permiso para modificar centros de atención");
+        }
+        Integer propio = centroDe(user);
+        if (centroId == null || propio == null || !propio.equals(centroId)) {
+            throw new AccessDeniedException("Solo podés editar tu centro de atención");
+        }
+    }
+
+    /** El operador consulta solo su centro. El catálogo público sigue abierto para el resto. */
+    public void exigirLecturaDeCentro(Integer centroId) {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getRole() != Role.OPERADOR) {
+            return;
+        }
+        Integer propio = centroDe(user);
+        if (centroId == null || propio == null || !propio.equals(centroId)) {
+            throw new AccessDeniedException("Solo podés ver tu centro de atención");
+        }
+    }
+
+    /**
+     * Presente o ausente. El personal del centro del turno sigue pudiendo.
+     * Un médico solo marca los turnos donde él es el profesional.
+     */
+    public void exigirMarcarAsistencia(Integer turnoId) {
+        exigirTurno(turnoId);
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getRole() != Role.MEDICO || turnoId == null) {
+            return;
+        }
+        turnoRepository.findById(turnoId).ifPresent(turno -> {
+            Integer propio = medicoPropioId();
+            Integer delTurno = medicoDelTurno(turno);
+            if (propio == null || delTurno == null || !propio.equals(delTurno)) {
+                log.warn("Acceso denegado: {} intentó marcar la asistencia del turno {}", user.getEmail(), turnoId);
+                throw new AccessDeniedException("Solo podés marcar la asistencia de tus turnos");
+            }
+        });
+    }
+
+    /**
+     * Horarios. Un médico solo los suyos, en todos los centros donde atiende.
+     * Admin y operador, los de los médicos de su centro.
+     */
+    public void exigirStaffDelActor(Integer staffMedicoId) {
+        User user = actorLimitado();
+        if (user == null || staffMedicoId == null) {
+            return;
+        }
+        staffMedicoRepository.findById(staffMedicoId).ifPresent(staff -> aplicarStaff(user, staff));
+    }
+
+    public void exigirDisponibilidadDelActor(Integer disponibilidadId) {
+        User user = actorLimitado();
+        if (user == null || disponibilidadId == null) {
+            return;
+        }
+        disponibilidadRepository.findById(disponibilidadId).ifPresent(disponibilidad -> aplicarStaff(user, disponibilidad.getStaffMedico()));
+    }
+
+    /** Listado por médico: el profesional solo el propio; el personal, si atiende en su centro. */
+    public void exigirMedicoVisible(Integer medicoId) {
+        User user = actorLimitado();
+        if (user == null || medicoId == null) {
+            return;
+        }
+        if (user.getRole() == Role.MEDICO) {
+            Integer propio = medicoPropioId();
+            if (propio == null || !propio.equals(medicoId)) {
+                throw new AccessDeniedException("Solo podés ver y editar tus horarios");
+            }
+            return;
+        }
+        boolean enCentro = staffMedicoRepository.findByMedicoId(medicoId).stream()
+                .anyMatch(staff -> puedeOperar(centroDe(staff)));
+        if (!enCentro) {
+            throw new AccessDeniedException(MENSAJE);
+        }
+    }
+
+    public boolean puedeVerStaff(Integer staffMedicoId) {
+        User user = actorLimitado();
+        if (user == null) {
+            return true;
+        }
+        if (staffMedicoId == null) {
+            return false;
+        }
+        if (user.getRole() == Role.MEDICO) {
+            return staffPropioIds().contains(staffMedicoId);
+        }
+        return staffMedicoRepository.findById(staffMedicoId)
+                .map(staff -> puedeOperar(centroDe(staff)))
+                .orElse(false);
+    }
+
+    /**
+     * Disparo manual de un job. null significa todos los centros (superadmin, o sin
+     * sesión en desarrollo). Un ADMIN queda atado a su centro. Médico y operador, no.
+     */
+    public Integer centroDeEjecucionManual() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getRole() == null || user.getRole() == Role.SUPERADMIN) {
+            return null;
+        }
+        if (user.getRole() == Role.ADMINISTRADOR) {
+            Integer centroId = centroDe(user);
+            if (centroId == null) {
+                throw new AccessDeniedException("Tu usuario no tiene un centro asignado");
+            }
+            return centroId;
+        }
+        throw new AccessDeniedException(
+                "Solo un administrador del centro o un superadmin puede ejecutar esta tarea");
+    }
+
+    public Set<Integer> staffPropioIds() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            return Set.of();
+        }
+        return medicoRepository.findByEmailIgnoreCase(user.getEmail().trim())
+                .map(medico -> {
+                    Set<Integer> ids = new LinkedHashSet<>();
+                    for (StaffMedico staff : staffMedicoRepository.findByMedicoId(medico.getId())) {
+                        if (staff.getId() != null) {
+                            ids.add(staff.getId());
+                        }
+                    }
+                    return ids;
+                })
+                .orElse(Set.of());
+    }
+
+    /** null si no hay que restringir (sin sesión o superadmin). */
+    private User actorLimitado() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getRole() == null || user.getRole() == Role.SUPERADMIN) {
+            return null;
+        }
+        return user;
+    }
+
+    private void aplicarStaff(User user, StaffMedico staff) {
+        if (user.getRole() == Role.MEDICO) {
+            exigirEsSuStaff(staff);
+            return;
+        }
+        exigirCentro(centroDe(staff));
+    }
+
+    private void exigirEsSuStaff(StaffMedico staff) {
+        Integer propio = medicoPropioId();
+        Integer delStaff = staff == null || staff.getMedico() == null ? null : staff.getMedico().getId();
+        if (propio == null || delStaff == null || !propio.equals(delStaff)) {
+            throw new AccessDeniedException("Solo podés ver y editar tus horarios");
+        }
+    }
+
+    private Integer medicoPropioId() {
+        User user = AuditContext.getCurrentUserObject();
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            return null;
+        }
+        return medicoRepository.findByEmailIgnoreCase(user.getEmail().trim()).map(medico -> medico.getId()).orElse(null);
+    }
+
+    private static Integer medicoDelTurno(Turno turno) {
+        if (turno.getMedico() != null && turno.getMedico().getId() != null) {
+            return turno.getMedico().getId();
+        }
+        if (turno.getStaffMedico() != null && turno.getStaffMedico().getMedico() != null) {
+            return turno.getStaffMedico().getMedico().getId();
+        }
+        return null;
+    }
+
+    private static Integer centroDe(User user) {
+        return user.getCentroAtencion() == null ? null : user.getCentroAtencion().getId();
+    }
+
     private boolean restringe() {
         User user = AuditContext.getCurrentUserObject();
         return user != null && user.getRole() != null && user.estáLimitadoACentro();

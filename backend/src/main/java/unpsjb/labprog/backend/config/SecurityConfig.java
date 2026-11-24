@@ -326,6 +326,13 @@ public class SecurityConfig {
                                 .requestMatchers("/api/deep-links/cleanup").hasRole("ADMINISTRADOR")
 
                                 // Médico, operador y administrador operan turnos y horarios.
+                                // El disparo manual de los jobs no es de mostrador ni del médico:
+                                // SUPERADMIN (hereda ADMINISTRADOR) o el ADMIN del centro.
+                                // El servicio achica el ADMIN a su centro.
+                                .requestMatchers(HttpMethod.POST,
+                                        "/api/turno/ejecutar-recordatorios",
+                                        "/api/turno/ejecutar-cancelacion-automatica")
+                                        .hasRole("ADMINISTRADOR")
                                 .requestMatchers("/api/disponibilidades-medico/**").hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
                                 .requestMatchers("/api/turno/**").hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
 

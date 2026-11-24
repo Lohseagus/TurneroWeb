@@ -17,7 +17,9 @@ export const authErrorInterceptor: HttpInterceptorFn = (req, next) => {
   // con tokens viejos en storage o sin sesión activa).
   const url = req.url || '';
   const isAuthEndpoint =
-    url.includes('/api/auth/refresh') || url.includes('/api/auth/login');
+    url.includes('/api/auth/refresh') ||
+    url.includes('/api/auth/login') ||
+    url.includes('/api/auth/google');
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -39,7 +41,10 @@ export const authErrorInterceptor: HttpInterceptorFn = (req, next) => {
       if (!isAuthEndpoint && error.status === 403) {
         const teniaSesion = !!authService.getToken() || !!authService.getRefreshToken();
         if (teniaSesion) {
-          toast.warning('No tenés permiso para esa acción.');
+          const texto = typeof error.error?.status_text === 'string' && error.error.status_text
+            ? error.error.status_text
+            : 'No tenés permiso para esa acción.';
+          toast.warning(texto);
         }
       }
 

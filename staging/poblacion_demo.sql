@@ -380,12 +380,14 @@ SELECT lower(m.email) AS medico_email, c.nombre AS centro_nombre, MIN(sm.id) AS 
 -- Los JSON de auditoría viven como large objects: se liberan antes de borrar las filas.
 DO $$
 BEGIN
+  -- old_values/new_values son text en una base nueva (Hibernate) y oid en alguna
+  -- base vieja. Comparar oid con text no tiene operador; los dos lados van a text.
   PERFORM lo_unlink(m.oid)
      FROM pg_largeobject_metadata m
-    WHERE m.oid IN (
-          SELECT old_values FROM audit_log WHERE entity_type = 'TURNO' OR turno_id IS NOT NULL
+    WHERE m.oid::text IN (
+          SELECT old_values::text FROM audit_log WHERE entity_type = 'TURNO' OR turno_id IS NOT NULL
           UNION
-          SELECT new_values FROM audit_log WHERE entity_type = 'TURNO' OR turno_id IS NOT NULL);
+          SELECT new_values::text FROM audit_log WHERE entity_type = 'TURNO' OR turno_id IS NOT NULL);
 END $$;
 
 DELETE FROM encuesta_respuesta;

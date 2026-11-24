@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, Input } from "@angular/core";
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -22,7 +22,7 @@ import { mensajeDeCarga } from "./mensaje-carga";
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ["./paciente-dashboard.component.css", "./paciente-portal.css"],
 })
-export class PacienteDashboardComponent implements OnInit, OnDestroy {
+export class PacienteDashboardComponent implements OnInit {
   /** Dentro de Mis turnos: solo la lista de próximos, sin el inicio. */
   @Input() embebido = false;
   patientDNI: string = "";
@@ -51,8 +51,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   errorMessage: string = '';
   // Particles for background animation
   particles: { x: number; y: number }[] = [];
-  // Intervalo para verificar nuevos turnos cada 5 minutos
-  private verificacionInterval: any;
 
   readonly ESTADOS_FLUJO: string[] = [
     'PROGRAMADO',   // Estado inicial
@@ -84,12 +82,12 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
       };
     }
 
-    if (estadoUpper === 'CANCELADO') {
+    if (estadoUpper === 'CANCELADO' || estadoUpper === 'AUSENTE') {
       return {
         progress: 100,
         colorClass: 'bg-danger',
         isTerminal: true,
-        texto: 'Cancelado'
+        texto: estadoUpper === 'AUSENTE' ? 'Ausente' : 'Cancelado'
       };
     }
 
@@ -136,7 +134,8 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
       'CONFIRMADO': 'Confirmado',
       'REAGENDADO': 'Reagendado',
       'COMPLETO': 'Completado',
-      'CANCELADO': 'Cancelado'
+      'CANCELADO': 'Cancelado',
+      'AUSENTE': 'Ausente'
     };
 
     return estadoMap[estado?.toUpperCase()] || estado;
@@ -187,11 +186,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.currentFilter = "upcoming";
     this.resolverFicha();
-
-    // Verificar cada 5 minutos si hay turnos que deben completarse
-    this.verificacionInterval = setInterval(() => {
-      this.verificarYActualizarTurnosPasados();
-    }, 5 * 60 * 1000); // 5 minutos
   }
 
   reintentar(): void {
@@ -225,75 +219,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
       },
     });
   }
-
-
-  // Agregar método de limpieza
-  ngOnDestroy() {
-    if (this.verificacionInterval) {
-      clearInterval(this.verificacionInterval);
-    }
-  }
-
-  // Agregar método de verificación periódica
-  private verificarYActualizarTurnosPasados() {
-    const pacienteId = this.pacienteId;
-
-    if (!pacienteId) {
-      return;
-    }
-
-    this.turnoService.getByPacienteId(pacienteId).subscribe({
-      next: (dataPackage: DataPackage<Turno[]>) => {
-        const turnos = dataPackage.data || [];
-        let huboActualizaciones = false;
-
-        const actualizaciones: Promise<void>[] = turnos.map(turno => {
-          return new Promise((resolve) => {
-            // ✅ Validar que el turno tenga ID antes de usarlo
-            if (!turno.id) {
-              console.warn("Turno sin ID encontrado, se omite.");
-              resolve();
-              return;
-            }
-
-            // ✅ Solo actualizar si corresponde
-            if ((turno.estado === 'CONFIRMADO' || turno.estado === 'PROGRAMADO') && this.turnoYaPaso(turno)) {
-              console.log(`Actualizando turno ${turno.id} a COMPLETO (verificación periódica)`);
-
-              this.turnoService.updateEstado(
-                turno.id, // ahora seguro no es undefined
-                'COMPLETO',
-                'Turno completado automáticamente'
-              ).subscribe({
-                next: () => {
-                  huboActualizaciones = true;
-                  resolve();
-                },
-                error: (error) => {
-                  console.error(`Error actualizando turno ${turno.id}:`, error);
-                  resolve();
-                }
-              });
-            } else {
-              resolve();
-            }
-          });
-        });
-
-        // Esperar a que terminen las actualizaciones
-        Promise.all(actualizaciones).then(() => {
-          if (huboActualizaciones) {
-            console.log("Se detectaron actualizaciones, recargando turnos...");
-            setTimeout(() => this.cargarTurnosPaciente(), 1000);
-          }
-        });
-      },
-      error: (error) => {
-        console.error("Error obteniendo turnos del paciente:", error);
-      }
-    });
-  }
-
 
 
   getFilterCount(filter: "upcoming" | "past" | "all"): number {
@@ -388,7 +313,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
         this.publicarTurnos(turnos);
         this.isLoadingTurnos = false;
         this.cdr.markForCheck();
-        this.completarTurnosPasados(turnos);
         this.buildSurveyMapFromNotifications();
       },
       error: (error) => {
@@ -403,24 +327,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   private publicarTurnos(turnos: Turno[]): void {
     this.allTurnos = turnos.map((turno) => this.convertirTurnoParaDashboard(turno));
     this.applyFilter();
-  }
-
-  private completarTurnosPasados(turnos: Turno[]): void {
-    for (const turno of turnos) {
-      if (!turno.id) {
-        continue;
-      }
-      if ((turno.estado === "CONFIRMADO" || turno.estado === "PROGRAMADO") && this.turnoYaPaso(turno)) {
-        this.turnoService.updateEstado(turno.id, "COMPLETO", "Turno completado automáticamente").subscribe({
-          next: () => {
-            turno.estado = "COMPLETO";
-            this.publicarTurnos(turnos);
-            this.cdr.markForCheck();
-          },
-          error: (error) => console.error(`Error actualizando turno ${turno.id}:`, error),
-        });
-      }
-    }
   }
 
   private cargarNotificacionesNoLeidas() {
@@ -588,6 +494,7 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
       reagendado: "event_repeat",
       completo: "task_alt",
       cancelado: "cancel",
+      ausente: "person_off",
     };
     return iconMap[status] || "schedule";
   }
@@ -655,7 +562,10 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
     const statusMap: { [key: string]: string } = {
       confirmado: "Confirmado",
       programado: "Programado",
-      reagendado: "Reagendar",
+      reagendado: "Reagendado",
+      completo: "Completado",
+      cancelado: "Cancelado",
+      ausente: "Ausente",
       completed: "Completado",
       cancelled: "Cancelado",
     };
@@ -799,24 +709,6 @@ export class PacienteDashboardComponent implements OnInit, OnDestroy {
   abrirEncuesta(turnoId: number) {
     if (!turnoId) return;
     this.router.navigate(["/paciente/encuesta", turnoId]);
-  }
-
-
-  /**
-   * Verifica si la fecha y hora de un turno ya pasaron
-   */
-  private turnoYaPaso(turno: Turno): boolean {
-    const ahora = new Date();
-
-    // Parsear fecha del turno
-    const [year, month, day] = turno.fecha.split('-').map(Number);
-    const fechaTurno = new Date(year, month - 1, day);
-
-    // Parsear hora de fin del turno
-    const [horas, minutos] = turno.horaFin.split(':').map(Number);
-    fechaTurno.setHours(horas, minutos, 0, 0);
-
-    return ahora > fechaTurno;
   }
 
 

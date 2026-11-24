@@ -34,13 +34,13 @@ public class DisponibilidadMedicoPresenter {
 
     @GetMapping
     public ResponseEntity<Object> findAll() {
-        List<DisponibilidadMedicoDTO> disponibilidades = service.findAll();
+        List<DisponibilidadMedicoDTO> disponibilidades = visibles(service.findAll());
         return Response.ok(disponibilidades, "Disponibilidades recuperadas correctamente");
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable Integer id) {
-        centroAccess.exigirDisponibilidad(id);
+        centroAccess.exigirDisponibilidadDelActor(id);
         return service.findById(id)
                 .map(disponibilidad -> Response.ok(disponibilidad, "Disponibilidad encontrada"))
                 .orElse(Response.notFound("Disponibilidad con id " + id + " no encontrada"));
@@ -48,7 +48,7 @@ public class DisponibilidadMedicoPresenter {
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody DisponibilidadMedicoDTO disponibilidadDTO) {
-        centroAccess.exigirStaffMedico(disponibilidadDTO.getStaffMedicoId());
+        centroAccess.exigirStaffDelActor(disponibilidadDTO == null ? null : disponibilidadDTO.getStaffMedicoId());
         try {
             if (disponibilidadDTO.getStaffMedicoId() == null) {
                 return Response.error(null, "El campo staffMedicoId es obligatorio");
@@ -64,8 +64,8 @@ public class DisponibilidadMedicoPresenter {
 
     @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Integer id, @RequestBody DisponibilidadMedicoDTO disponibilidadDTO) {
-        centroAccess.exigirStaffMedico(disponibilidadDTO.getStaffMedicoId());
-        centroAccess.exigirDisponibilidad(id);
+        centroAccess.exigirStaffDelActor(disponibilidadDTO == null ? null : disponibilidadDTO.getStaffMedicoId());
+        centroAccess.exigirDisponibilidadDelActor(id);
         try {
             if (id == null || id <= 0) {
                 return Response.error(null, "Debe proporcionar un ID válido para actualizar");
@@ -83,7 +83,7 @@ public class DisponibilidadMedicoPresenter {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable Integer id) {
-        centroAccess.exigirDisponibilidad(id);
+        centroAccess.exigirDisponibilidadDelActor(id);
         try {
             service.deleteById(id);
             return Response.ok(null, "Disponibilidad eliminada correctamente");
@@ -94,7 +94,7 @@ public class DisponibilidadMedicoPresenter {
 
     @GetMapping("/staffMedico/{staffMedicoId}")
     public ResponseEntity<Object> findByStaffMedico(@PathVariable Integer staffMedicoId) {
-        centroAccess.exigirStaffMedico(staffMedicoId);
+        centroAccess.exigirStaffDelActor(staffMedicoId);
         try {
             List<DisponibilidadMedicoDTO> disponibilidades = service.findByStaffMedicoId(staffMedicoId);
             return Response.ok(disponibilidades, "Disponibilidades del staff médico recuperadas correctamente");
@@ -105,6 +105,7 @@ public class DisponibilidadMedicoPresenter {
 
     @GetMapping("/medico/{medicoId}")
     public ResponseEntity<Object> findByMedico(@PathVariable Integer medicoId) {
+        centroAccess.exigirMedicoVisible(medicoId);
         try {
             List<DisponibilidadMedicoDTO> disponibilidades = service.findByMedicoId(medicoId);
             return Response.ok(disponibilidades, "Disponibilidades del médico recuperadas correctamente");
@@ -124,13 +125,21 @@ public class DisponibilidadMedicoPresenter {
             @RequestParam(defaultValue = "asc") String sortDir
     ) {
         var pageResult = service.findByPage(page, size, staffMedico, especialidad, dia, sortBy, sortDir);
+        List<DisponibilidadMedicoDTO> content = visibles(pageResult.getContent());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("content", pageResult.getContent());
+        response.put("content", content);
         response.put("totalPages", pageResult.getTotalPages());
         response.put("totalElements", pageResult.getTotalElements());
         response.put("currentPage", pageResult.getNumber());
 
         return Response.ok(response);
+    }
+
+    private List<DisponibilidadMedicoDTO> visibles(List<DisponibilidadMedicoDTO> lista) {
+        if (lista == null) {
+            return List.of();
+        }
+        return lista.stream().filter(dto -> centroAccess.puedeVerStaff(dto.getStaffMedicoId())).toList();
     }
 }

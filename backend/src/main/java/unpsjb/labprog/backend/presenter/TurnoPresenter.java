@@ -453,7 +453,7 @@ public class TurnoPresenter {
             @PathVariable Integer id,
             @RequestBody Map<String, Boolean> body,
             HttpServletRequest request) {
-        centroAccess.exigirTurno(id);
+        centroAccess.exigirMarcarAsistencia(id);
         try {
             // Validar que el body contenga el campo asistio
             if (!body.containsKey("asistio") || body.get("asistio") == null) {
@@ -896,7 +896,7 @@ public class TurnoPresenter {
     @PostMapping("/ejecutar-recordatorios")
     public ResponseEntity<Object> ejecutarRecordatoriosManual() {
         try {
-            recordatorioService.enviarRecordatoriosPendientes();
+            recordatorioService.enviarRecordatoriosPendientes(centroAccess.centroDeEjecucionManual());
             return Response.ok(null, "Recordatorios ejecutados manualmente por RecordatorioService");
         } catch (AccessDeniedException e) {
             throw e;
@@ -913,7 +913,7 @@ public class TurnoPresenter {
     @PostMapping("/ejecutar-cancelacion-automatica")
     public ResponseEntity<Object> ejecutarCancelacionAutomaticaManual() {
         try {
-            turnoAutomationService.ejecutarCancelacionManual();
+            turnoAutomationService.ejecutarCancelacionManual(centroAccess.centroDeEjecucionManual());
             return Response.ok(null, "Cancelación automática de turnos ejecutada manualmente");
         } catch (AccessDeniedException e) {
             throw e;
