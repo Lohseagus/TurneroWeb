@@ -31,6 +31,7 @@ describe('solapa activa de Turnos', () => {
 
   it('respeta la solapa y la vista que se puede linkear', () => {
     expect(solapaDesdeQuery('agenda', null)).toEqual({ solapa: 'agenda', vista: 'lista' });
+    expect(solapaDesdeQuery('mes', null)).toEqual({ solapa: 'mes', vista: 'lista' });
     expect(solapaDesdeQuery('todos', 'avanzada')).toEqual({ solapa: 'todos', vista: 'avanzada' });
     expect(solapaDesdeQuery('lista-espera', 'estadisticas')).toEqual({
       solapa: 'lista-espera',

@@ -108,6 +108,10 @@ export class AdminDashboardComponent implements OnInit {
     this.router.navigate(["/turnos/audit-dashboard"]);
   }
 
+  goToCalendario() {
+    this.router.navigate(["/calendario"]);
+  }
+
   goToUsers() {
     this.router.navigate(["/operadores"]);
   }

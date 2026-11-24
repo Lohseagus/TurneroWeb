@@ -5,6 +5,7 @@ import { Subscription } from "rxjs";
 import { PacienteDashboardComponent } from "./paciente-dashboard.component";
 import { HistorialTurnosComponent } from "../turnos/historial-turnos.component";
 import { PacienteListaEsperaComponent } from "./paciente-lista-espera.component";
+import { CalendarioMesComponent } from "../calendario/calendario-mes.component";
 
 @Component({
   selector: "app-paciente-turnos",
@@ -15,13 +16,14 @@ import { PacienteListaEsperaComponent } from "./paciente-lista-espera.component"
     PacienteDashboardComponent,
     HistorialTurnosComponent,
     PacienteListaEsperaComponent,
+    CalendarioMesComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: "./paciente-turnos.component.html",
   styleUrl: "./paciente-portal.css",
 })
 export class PacienteTurnosComponent implements OnInit, OnDestroy {
-  tab: "proximos" | "pasados" = "proximos";
+  tab: "proximos" | "pasados" | "mes" = "proximos";
   private sub?: Subscription;
 
   constructor(
@@ -31,7 +33,8 @@ export class PacienteTurnosComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sub = this.route.queryParamMap.subscribe((params) => {
-      this.tab = params.get("tab") === "pasados" ? "pasados" : "proximos";
+      const tab = params.get("tab");
+      this.tab = tab === "pasados" || tab === "mes" ? tab : "proximos";
     });
   }
 
@@ -39,7 +42,7 @@ export class PacienteTurnosComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
   }
 
-  ir(tab: "proximos" | "pasados"): void {
+  ir(tab: "proximos" | "pasados" | "mes"): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { tab },

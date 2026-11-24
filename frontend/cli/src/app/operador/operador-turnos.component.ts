@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AdminAgendaComponent } from '../agenda/admin-agenda.component';
+import { CalendarioMesComponent } from '../calendario/calendario-mes.component';
 import { ListaEsperaComponent } from '../lista-espera/lista-espera.component';
 import { ListaEsperaEstadisticasComponent } from '../lista-espera/lista-espera-estadisticas.component';
 import { TurnoAdvancedSearchComponent } from '../turnos/turno-advanced-search.component';
@@ -19,7 +20,8 @@ import { SolapaTurnos, VistaTurnos, solapaDesdeQuery } from './operador-panel';
     TurnosComponent,
     TurnoAdvancedSearchComponent,
     ListaEsperaComponent,
-    ListaEsperaEstadisticasComponent
+    ListaEsperaEstadisticasComponent,
+    CalendarioMesComponent
   ],
   templateUrl: './operador-turnos.component.html',
   styleUrls: ['../pacientes/paciente-portal.css', './operador-turnos.component.css']

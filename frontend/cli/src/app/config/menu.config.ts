@@ -99,6 +99,12 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Panel principal del médico'
       },
       {
+        label: 'Calendario',
+        route: '/calendario',
+        icon: 'calendar_month',
+        description: 'Tus turnos del mes'
+      },
+      {
         label: 'Mis Horarios',
         route: '/medico-horarios',
         icon: 'schedule',
@@ -285,6 +291,12 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Reporte de atenciones completadas'
       },
       {
+        label: 'Calendario',
+        route: '/calendario',
+        icon: 'calendar_month',
+        description: 'Turnos del mes, por médico, especialidad y consultorio'
+      },
+      {
         label: 'Encuestas',
         route: '/admin/gestion-encuestas',
         icon: 'assignment',
@@ -328,6 +340,12 @@ export const MENU_CONFIG: MenuSection[] = [
         route: '/saas',
         icon: 'dashboard',
         description: 'Suscripciones, MRR, pruebas y cobros'
+      },
+      {
+        label: 'Calendario',
+        route: '/calendario',
+        icon: 'calendar_month',
+        description: 'Turnos de un centro en el mes'
       },
       {
         label: 'Gestión de Centros',
@@ -467,7 +485,7 @@ const ITEMS_OPERADOR_PRIMARIO: MenuItem[] = [
     label: 'Turnos',
     route: '/operador/turnos',
     icon: 'event',
-    description: 'Por confirmar, agenda, todos y lista de espera',
+    description: 'Por confirmar, agenda, mes, todos y lista de espera',
     activeOn: ['/turnos', '/lista-espera', '/lista-espera-estadisticas']
   },
   {

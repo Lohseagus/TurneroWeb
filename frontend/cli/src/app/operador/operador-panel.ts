@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { UserContextService } from '../services/user-context.service';
 
-export const SOLAPAS_TURNOS = ['por-confirmar', 'agenda', 'todos', 'lista-espera'] as const;
+export const SOLAPAS_TURNOS = ['por-confirmar', 'agenda', 'todos', 'lista-espera', 'mes'] as const;
 export type SolapaTurnos = (typeof SOLAPAS_TURNOS)[number];
 export type VistaTurnos = 'lista' | 'estadisticas' | 'avanzada';
 

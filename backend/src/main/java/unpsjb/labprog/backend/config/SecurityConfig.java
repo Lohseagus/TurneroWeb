@@ -327,6 +327,9 @@ public class SecurityConfig {
 
                                 // Médico, operador y administrador operan turnos y horarios.
                                 .requestMatchers("/api/disponibilidades-medico/**").hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
+                                // El mes lo pide también el paciente. El servicio recorta por rol:
+                                // el paciente ve los suyos, el médico los propios y el personal su centro.
+                                .requestMatchers(HttpMethod.GET, "/api/turno/calendario").hasRole("PACIENTE")
                                 .requestMatchers("/api/turno/**").hasAnyRole("MEDICO", "OPERADOR", "ADMINISTRADOR")
 
                                 // Gestión de catálogo: administrador y operador.

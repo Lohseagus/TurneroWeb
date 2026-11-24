@@ -2,7 +2,7 @@ import { AgendaService } from '../agenda/agenda.service';
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin, timeout } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { TurnoService } from '../turnos/turno.service';
@@ -27,7 +27,7 @@ interface DashboardStats {
 @Component({
   selector: 'app-medico-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './medico-dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './medico-dashboard.component.css'

@@ -1,0 +1,254 @@
+<div class="cal" [class.cal--embebido]="embebido">
+  @if (!embebido) {
+    <header class="ct-page-header">
+      <div class="ct-page-header__main">
+        <span class="material-symbols-outlined ct-icon-chip ct-icon-chip--lg">calendar_month</span>
+        <div>
+          <h1 class="ct-page-header__title">Calendario</h1>
+          <p class="ct-page-header__subtitle">
+            @if (rol === "paciente") {
+              Tus turnos del mes
+            } @else if (rol === "medico") {
+              Tus turnos del mes
+            } @else {
+              Turnos del centro en el mes
+            }
+          </p>
+        </div>
+      </div>
+    </header>
+  }
+
+  <div class="cal__nav">
+    <h2 class="cal__titulo">{{ titulo }}</h2>
+    <div class="ct-btn-group">
+      <button type="button" class="btn btn-secondary btn-sm" (click)="mover(-1)" aria-label="Mes anterior">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="irHoy()">Hoy</button>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="mover(1)" aria-label="Mes siguiente">
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+    </div>
+  </div>
+
+  @if (rol === "staff") {
+    <div class="filtro-bar">
+      @if (esSuperAdmin) {
+        <select
+          class="filtro-select"
+          aria-label="Centro"
+          [ngModel]="centroId"
+          (ngModelChange)="alCambiarCentro($event)"
+        >
+          <option [ngValue]="null">Centro</option>
+          @for (centro of centros; track centro.id) {
+            <option [ngValue]="centro.id">{{ centro.nombre }}</option>
+          }
+        </select>
+      }
+      <select class="filtro-select" aria-label="Médico" [(ngModel)]="medicoId" (ngModelChange)="alFiltrar()">
+        <option [ngValue]="null">Médico</option>
+        @for (medico of medicos; track medico.id) {
+          <option [ngValue]="medico.id">{{ medico.nombre }}</option>
+        }
+      </select>
+      <select
+        class="filtro-select"
+        aria-label="Especialidad"
+        [(ngModel)]="especialidadId"
+        (ngModelChange)="alFiltrar()"
+      >
+        <option [ngValue]="null">Especialidad</option>
+        @for (especialidad of especialidades; track especialidad.id) {
+          <option [ngValue]="especialidad.id">{{ especialidad.nombre }}</option>
+        }
+      </select>
+      <select
+        class="filtro-select"
+        aria-label="Consultorio"
+        [(ngModel)]="consultorioId"
+        (ngModelChange)="alFiltrar()"
+      >
+        <option [ngValue]="null">Consultorio</option>
+        @for (consultorio of consultorios; track consultorio.id) {
+          <option [ngValue]="consultorio.id">{{ consultorio.nombre }}</option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (avisoCentro) {
+    <p class="cal__aviso">Elegí un centro para ver el mes.</p>
+  }
+  @if (error) {
+    <p class="cal__error">{{ error }}</p>
+  }
+  @if (cargando) {
+    <p class="cal__aviso">Cargando turnos…</p>
+  }
+
+  <div class="mes" role="grid" aria-label="Calendario del mes">
+    @for (nombre of diasSemana; track nombre) {
+      <div class="mes__dow" role="columnheader">{{ nombre }}</div>
+    }
+    @for (dia of grilla; track dia.fecha) {
+      <button
+        type="button"
+        class="mes__dia"
+        role="gridcell"
+        [class.mes__dia--fuera]="!dia.esMesActual"
+        [class.mes__dia--hoy]="dia.esHoy"
+        [class.mes__dia--feriado]="dia.feriado"
+        [class.mes__dia--activo]="diaSeleccionado?.fecha === dia.fecha"
+        [attr.aria-label]="etiqueta(dia.fecha)"
+        [attr.aria-pressed]="diaSeleccionado?.fecha === dia.fecha"
+        (click)="elegir(dia)"
+      >
+        <span class="mes__numero">
+          {{ dia.numero }}
+          @if (dia.total > 0) {
+            <span class="mes__cuenta">{{ dia.total }}</span>
+          }
+        </span>
+        @if (dia.feriado) {
+          <span class="mes__feriado" [title]="dia.feriadoTexto || 'Feriado'">Feriado</span>
+        }
+        @for (turno of dia.primeros; track turno.id) {
+          <span class="chip" [ngClass]="clase(turno)" [title]="estado(turno) + ' ' + hora(turno)">
+            {{ hora(turno) }} {{ tituloTurno(turno) }}
+          </span>
+        }
+        @if (dia.total > dia.primeros.length) {
+          <span class="mes__mas">+{{ dia.total - dia.primeros.length }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <div class="lista">
+    @for (dia of diasDelMes; track dia.fecha) {
+      <button
+        type="button"
+        class="lista__dia"
+        [class.lista__dia--hoy]="dia.esHoy"
+        [class.lista__dia--feriado]="dia.feriado"
+        [class.lista__dia--activo]="diaSeleccionado?.fecha === dia.fecha"
+        (click)="elegir(dia)"
+      >
+        <span class="lista__fecha">
+          {{ etiqueta(dia.fecha) }}
+          @if (dia.total > 0) {
+            <span class="mes__cuenta">{{ dia.total }}</span>
+          }
+        </span>
+        @if (dia.feriado) {
+          <span class="mes__feriado">{{ dia.feriadoTexto || "Feriado" }}</span>
+        }
+        @for (turno of dia.primeros; track turno.id) {
+          <span class="chip" [ngClass]="clase(turno)">{{ hora(turno) }} {{ tituloTurno(turno) }}</span>
+        }
+        @if (dia.total > dia.primeros.length) {
+          <span class="mes__mas">+{{ dia.total - dia.primeros.length }}</span>
+        }
+        @if (!dia.feriado && dia.total === 0) {
+          <span class="lista__vacio">Sin turnos</span>
+        }
+      </button>
+    }
+  </div>
+
+  @if (diaSeleccionado) {
+    <section class="dia" aria-label="Turnos del día">
+      <header class="dia__cabecera">
+        <h3>{{ etiqueta(diaSeleccionado.fecha) }}</h3>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="elegir(diaSeleccionado)">
+          <span class="material-symbols-outlined">close</span>
+          Cerrar
+        </button>
+      </header>
+      @if (diaSeleccionado.feriado) {
+        <p class="dia__feriado">{{ diaSeleccionado.feriadoTexto || "Feriado" }}</p>
+      }
+      @if (mensaje) {
+        <p class="cal__aviso">{{ mensaje }}</p>
+      }
+      @if (diaSeleccionado.total === 0) {
+        <p class="lista__vacio">No hay turnos este día.</p>
+      }
+      <ul class="dia__lista">
+        @for (turno of diaSeleccionado.turnos; track turno.id) {
+          <li class="dia__item">
+            <div class="dia__dato">
+              <span class="chip" [ngClass]="clase(turno)">{{ hora(turno) }} · {{ estado(turno) }}</span>
+              <strong>{{ tituloTurno(turno) }}</strong>
+              <span>{{ detalleTurno(turno) }}</span>
+            </div>
+            <div class="dia__acciones">
+              @if (acciones(turno).confirmar) {
+                <button type="button" class="btn btn-success btn-sm" [disabled]="accionEnCurso" (click)="confirmar(turno)">
+                  <span class="material-symbols-outlined">check</span>
+                  Confirmar
+                </button>
+              }
+              @if (acciones(turno).reagendar) {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="reagendar(turno)">
+                  <span class="material-symbols-outlined">event_repeat</span>
+                  Reagendar
+                </button>
+              }
+              @if (acciones(turno).cancelar) {
+                <button type="button" class="btn btn-danger btn-sm" (click)="empezarCancelar(turno)">
+                  <span class="material-symbols-outlined">close</span>
+                  Cancelar
+                </button>
+              }
+              @if (acciones(turno).ver) {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="ver(turno)">
+                  <span class="material-symbols-outlined">visibility</span>
+                  Ver
+                </button>
+              }
+              @if (acciones(turno).consulta) {
+                <button type="button" class="btn btn-primary btn-sm" (click)="consulta(turno)">
+                  <span class="material-symbols-outlined">stethoscope</span>
+                  Consulta
+                </button>
+              }
+              @if (acciones(turno).historia) {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="historia(turno)">
+                  <span class="material-symbols-outlined">clinical_notes</span>
+                  Historia
+                </button>
+              }
+              @if (acciones(turno).asistencia && turno.asistio !== false) {
+                <button type="button" class="btn btn-secondary btn-sm" [disabled]="accionEnCurso" (click)="asistencia(turno, false)">
+                  <span class="material-symbols-outlined">person_off</span>
+                  Ausente
+                </button>
+              }
+              @if (acciones(turno).asistencia && turno.asistio === false) {
+                <button type="button" class="btn btn-secondary btn-sm" [disabled]="accionEnCurso" (click)="asistencia(turno, true)">
+                  <span class="material-symbols-outlined">how_to_reg</span>
+                  Asistió
+                </button>
+              }
+            </div>
+            @if (cancelandoId === turno.id) {
+              <form class="dia__motivo" (submit)="$event.preventDefault(); cancelar(turno)">
+                <input
+                  type="text"
+                  [(ngModel)]="motivo"
+                  name="motivo"
+                  placeholder="Motivo de la cancelación"
+                  aria-label="Motivo de la cancelación"
+                />
+                <button type="submit" class="btn btn-danger btn-sm" [disabled]="accionEnCurso">Confirmar cancelación</button>
+              </form>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>
