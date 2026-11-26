@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DataPackage } from '../../../data.package';
 import { TurnoService } from '../../../turnos/turno.service';
@@ -24,6 +24,7 @@ export interface OperadorResumen {
   selector: 'app-centro-resumen-tab',
   standalone: true,
   imports: [RouterLink],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './centro-resumen-tab.component.html',
   styleUrl: './centro-resumen-tab.component.css'
 })

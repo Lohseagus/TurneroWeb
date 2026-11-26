@@ -118,3 +118,8 @@
     grid-template-columns: 4.5rem 1fr;
   }
 }
+
+/* Alineado con la base compartida */
+.resumen-kpi > .material-symbols-outlined {
+  color: var(--color-accent);
+}
