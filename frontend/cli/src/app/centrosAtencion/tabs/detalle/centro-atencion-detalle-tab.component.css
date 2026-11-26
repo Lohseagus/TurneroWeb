@@ -2,11 +2,11 @@
 
 /* Variables CSS */
 :host {
-  --primary-color: #10b981;
-  --primary-light: #34d399;
+  --primary-color: var(--color-accent);
+  --primary-light: var(--color-accent);
   --secondary-color: #64748b;
-  --success-color: #10b981;
-  --success-light: #34d399;
+  --success-color: var(--color-accent);
+  --success-light: var(--color-accent);
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #06b6d4;
@@ -150,16 +150,16 @@
 }
 
 .info-value span {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.1) 0%, rgba(var(--color-accent-rgb), 0.05) 100%);
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
   display: inline-block;
   transition: all 0.2s ease;
 }
 
 .info-value span:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.15) 0%, rgba(var(--color-accent-rgb), 0.1) 100%);
   transform: translateY(-1px);
 }
 
@@ -206,7 +206,7 @@
 
 .form-control-modern:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--color-accent-rgb), 0.25);
   outline: none;
   transform: translateY(-1px);
   background: var(--lighter-color);
@@ -307,7 +307,7 @@
 }
 
 .btn-edit:hover {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
   transform: translateY(-2px) scale(1.05);
   box-shadow: var(--shadow-md);
   color: white;
@@ -350,7 +350,7 @@
 }
 
 .btn-save:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
   transform: translateY(-2px) scale(1.05);
   box-shadow: var(--shadow-md);
   color: white;
@@ -564,7 +564,7 @@ input.form-control-modern.me-2 {
 
 /* Estados de hover mejorados */
 .btn:focus {
-  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--color-accent-rgb), 0.25);
 }
 
 .info-icon {
@@ -597,5 +597,157 @@ input.form-control-modern.me-2 {
 
 .form-group-modern .ng-valid.ng-touched .form-control-modern {
   border-color: var(--success-color);
-  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--color-accent-rgb), 0.25);
+}
+/* Alineado con la base compartida (ct-ui.css) */
+.modern-card,
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.modern-card-header,
+.card-header {
+  color: var(--text-main);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.modern-card-header::after,
+.card-header::after {
+  display: none;
+}
+
+.modern-card-header h4,
+.card-header h4 {
+  font-size: var(--font-size-xl);
+  color: var(--text-main);
+}
+
+.modern-card-header small,
+.card-header small {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.modern-card-header .header-icon,
+.card-header .info-icon {
+  background: var(--gradient-accent-soft) !important;
+  border: 0;
+  box-shadow: none;
+}
+
+.modern-card-header .btn-modern {
+  color: var(--text-on-accent);
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.modern-card-header .btn-modern:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  transform: none;
+}
+
+/* Encabezado de la pestaña: fondo blanco y título oscuro (pisa los !important anteriores) */
+.modern-card-header,
+.card-header {
+  color: var(--text-main) !important;
+  background: var(--color-surface) !important;
+}
+
+.modern-card-header h4,
+.card-header h4 {
+  color: var(--text-main) !important;
+}
+
+.modern-card-header small,
+.card-header small {
+  color: var(--text-secondary) !important;
+}
+
+/* Calendarios semanales y tablas: cabeceras claras y tarjetas suaves en vez de bloques de color */
+.dias-header,
+.dias-horarios-header,
+.dia-header,
+.dia-header-matriz,
+.modern-table .table thead th,
+.tabla-matriz thead th,
+.consultorio-section-header {
+  color: var(--text-secondary) !important;
+  background: var(--color-background) !important;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.dias-header::after,
+.dia-header::after,
+.modern-table .table thead th::after {
+  display: none;
+}
+
+.dias-header .dia-header {
+  border-bottom: 0;
+}
+
+.esquema-dia-card,
+.disponibilidad-dia-card {
+  color: var(--text-main) !important;
+  background: rgba(var(--color-accent-rgb), 0.08) !important;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
+  border-left: 3px solid var(--color-accent);
+  box-shadow: none;
+}
+
+.esquema-dia-card::before {
+  display: none;
+}
+
+.esquema-dia-card *,
+.disponibilidad-dia-card * {
+  color: var(--text-main) !important;
+  text-shadow: none;
+}
+
+.badge-horario,
+.badge-centro-atencion,
+.dia-count {
+  color: var(--color-accent) !important;
+  background: rgba(var(--color-accent-rgb), 0.1) !important;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  box-shadow: none;
+}
+
+.badge-horario *,
+.badge-centro-atencion * {
+  color: var(--color-accent) !important;
+}
+
+.btn-back,
+.btn-secondary {
+  color: var(--text-main) !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: none !important;
+}
+
+.btn-back:hover,
+.btn-secondary:hover {
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  transform: none;
+}
+
+.card-footer {
+  background: var(--color-surface) !important;
+  border-top: 1px solid var(--border-color);
+}
+
+.card-footer::before {
+  display: none;
 }

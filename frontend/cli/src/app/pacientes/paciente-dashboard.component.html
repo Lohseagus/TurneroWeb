@@ -121,7 +121,7 @@
                 class="ct-badge turno__estado"
                 [class.ct-badge--success]="turno.status === 'confirmado' || turno.status === 'completo'"
                 [class.ct-badge--warning]="turno.status === 'programado' || turno.status === 'reagendado'"
-                [class.ct-badge--danger]="turno.status === 'cancelado'"
+                [class.ct-badge--danger]="turno.status === 'cancelado' || turno.status === 'ausente'"
                 >
                 <span class="material-symbols-outlined">{{ getStatusIcon(turno.status) }}</span>
                 {{ getStatusText(turno.status) }}

@@ -230,7 +230,7 @@ export const MENU_CONFIG: MenuSection[] = [
         description: 'Panel de control administrativo'
       },
       {
-        label: 'Panel Auditoria',
+        label: 'Panel de auditoría',
         route: '/turnos/audit-dashboard',
         icon: 'policy',
         description: 'Panel de control administrativo'

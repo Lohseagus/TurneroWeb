@@ -690,6 +690,8 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
     @Query("select t.centroAtencion.id from Turno t where t.id = :id")
     java.util.Optional<Integer> findCentroIdByTurnoId(@Param("id") Integer id);
 
+    boolean existsByPaciente_IdAndCentroAtencion_Id(Integer pacienteId, Integer centroId);
+
     boolean existsByPaciente_IdAndMedico_IdAndCentroAtencion_IdAndEstadoNot(
             Integer pacienteId, Integer medicoId, Integer centroId, EstadoTurno estado);
 

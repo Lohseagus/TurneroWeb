@@ -19,7 +19,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import tools.jackson.databind.ObjectMapper;
 
+import org.springframework.security.access.AccessDeniedException;
+
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.business.service.CentroAccessGuard;
 import unpsjb.labprog.backend.business.service.CentroAtencionService;
 import unpsjb.labprog.backend.dto.CentroAtencionDTO;
 import unpsjb.labprog.backend.config.AuditContext;
@@ -32,6 +35,9 @@ public class CentroAtencionPresenter {
     private CentroAtencionService service;
 
     @Autowired
+    private CentroAccessGuard centroAccess;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @RequestMapping(method = RequestMethod.GET)
@@ -42,6 +48,7 @@ public class CentroAtencionPresenter {
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public ResponseEntity<Object> findById(@PathVariable("id") Integer id) {
+        centroAccess.exigirLecturaDeCentro(id);
         Optional<CentroAtencionDTO> optionalCentro = service.findById(id);
         if (optionalCentro.isEmpty()) {
             return Response.notFound("Centro de atención id " + id + " no encontrado");
@@ -72,6 +79,7 @@ public class CentroAtencionPresenter {
 
     @RequestMapping(method = RequestMethod.POST)
     public ResponseEntity<Object> create(@RequestBody CentroAtencionDTO dto) {
+        centroAccess.exigirSuperadmin();
         try {
             if (dto.getId() != null && dto.getId() != 0) {
                 return Response.error(dto, "El centro de atención no puede tener un ID definido al crearse.");
@@ -79,6 +87,8 @@ public class CentroAtencionPresenter {
             String performedBy = AuditContext.getCurrentUser();
             CentroAtencionDTO saved = service.saveOrUpdate(dto, performedBy);
             return Response.ok(saved, "Centro de atención creado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (ResponseStatusException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 return Response.dbError(e.getReason());
@@ -92,6 +102,7 @@ public class CentroAtencionPresenter {
     @RequestMapping(method = RequestMethod.PUT)
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Object> update(@RequestBody CentroAtencionDTO dto) {
+        centroAccess.exigirEdicionDeCentro(dto == null ? null : dto.getId());
         try {
             if (dto.getId() == null || dto.getId() <= 0) {
                 return Response.error(dto, "Debe proporcionar un ID válido para actualizar.");
@@ -99,6 +110,8 @@ public class CentroAtencionPresenter {
             String performedBy = AuditContext.getCurrentUser();
             CentroAtencionDTO saved = service.saveOrUpdate(dto, performedBy);
             return Response.ok(saved, "Centro de atención modificado correctamente");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (ResponseStatusException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 return Response.dbError(e.getReason());
@@ -111,10 +124,13 @@ public class CentroAtencionPresenter {
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<Object> delete(@PathVariable("id") Integer id) {
+        centroAccess.exigirSuperadmin();
         try {
             String performedBy = AuditContext.getCurrentUser();
             service.delete(id, performedBy);
             return Response.ok("Centro de atención " + id + " eliminado correctamente.");
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (ResponseStatusException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 return Response.dbError(e.getReason());

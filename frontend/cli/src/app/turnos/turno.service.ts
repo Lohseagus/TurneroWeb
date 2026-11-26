@@ -446,6 +446,12 @@ export class TurnoService {
     if (filter.entityType) {
       httpParams = httpParams.set('entidad', filter.entityType);
     }
+    if (filter.role) {
+      httpParams = httpParams.set('rol', filter.role);
+    }
+    if (filter.source) {
+      httpParams = httpParams.set('origen', filter.source);
+    }
 
     return this.http.get<DataPackage<AuditPage>>(`${this.auditUrl}/page`, { params: httpParams });
   }

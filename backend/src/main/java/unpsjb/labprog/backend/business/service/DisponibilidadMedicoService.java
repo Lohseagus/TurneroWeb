@@ -4,6 +4,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import unpsjb.labprog.backend.config.AuditContext;
+import unpsjb.labprog.backend.model.Role;
+import unpsjb.labprog.backend.model.User;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,8 +22,6 @@ import unpsjb.labprog.backend.business.repository.EspecialidadRepository;
 import unpsjb.labprog.backend.dto.DisponibilidadMedicoDTO;
 import unpsjb.labprog.backend.model.DisponibilidadMedico;
 import unpsjb.labprog.backend.model.Especialidad;
-import unpsjb.labprog.backend.config.TenantContext;
-
 @Service
 public class DisponibilidadMedicoService {
 
@@ -45,19 +47,9 @@ public class DisponibilidadMedicoService {
      * - PACIENTE: Ve todas las disponibilidades (acceso global)
      */
     public List<DisponibilidadMedicoDTO> findAll() {
-        Integer centroId = TenantContext.getFilteredCentroId();
-        
-        if (centroId != null) {
-            // Usuario limitado por centro - filtrar por disponibilidades del centro (via StaffMedico)
-            return repository.findByStaffMedico_CentroAtencionId(centroId).stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList());
-        } else {
-            // SUPERADMIN o PACIENTE - acceso global
-            return repository.findAll().stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList());
-        }
+        return acotar(repository.findAll()).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     public Optional<DisponibilidadMedicoDTO> findById(Integer id) {
@@ -71,28 +63,7 @@ public class DisponibilidadMedicoService {
      * - PACIENTE: Ve todas las disponibilidades (acceso global)
      */
     public Page<DisponibilidadMedicoDTO> findByPage(int page, int size) {
-        Integer centroId = TenantContext.getFilteredCentroId();
-        
-        PageRequest pageRequest = PageRequest.of(page, size);
-        
-        if (centroId != null) {
-            // Usuario limitado por centro - filtrar por disponibilidades del centro
-            List<DisponibilidadMedico> dispList = repository.findByStaffMedico_CentroAtencionId(centroId);
-            // Convertir a Page manualmente
-            int start = (int) pageRequest.getOffset();
-            int end = Math.min((start + pageRequest.getPageSize()), dispList.size());
-            return new org.springframework.data.domain.PageImpl<>(
-                dispList.subList(start, end).stream()
-                    .map(this::toDTO)
-                    .collect(Collectors.toList()),
-                pageRequest,
-                dispList.size()
-            );
-        } else {
-            // SUPERADMIN o PACIENTE - acceso global
-            return repository.findAll(pageRequest)
-                    .map(this::toDTO);
-        }
+        return paginar(acotar(repository.findAll()), PageRequest.of(page, size));
     }
 
     public Page<DisponibilidadMedicoDTO> findByPage(int page, int size, String staffMedico, String especialidad, String dia, String sortBy, String sortDir) {
@@ -105,27 +76,21 @@ public class DisponibilidadMedicoService {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Si no hay filtros, usar el método estándar
+        // Si no hay filtros, igual se recorta al médico o al centro de quien pide.
         if ((staffMedico == null || staffMedico.trim().isEmpty()) &&
             (especialidad == null || especialidad.trim().isEmpty()) &&
             (dia == null || dia.trim().isEmpty())) {
-            return repository.findAll(pageable).map(this::toDTO);
+            return paginar(acotar(repository.findAll()), pageable);
         }
 
         // Usar el método filtrado
-        List<DisponibilidadMedico> filteredResults = repository.findFiltered(
+        List<DisponibilidadMedico> filteredResults = acotar(repository.findFiltered(
             staffMedico != null && !staffMedico.trim().isEmpty() ? staffMedico.trim() : null,
             especialidad != null && !especialidad.trim().isEmpty() ? especialidad.trim() : null,
             dia != null && !dia.trim().isEmpty() ? dia.trim() : null
-        );
+        ));
 
-        // Aplicar paginación manualmente a los resultados filtrados
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), filteredResults.size());
-        List<DisponibilidadMedico> pageContent = filteredResults.subList(start, end);
-
-        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, filteredResults.size())
-                .map(this::toDTO);
+        return paginar(filteredResults, pageable);
     }
 
     @Transactional
@@ -262,6 +227,34 @@ public class DisponibilidadMedicoService {
             return horario;
         }).collect(Collectors.toList()));
         return disponibilidad;
+    }
+
+    /**
+     * Un médico ve solo sus horarios. El personal del centro, los de sus médicos.
+     * Sin sesión no recorta: lo usa el modo de desarrollo.
+     */
+    private List<DisponibilidadMedico> acotar(List<DisponibilidadMedico> lista) {
+        User user = AuditContext.getCurrentUserObject();
+        if (lista == null || user == null || user.getRole() == null || user.getRole() == Role.SUPERADMIN) {
+            return lista == null ? List.of() : lista;
+        }
+        if (user.getRole() == Role.MEDICO) {
+            java.util.Set<Integer> propios = centroAccess.staffPropioIds();
+            return lista.stream()
+                    .filter(disponibilidad -> disponibilidad.getStaffMedico() != null
+                            && propios.contains(disponibilidad.getStaffMedico().getId()))
+                    .toList();
+        }
+        return centroAccess.filtrar(lista, disponibilidad -> CentroAccessGuard.centroDe(disponibilidad.getStaffMedico()));
+    }
+
+    private Page<DisponibilidadMedicoDTO> paginar(List<DisponibilidadMedico> lista, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+        int end = lista.isEmpty() ? 0 : Math.min(start + pageable.getPageSize(), lista.size());
+        List<DisponibilidadMedicoDTO> pagina = start >= lista.size()
+                ? List.of()
+                : lista.subList(start, end).stream().map(this::toDTO).collect(Collectors.toList());
+        return new org.springframework.data.domain.PageImpl<>(pagina, pageable, lista.size());
     }
 
     public List<DisponibilidadMedicoDTO> findByStaffMedicoId(Integer staffMedicoId) {

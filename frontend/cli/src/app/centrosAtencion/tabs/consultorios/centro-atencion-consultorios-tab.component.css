@@ -2,11 +2,11 @@
 
 /* Variables CSS */
 :host {
-  --primary-color: #10b981;
-  --primary-light: #34d399;
+  --primary-color: var(--color-accent);
+  --primary-light: var(--color-accent);
   --secondary-color: #64748b;
-  --success-color: #10b981;
-  --success-light: #34d399;
+  --success-color: var(--color-accent);
+  --success-light: var(--color-accent);
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #06b6d4;
@@ -15,7 +15,7 @@
   --dark-color: #1e293b;
   --border-color: #e2e8f0;
   --border-light: #f1f5f9;
-  --consultorio-green: #10b981;
+  --consultorio-green: var(--color-accent);
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -178,7 +178,7 @@
 }
 
 .btn-success-modern:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
   transform: translateY(-2px) scale(1.05);
   box-shadow: var(--shadow-md);
 }
@@ -217,7 +217,7 @@
 
 .form-control-modern:focus, .modern-select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--color-accent-rgb), 0.25);
   outline: none;
   transform: translateY(-1px);
 }
@@ -376,7 +376,7 @@
 }
 
 .btn-gestionar-esquemas:hover {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
   box-shadow: var(--shadow-md);
 }
 
@@ -498,7 +498,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(79, 70, 229, 0.02) 100%);
+  background: linear-gradient(135deg, transparent 0%, rgba(var(--color-accent-rgb), 0.02) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -546,7 +546,7 @@
 }
 
 .esquema-dia-card:hover {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
   box-shadow: var(--shadow-md);
 }
 
@@ -749,7 +749,7 @@
     letter-spacing: 0.5px;
     text-align: center;
     padding: 0.5rem;
-    background: rgba(79, 70, 229, 0.1);
+    background: rgba(var(--color-accent-rgb), 0.1);
     border-radius: 8px;
   }
 }
@@ -867,7 +867,7 @@
 }
 
 .consultorio-actions .btn:focus {
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--color-accent-rgb), 0.25);
 }
 
 /* Mejoras visuales adicionales */
@@ -991,14 +991,14 @@
   font-weight: 500;
   text-align: center;
   min-width: 65px;
-  box-shadow: 0 1px 2px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 1px 2px rgba(var(--color-accent-rgb), 0.3);
   transition: all 0.2s ease;
 }
 
 .horario-texto:hover {
-  background: #218838;
+  background: var(--color-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 2px 4px rgba(var(--color-accent-rgb), 0.4);
 }
 
 /* Día cerrado */
@@ -1040,4 +1040,133 @@
     font-size: 0.75rem;
     padding: 0.3rem 0.6rem;
   }
+}
+
+/* Alineado con la base compartida (ct-ui.css) */
+.modern-card,
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.modern-card-header,
+.card-header {
+  color: var(--text-main);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.modern-card-header::after,
+.card-header::after {
+  display: none;
+}
+
+.modern-card-header h4,
+.card-header h4 {
+  font-size: var(--font-size-xl);
+  color: var(--text-main);
+}
+
+.modern-card-header small,
+.card-header small {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.modern-card-header .header-icon,
+.card-header .info-icon {
+  background: var(--gradient-accent-soft) !important;
+  border: 0;
+  box-shadow: none;
+}
+
+.modern-card-header .btn-modern {
+  color: var(--text-on-accent);
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.modern-card-header .btn-modern:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  transform: none;
+}
+
+/* Encabezado de la pestaña: fondo blanco y título oscuro (pisa los !important anteriores) */
+.modern-card-header,
+.card-header {
+  color: var(--text-main) !important;
+  background: var(--color-surface) !important;
+}
+
+.modern-card-header h4,
+.card-header h4 {
+  color: var(--text-main) !important;
+}
+
+.modern-card-header small,
+.card-header small {
+  color: var(--text-secondary) !important;
+}
+
+/* Calendarios semanales y tablas: cabeceras claras y tarjetas suaves en vez de bloques de color */
+.dias-header,
+.dias-horarios-header,
+.dia-header,
+.dia-header-matriz,
+.modern-table .table thead th,
+.tabla-matriz thead th,
+.consultorio-section-header {
+  color: var(--text-secondary) !important;
+  background: var(--color-background) !important;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.dias-header::after,
+.dia-header::after,
+.modern-table .table thead th::after {
+  display: none;
+}
+
+.dias-header .dia-header {
+  border-bottom: 0;
+}
+
+.esquema-dia-card,
+.disponibilidad-dia-card {
+  color: var(--text-main) !important;
+  background: rgba(var(--color-accent-rgb), 0.08) !important;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
+  border-left: 3px solid var(--color-accent);
+  box-shadow: none;
+}
+
+.esquema-dia-card::before {
+  display: none;
+}
+
+.esquema-dia-card *,
+.disponibilidad-dia-card * {
+  color: var(--text-main) !important;
+  text-shadow: none;
+}
+
+.badge-horario,
+.badge-centro-atencion,
+.dia-count {
+  color: var(--color-accent) !important;
+  background: rgba(var(--color-accent-rgb), 0.1) !important;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  box-shadow: none;
+}
+
+.badge-horario *,
+.badge-centro-atencion * {
+  color: var(--color-accent) !important;
 }

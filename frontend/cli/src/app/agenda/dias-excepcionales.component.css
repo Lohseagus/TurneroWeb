@@ -216,3 +216,57 @@
     padding: 0.35rem 0.6rem;
   }
 }
+
+/* =========================
+   Alineado con la base compartida (ct-ui.css)
+   ========================= */
+
+.page-header {
+  position: relative;
+  overflow: hidden;
+  color: var(--text-main);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+  padding: var(--space-xl);
+  margin-bottom: var(--section-gap);
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: auto;
+  height: 4px;
+  background: var(--gradient-brand-bar);
+  border-radius: 0;
+  opacity: 1;
+  transform: none;
+}
+
+.page-header h1 {
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+.page-header h1 i {
+  color: var(--color-accent) !important;
+}
+
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-soft);
+}
+
+.card-header.bg-light {
+  background: var(--color-surface) !important;
+  border-bottom: 1px solid var(--border-color);
+}

@@ -63,6 +63,10 @@ public class TurnoAutomationService {
     @Scheduled(fixedRateString = "${turnos.auto-cancel.check-interval:3600000}") // Default: cada hora
     @Transactional
     public void cancelarTurnosNoConfirmados() {
+        cancelarTurnos(null);
+    }
+
+    private void cancelarTurnos(Integer centroId) {
         if (!autoCancelEnabled) {
             logger.debug("🔧 Cancelación automática de turnos está deshabilitada");
             return;
@@ -78,7 +82,9 @@ public class TurnoAutomationService {
             int horas = reglasReserva != null ? reglasReserva.horasParaBuscarCandidatos() : horasAnticipacion;
             logger.info("📅 Fecha/hora actual (Argentina UTC-3): {} | Ventana compartida: {} horas", ahora, horas);
 
-            List<Turno> turnosACancelar = turnoService.candidatosCancelacionAutomatica(ahora);
+            List<Turno> turnosACancelar = turnoService.candidatosCancelacionAutomatica(ahora).stream()
+                    .filter(turno -> centroId == null || centroId.equals(CentroAccessGuard.centroDe(turno)))
+                    .toList();
             
             if (turnosACancelar.isEmpty()) {
                 logger.info("✅ No hay turnos para cancelar automáticamente");
@@ -219,7 +225,15 @@ public class TurnoAutomationService {
      * Útil para testing y ejecución manual desde admin
      */
     public void ejecutarCancelacionManual() {
-        logger.info("🔧 Ejecución manual del proceso de cancelación automática solicitada");
-        cancelarTurnosNoConfirmados();
+        ejecutarCancelacionManual(null);
+    }
+
+    /**
+     * @param centroId null cancela en todos los centros. Un id, solo en ese centro.
+     */
+    public void ejecutarCancelacionManual(Integer centroId) {
+        logger.info("🔧 Ejecución manual del proceso de cancelación automática solicitada{}",
+                centroId == null ? "" : " para el centro " + centroId);
+        cancelarTurnos(centroId);
     }
 }

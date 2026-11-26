@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AdminAgendaComponent } from '../agenda/admin-agenda.component';
@@ -23,6 +23,7 @@ import { SolapaTurnos, VistaTurnos, solapaDesdeQuery } from './operador-panel';
     ListaEsperaEstadisticasComponent,
     CalendarioMesComponent
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './operador-turnos.component.html',
   styleUrls: ['../pacientes/paciente-portal.css', './operador-turnos.component.css']
 })

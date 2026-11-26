@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
 import unpsjb.labprog.backend.business.service.AltaFichaPropia;
+import unpsjb.labprog.backend.business.service.FichaCentroGuard;
 import unpsjb.labprog.backend.business.service.PacienteService;
 import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.AuditContext;
@@ -43,6 +44,9 @@ public class PacientePresenter {
 
     @Autowired
     private PacienteService service;
+
+    @Autowired
+    private FichaCentroGuard fichaCentro;
 
     @Autowired
     private UserService userService;
@@ -162,6 +166,7 @@ public class PacientePresenter {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable Integer id) {
+        fichaCentro.exigir(id);
         return service.findById(id)
                 .map(paciente -> Response.ok(paciente, "Paciente encontrado"))
                 .orElse(Response.notFound("Paciente con id " + id + " no encontrado"));
@@ -226,6 +231,10 @@ public class PacientePresenter {
     @GetMapping("/dni/{dni}")
     public ResponseEntity<Object> findByDni(@PathVariable Integer dni) {
         return service.findByDni(dni)
+                .map(paciente -> {
+                    fichaCentro.exigir(paciente.getId());
+                    return paciente;
+                })
                 .map(paciente -> Response.ok(paciente, "Paciente encontrado por DNI"))
                 .orElse(Response.notFound("Paciente con DNI " + dni + " no encontrado"));
     }
@@ -238,6 +247,7 @@ public class PacientePresenter {
     public ResponseEntity<Object> findByEmail(@PathVariable String email) {
         return service.findByEmail(email)
                 .map(paciente -> {
+                    fichaCentro.exigir(paciente.getId());
                     Map<String, Object> response = new HashMap<>();
                     response.put("pacienteId", paciente.getId());
                     response.put("nombre", paciente.getNombre());

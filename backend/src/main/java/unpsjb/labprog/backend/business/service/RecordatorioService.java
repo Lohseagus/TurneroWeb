@@ -34,6 +34,15 @@ public class RecordatorioService {
     @Scheduled(cron = "0 0 9 * * ?", zone = "America/Argentina/Buenos_Aires") // Diariamente a las 9:00 AM
     @Transactional
     public void enviarRecordatoriosPendientes() {
+        enviarRecordatoriosPendientes(null);
+    }
+
+    /**
+     * @param centroId null recorre todos los centros (el job y un superadmin).
+     *                 Un id limita el envío a los turnos de ese centro.
+     */
+    @Transactional
+    public void enviarRecordatoriosPendientes(Integer centroId) {
         if (!configuracionService.isHabilitadosRecordatorios()) {
             System.out.println("📧 Recordatorios de confirmación deshabilitados por configuración");
             return;
@@ -58,6 +67,7 @@ public class RecordatorioService {
         List<Turno> turnosParaRecordar = turnosPorFecha.stream()
                 .filter(t -> t.getEstado() == EstadoTurno.PROGRAMADO || 
                             t.getEstado() == EstadoTurno.REAGENDADO)
+                .filter(t -> centroId == null || centroId.equals(CentroAccessGuard.centroDe(t)))
                 .collect(Collectors.toList());
 
         System.out.println("📧 Turnos encontrados para recordatorio: " + turnosParaRecordar.size());

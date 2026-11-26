@@ -1,7 +1,9 @@
 package unpsjb.labprog.backend.presenter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -56,6 +58,7 @@ import unpsjb.labprog.backend.business.service.UserService;
 import unpsjb.labprog.backend.config.JwtAuthenticationFilter;
 import unpsjb.labprog.backend.config.JwtTokenProvider;
 import unpsjb.labprog.backend.config.SecurityConfig;
+import unpsjb.labprog.backend.dto.DisponibilidadMedicoDTO;
 import unpsjb.labprog.backend.model.CentroAtencion;
 import unpsjb.labprog.backend.model.Consultorio;
 import unpsjb.labprog.backend.model.DisponibilidadMedico;
@@ -165,6 +168,14 @@ class CentroAislamientoSecurityTest {
         medico.setId(MEDICO_ID);
         when(medicoRepository.findByEmailIgnoreCase(EMAIL_MEDICO)).thenReturn(Optional.of(medico));
         when(staffMedicoRepository.findByMedicoId(MEDICO_ID)).thenReturn(List.of(staff(1), staff(3)));
+
+        // Colega del mismo centro 1: el médico de la sesión no puede tocar sus horarios.
+        StaffMedico colega = staff(8, 1, 99);
+        when(staffMedicoRepository.findById(8)).thenReturn(Optional.of(colega));
+        when(staffMedicoRepository.findByMedicoId(99)).thenReturn(List.of(colega));
+        DisponibilidadMedico ajena = new DisponibilidadMedico();
+        ajena.setStaffMedico(colega);
+        when(disponibilidadRepository.findById(8)).thenReturn(Optional.of(ajena));
     }
 
     // SEC-A7: turnos por id
@@ -336,6 +347,118 @@ class CentroAislamientoSecurityTest {
         verify(disponibilidadService, never()).saveOrUpdate(any());
     }
 
+    @Test
+    void elMedicoNoTocaHorariosDeUnColegaDelMismoCentro() throws Exception {
+        String medico = token(Role.MEDICO, EMAIL_MEDICO, 1);
+
+        pedir(403, medico, get("/api/disponibilidades-medico/8"));
+        pedir(403, medico, delete("/api/disponibilidades-medico/8"));
+        pedir(403, medico, get("/api/disponibilidades-medico/staffMedico/8"));
+        pedir(403, medico, get("/api/disponibilidades-medico/medico/99"));
+        pedir(403, medico, put("/api/disponibilidades-medico/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"staffMedicoId\":8}"));
+        pedir(200, medico, get("/api/disponibilidades-medico/medico/" + MEDICO_ID));
+
+        verify(disponibilidadService, never()).findByMedicoId(99);
+        verify(disponibilidadService, never()).deleteById(8);
+        verify(disponibilidadService, never()).saveOrUpdate(any());
+        verify(disponibilidadService).findByMedicoId(MEDICO_ID);
+    }
+
+    @Test
+    void elMedicoListaSoloSusDisponibilidades() throws Exception {
+        DisponibilidadMedicoDTO propia = new DisponibilidadMedicoDTO();
+        propia.setId(1);
+        propia.setStaffMedicoId(1);
+        DisponibilidadMedicoDTO ajena = new DisponibilidadMedicoDTO();
+        ajena.setId(8);
+        ajena.setStaffMedicoId(8);
+        when(disponibilidadService.findAll()).thenReturn(List.of(propia, ajena));
+
+        String medico = token(Role.MEDICO, EMAIL_MEDICO, 1);
+        String body = cuerpo(200, medico, get("/api/disponibilidades-medico"));
+        assertTrue(body.contains("\"staffMedicoId\":1"), body);
+        assertFalse(body.contains("\"staffMedicoId\":8"), body);
+
+        String admin = token(Role.ADMINISTRADOR, "admin@turnero.com", 1);
+        String delCentro = cuerpo(200, admin, get("/api/disponibilidades-medico"));
+        assertTrue(delCentro.contains("\"staffMedicoId\":1"), delCentro);
+        assertTrue(delCentro.contains("\"staffMedicoId\":8"), delCentro);
+
+        String otro = token(Role.ADMINISTRADOR, "otro@turnero.com", 2);
+        String vacio = cuerpo(200, otro, get("/api/disponibilidades-medico"));
+        assertFalse(vacio.contains("\"staffMedicoId\":1"), vacio);
+        assertFalse(vacio.contains("\"staffMedicoId\":8"), vacio);
+    }
+
+    @Test
+    void elPersonalDelCentroVeHorariosDeSusMedicosYNoLosDeOtroCentro() throws Exception {
+        String admin = token(Role.ADMINISTRADOR, "admin@turnero.com", 1);
+        pedir(200, admin, get("/api/disponibilidades-medico/8"));
+        pedir(200, admin, get("/api/disponibilidades-medico/medico/99"));
+
+        String otro = token(Role.ADMINISTRADOR, "otro@turnero.com", 2);
+        pedir(403, otro, get("/api/disponibilidades-medico/8"));
+        pedir(403, otro, get("/api/disponibilidades-medico/medico/99"));
+        verify(disponibilidadService).findByMedicoId(99);
+    }
+
+    @Test
+    void elMedicoSoloMarcaAsistenciaDeSusTurnos() throws Exception {
+        Turno propio = turno(1, PACIENTE_PROPIO);
+        Medico yo = new Medico();
+        yo.setId(MEDICO_ID);
+        propio.setMedico(yo);
+        when(turnoRepository.findById(1)).thenReturn(Optional.of(propio));
+
+        Turno deColega = turno(1, PACIENTE_PROPIO);
+        Medico otroMedico = new Medico();
+        otroMedico.setId(99);
+        deColega.setMedico(otroMedico);
+        when(turnoRepository.findById(6)).thenReturn(Optional.of(deColega));
+
+        String medico = token(Role.MEDICO, EMAIL_MEDICO, 1);
+        pedir(200, medico, put("/api/turno/1/asistencia").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"asistio\":true}"));
+        pedir(403, medico, put("/api/turno/6/asistencia").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"asistio\":false}"));
+
+        String operador = token(Role.OPERADOR, "operador@turnero.com", 1);
+        pedir(200, operador, put("/api/turno/6/asistencia").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"asistio\":true}"));
+        String adminAjeno = token(Role.ADMINISTRADOR, "admin.ajeno@turnero.com", 2);
+        pedir(403, adminAjeno, put("/api/turno/6/asistencia").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"asistio\":true}"));
+
+        verify(turnoService).marcarAsistencia(eq(1), eq(true), anyString());
+        verify(turnoService).marcarAsistencia(eq(6), eq(true), anyString());
+        verify(turnoService, never()).marcarAsistencia(eq(6), eq(false), anyString());
+    }
+
+    @Test
+    void losJobsManualesSonDelSuperadminODelAdminDeSuCentro() throws Exception {
+        String medico = token(Role.MEDICO, EMAIL_MEDICO, 1);
+        String operador = token(Role.OPERADOR, "operador@turnero.com", 1);
+        for (String actor : List.of(medico, operador)) {
+            pedir(403, actor, post("/api/turno/ejecutar-recordatorios"));
+            pedir(403, actor, post("/api/turno/ejecutar-cancelacion-automatica"));
+        }
+        verifyNoInteractions(recordatorioService);
+        verifyNoInteractions(turnoAutomationService);
+
+        String admin = token(Role.ADMINISTRADOR, "admin@turnero.com", 2);
+        pedir(200, admin, post("/api/turno/ejecutar-recordatorios"));
+        pedir(200, admin, post("/api/turno/ejecutar-cancelacion-automatica"));
+        verify(recordatorioService).enviarRecordatoriosPendientes(2);
+        verify(turnoAutomationService).ejecutarCancelacionManual(2);
+
+        String root = token(Role.SUPERADMIN, "root@turnero.com", null);
+        pedir(200, root, post("/api/turno/ejecutar-recordatorios"));
+        pedir(200, root, post("/api/turno/ejecutar-cancelacion-automatica"));
+        verify(recordatorioService).enviarRecordatoriosPendientes(isNull());
+        verify(turnoAutomationService).ejecutarCancelacionManual(isNull());
+    }
+
     private static CentroAtencion centro(int id) {
         CentroAtencion centro = new CentroAtencion();
         centro.setId(id);
@@ -358,8 +481,17 @@ class CentroAislamientoSecurityTest {
     }
 
     private static StaffMedico staff(int centroId) {
+        // El 2 es un colega de otro centro. 1 y 3 son del médico de la sesión.
+        return staff(centroId, centroId, centroId == 2 ? 99 : MEDICO_ID);
+    }
+
+    private static StaffMedico staff(int id, int centroId, int medicoId) {
         StaffMedico staff = new StaffMedico();
+        staff.setId(id);
         staff.setCentroAtencion(centro(centroId));
+        Medico medico = new Medico();
+        medico.setId(medicoId);
+        staff.setMedico(medico);
         return staff;
     }
 
@@ -381,7 +513,11 @@ class CentroAislamientoSecurityTest {
         return jwtTokenProvider.generateAccessToken(user);
     }
 
-    private void pedir(int esperado, String bearer, MockHttpServletRequestBuilder request) throws Exception {
+    private String cuerpo(int esperado, String bearer, MockHttpServletRequestBuilder request) throws Exception {
+        return pedir(esperado, bearer, request);
+    }
+
+    private String pedir(int esperado, String bearer, MockHttpServletRequestBuilder request) throws Exception {
         var respuesta = mvc.perform(request.accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + bearer)).andReturn().getResponse();
         assertEquals(esperado, respuesta.getStatus(),
@@ -390,5 +526,6 @@ class CentroAislamientoSecurityTest {
         if (esperado == 403) {
             assertTrue(respuesta.getContentAsString().contains("\"status_code\":403"), respuesta.getContentAsString());
         }
+        return respuesta.getContentAsString();
     }
 }

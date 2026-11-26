@@ -12,6 +12,8 @@ export interface AuditLog {
   action: string;
   performedBy: string;
   performedAt: string;
+  actorRole?: string;
+  source?: string;
   estadoAnterior?: string;
   estadoNuevo?: string;
   oldValues?: string;
@@ -36,6 +38,8 @@ export interface AuditQueryParams {
   entidad?: string;
   usuario?: string;
   tipoAccion?: string;
+  rol?: string;
+  origen?: string;
   fechaDesde?: string;
   fechaHasta?: string;
   sortBy?: string;
@@ -129,6 +133,12 @@ export class AuditService {
     }
     if (params.tipoAccion && params.tipoAccion.trim()) {
       httpParams = httpParams.set('tipoAccion', params.tipoAccion.trim());
+    }
+    if (params.rol && params.rol.trim()) {
+      httpParams = httpParams.set('rol', params.rol.trim());
+    }
+    if (params.origen && params.origen.trim()) {
+      httpParams = httpParams.set('origen', params.origen.trim());
     }
     if (params.fechaDesde) {
       httpParams = httpParams.set('fechaDesde', params.fechaDesde);
