@@ -1,4 +1,5 @@
 import { Role } from '../inicio-sesion/auth.service';
+import type { FeaturePlan, FeaturesPlan } from '../saas/saas.models';
 
 /**
  * Interfaz para un item individual del menú
@@ -18,6 +19,12 @@ export interface MenuItem {
   description?: string;
   children?: MenuItem[];
   requiresPrimaryRole?: boolean; // Si true, solo se muestra cuando el usuario tiene el rol de la sección como rol primario
+  /** Función del plan que necesita este ítem. Sin plan que la incluya, el ítem queda deshabilitado. */
+  feature?: FeaturePlan;
+  /** Lo pone aplicarFeaturesPlan: el plan actual no incluye la función. */
+  disabled?: boolean;
+  /** Aviso del ítem deshabilitado, por ejemplo "Disponible en plan Consultorio". */
+  disabledHint?: string;
 }
 
 /**
@@ -232,6 +239,7 @@ export const MENU_CONFIG: MenuSection[] = [
       {
         label: 'Panel de auditoría',
         route: '/turnos/audit-dashboard',
+        feature: 'AUDITORIA',
         icon: 'policy',
         description: 'Panel de control administrativo'
       },
@@ -281,12 +289,14 @@ export const MENU_CONFIG: MenuSection[] = [
       {
         label: 'Metricas',
         route: '/dashboard-gestion',
+        feature: 'REPORTES',
         icon: 'leaderboard',
         description: 'Métricas y análisis de gestión'
       },
       {
         label: 'Reporte de Atención',
         route: '/admin-reporte-atencion',
+        feature: 'REPORTES',
         icon: 'assessment',
         description: 'Reporte de atenciones completadas'
       },
@@ -299,6 +309,7 @@ export const MENU_CONFIG: MenuSection[] = [
       {
         label: 'Encuestas',
         route: '/admin/gestion-encuestas',
+        feature: 'ENCUESTAS',
         icon: 'assignment',
         description: 'Crear y gestionar encuestas para pacientes'
       },
@@ -362,12 +373,14 @@ export const MENU_CONFIG: MenuSection[] = [
       {
         label: 'Auditoría Global',
         route: '/turnos/audit-dashboard',
+        feature: 'AUDITORIA',
         icon: 'policy',
         description: 'Ver logs de auditoría de todos los centros'
       },
       {
         label: 'Métricas del Sistema',
         route: '/dashboard-gestion',
+        feature: 'REPORTES',
         icon: 'analytics',
         description: 'Estadísticas globales de todos los centros'
       },
@@ -592,4 +605,32 @@ export function getAllMenuItems(userRoles: Role[]): MenuItem[] {
 export function isRouteInUserMenu(route: string, userRoles: Role[]): boolean {
   const allItems = getAllMenuItems(userRoles);
   return allItems.some(item => item.route === route);
+}
+
+/**
+ * Marca como deshabilitados los ítems cuya función no está en el plan del centro.
+ * Con la bandera SaaS apagada, o si la compuerta no aplica a este usuario, no cambia nada.
+ */
+export function aplicarFeaturesPlan(sections: MenuSection[], estado: FeaturesPlan | null | undefined): MenuSection[] {
+  if (!estado || !estado.enforcementEnabled || !estado.aplica) {
+    return sections;
+  }
+  const incluidas = new Set<string>(estado.features ?? []);
+  const planMinimo = new Map<string, string>(
+    (estado.catalogo ?? []).map(item => [item.codigo, item.planMinimoNombre])
+  );
+  return sections.map(section => ({
+    ...section,
+    items: section.items.map(item => {
+      if (!item.feature || incluidas.has(item.feature)) {
+        return item;
+      }
+      const plan = planMinimo.get(item.feature);
+      return {
+        ...item,
+        disabled: true,
+        disabledHint: plan ? `Disponible en plan ${plan}` : 'No incluido en tu plan'
+      };
+    })
+  }));
 }

@@ -1,13 +1,15 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { UserContextService } from './user-context.service';
 import { VistaPanelService } from './vista-panel.service';
+import { PlanFeaturesService } from './plan-features.service';
 import { 
   MenuSection, 
   getMenuSectionsForUser,
   filterItemsByPrimaryRole,
-  personalizeMenuItem
+  personalizeMenuItem,
+  aplicarFeaturesPlan
 } from '../config/menu.config';
 import { seccionesDeLaVista } from '../config/vista-panel';
 
@@ -48,6 +50,8 @@ export class MenuService {
 
   // Secciones de menú visibles según roles del usuario
   public menuSections$: Observable<MenuSection[]>;
+
+  private readonly planFeatures = inject(PlanFeaturesService);
 
   constructor(
     private userContextService: UserContextService,
@@ -141,9 +145,17 @@ export class MenuService {
    * Observable combinado de secciones con badges actualizados y filtrado por rol primario
    */
   getMenuSectionsWithBadges(): Observable<MenuSection[]> {
-    return combineLatest([this.menuSections$, this.badges$, this.userContextService.userContext$]).pipe(
-      map(([sections, badges, userContext]) => {
-        const visibleSections = filterItemsByPrimaryRole(sections, userContext?.primaryRole);
+    return combineLatest([
+      this.menuSections$,
+      this.badges$,
+      this.userContextService.userContext$,
+      this.planFeatures.estado$
+    ]).pipe(
+      map(([sections, badges, userContext, features]) => {
+        const visibleSections = aplicarFeaturesPlan(
+          filterItemsByPrimaryRole(sections, userContext?.primaryRole),
+          features
+        );
         
         return visibleSections.map(section => ({
           ...section,

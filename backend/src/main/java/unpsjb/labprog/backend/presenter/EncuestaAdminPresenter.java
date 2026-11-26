@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.saas.FeaturePlan;
+import unpsjb.labprog.backend.saas.RequiereFeature;
 import unpsjb.labprog.backend.business.service.EncuestaService;
 import unpsjb.labprog.backend.config.TenantContext;
 import unpsjb.labprog.backend.model.EncuestaPlantilla;
 import unpsjb.labprog.backend.model.Pregunta;
 
 @RestController
+@RequiereFeature(FeaturePlan.ENCUESTAS)
 @RequestMapping("/api/admin/encuestas")
 @PreAuthorize("hasRole('ADMINISTRADOR')")
 public class EncuestaAdminPresenter {

@@ -272,4 +272,26 @@ public final class SaasDtos {
         public long cantidad;
         public BigDecimal mrrNeto;
     }
+
+    public static class FeatureDTO {
+        public String codigo;
+        public String etiqueta;
+        public boolean incluida;
+        public String planMinimoCodigo;
+        public String planMinimoNombre;
+    }
+
+    /**
+     * Funciones del plan del centro de quien llama. {@code aplica} es false si la compuerta
+     * no corre para este usuario (SUPERADMIN, médico, paciente o centro sin plan).
+     * El frontend solo oculta algo con {@code enforcementEnabled && aplica}.
+     */
+    public static class FeaturesPlanDTO {
+        public boolean enforcementEnabled;
+        public boolean aplica;
+        public String planCodigo;
+        public String planNombre;
+        public List<String> features;
+        public List<FeatureDTO> catalogo;
+    }
 }

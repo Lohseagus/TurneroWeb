@@ -293,3 +293,23 @@ export function nivelUso(actual: number, max: number | null | undefined): 'ok' |
   }
   return 'ok';
 }
+
+export type FeaturePlan = 'REPORTES' | 'REPORTES_CONSOLIDADOS' | 'AUDITORIA' | 'ENCUESTAS' | 'SOPORTE_PRIORITARIO';
+
+export interface FeaturePlanItem {
+  codigo: FeaturePlan;
+  etiqueta: string;
+  incluida: boolean;
+  planMinimoCodigo: string;
+  planMinimoNombre: string;
+}
+
+/** GET /api/saas/features. Solo se oculta algo con enforcementEnabled && aplica. */
+export interface FeaturesPlan {
+  enforcementEnabled: boolean;
+  aplica: boolean;
+  planCodigo: string | null;
+  planNombre: string | null;
+  features: FeaturePlan[];
+  catalogo: FeaturePlanItem[];
+}

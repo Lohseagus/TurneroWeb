@@ -27,6 +27,24 @@ Con `true` vale la regla de solo lectura de abajo. Los pasos que siguen (compuer
 
 La suite Cucumber y `docker-compose.e2e.yml` levantan el backend con `SAAS_ENFORCEMENT_ENABLED=true` para que los escenarios de solo lectura sigan viendo el 403. Producción y el compose de desarrollo quedan en false hasta el día del cobro real.
 
+## Funciones por plan
+
+El mapa único plan → funciones vive en `PlanFeatures` (backend). La compuerta (`PlanFeatureGate`) solo corta con `saas.enforcement.enabled` prendido: con la bandera apagada nada cambia.
+
+| Función | Profesional | Consultorio | Centro | Red |
+| --- | --- | --- | --- | --- |
+| `REPORTES` (métricas, reporte de atención, exportes) | — | ✓ | ✓ | ✓ |
+| `AUDITORIA` (panel de auditoría) | — | ✓ | ✓ | ✓ |
+| `ENCUESTAS` (gestión de encuestas) | — | ✓ | ✓ | ✓ |
+| `REPORTES_CONSOLIDADOS` | — | — | — | ✓ |
+| `SOPORTE_PRIORITARIO` | — | — | — | ✓ |
+
+`REPORTES`, `REPORTES_CONSOLIDADOS` y `SOPORTE_PRIORITARIO` siguen las banderas del catálogo que edita el SUPERADMIN (`reportesBasicos`, `reportesConsolidados`, `soportePrioritario`). Auditoría y encuestas no están en el catálogo: las fija el mapa. Un plan con un código que no está en el mapa conserva auditoría y encuestas.
+
+- Backend: `@RequiereFeature(FeaturePlan.X)` en un controller o método. `PlanFeatureInterceptor` responde **403** con `{status_code: 403, status_text, code: "PLAN_SIN_FEATURE", data: {feature, planRequerido, planRequeridoNombre}}`. Hoy marcan: `AuditLogPresenter` (`AUDITORIA`) y `EncuestaAdminPresenter` (`ENCUESTAS`). Los reportes ya los cortaban `assertReporteBasico` / `assertReporteConsolidado`, que ahora leen el mismo mapa (esas dos reglas son anteriores y no miran la bandera).
+- Aplica a ADMINISTRADOR y OPERADOR. El SUPERADMIN, el médico y el paciente no pasan por la compuerta. Un centro sin suscripción lo resuelve el modo solo lectura.
+- `GET /api/saas/features` (cualquier autenticado) devuelve `enforcementEnabled`, `aplica`, el plan y el catálogo de funciones con su plan mínimo. El menú deshabilita los ítems con `feature` no incluida y muestra “Disponible en plan X”, solo con `enforcementEnabled && aplica`.
+
 ## Estados y solo lectura
 
 `TRIAL`, `ACTIVA`, `VENCIDA`, `MOROSA`, `SUSPENDIDA`, `CANCELADA`.

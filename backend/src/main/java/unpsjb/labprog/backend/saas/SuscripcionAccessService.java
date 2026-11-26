@@ -77,7 +77,7 @@ public class SuscripcionAccessService {
             return;
         }
         PlanSuscripcion plan = suscripcion.getPlan();
-        if (!plan.isReportesBasicos() && !plan.isReportesConsolidados()) {
+        if (!PlanFeatures.incluye(plan, FeaturePlan.REPORTES)) {
             throw new ReglaSuscripcionException(
                     "El plan " + plan.getNombre() + " no incluye reportes. Podés cambiar de plan desde Mi plan.");
         }
@@ -86,7 +86,7 @@ public class SuscripcionAccessService {
     @Transactional
     public void assertReporteConsolidado(Integer centroId) {
         Suscripcion suscripcion = requerirPorCentro(centroId);
-        if (!suscripcion.getPlan().isReportesConsolidados()) {
+        if (!PlanFeatures.incluye(suscripcion.getPlan(), FeaturePlan.REPORTES_CONSOLIDADOS)) {
             throw new ReglaSuscripcionException(
                     "El plan " + suscripcion.getPlan().getNombre() + " no incluye reportes consolidados de la red.");
         }

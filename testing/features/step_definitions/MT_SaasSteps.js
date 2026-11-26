@@ -188,6 +188,39 @@ Then('la escritura del superadministrador no queda en solo lectura', function ()
     JSON.stringify(this.saasOperacion.response));
 });
 
+function featuresDelPlan(token) {
+  const result = GET('/api/saas/features', token);
+  assert.strictEqual(result.statusCode, 200, JSON.stringify(result.response));
+  return result.response.data;
+}
+
+Then('las funciones de mi plan no incluyen {string}', function (feature) {
+  const data = featuresDelPlan(this.accessToken);
+  assert.strictEqual(data.aplica, true, JSON.stringify(data));
+  assert.ok(!data.features.includes(feature), JSON.stringify(data));
+});
+
+Then('las funciones de mi plan incluyen {string}', function (feature) {
+  const data = featuresDelPlan(this.accessToken);
+  assert.ok(data.features.includes(feature), JSON.stringify(data));
+});
+
+When('consulto el panel de auditoría del centro', function () {
+  this.saasOperacion = GET('/api/audit/page?page=0&size=5', this.accessToken);
+});
+
+Then('la consulta es rechazada porque el plan no incluye {string}', function (feature) {
+  assert.strictEqual(this.saasOperacion.httpStatusCode, 403, JSON.stringify(this.saasOperacion.response));
+  assert.strictEqual(this.saasOperacion.response.code, 'PLAN_SIN_FEATURE');
+  assert.strictEqual(this.saasOperacion.response.data.feature, feature);
+  assert.match(this.saasOperacion.response.status_text || '', /Disponible en plan/);
+});
+
+Then('la consulta no es rechazada por el plan', function () {
+  assert.notStrictEqual(this.saasOperacion.response && this.saasOperacion.response.code, 'PLAN_SIN_FEATURE',
+    JSON.stringify(this.saasOperacion.response));
+});
+
 When('pago la suscripción de prueba con ciclo {string}', function (ciclo) {
   this.saasOperacion = POST('/api/saas/mi-suscripcion/pagar', { ciclo }, this.accessToken);
   assert.strictEqual(this.saasOperacion.statusCode, 200, JSON.stringify(this.saasOperacion.response));

@@ -260,6 +260,7 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/agenda/publica", "/api/agenda/publica/**").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/deep-links/validate").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/saas/aviso").authenticated()
+                                .requestMatchers(HttpMethod.GET, "/api/saas/features").authenticated()
                                 .requestMatchers(HttpMethod.GET, "/api/saas/planes").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/saas/cotizar").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/saas/registro").permitAll()

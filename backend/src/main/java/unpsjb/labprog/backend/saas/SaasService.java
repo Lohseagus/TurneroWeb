@@ -106,6 +106,13 @@ public class SaasService {
     private SuscripcionAccessService access;
     @Autowired
     private SaasEnforcement enforcement;
+    @Autowired
+    private PlanFeatureGate planFeatureGate;
+
+    /** Funciones del plan de quien llama. Con la bandera apagada el frontend no oculta nada. */
+    public SaasDtos.FeaturesPlanDTO featuresActuales() {
+        return planFeatureGate.features();
+    }
 
     public CatalogoPublico catalogoPublico() {
         asegurarDatosIniciales();
