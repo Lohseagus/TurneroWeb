@@ -86,9 +86,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
                      "a.reason LIKE %:searchTerm%")
        List<AuditLog> findLogsContaining(@Param("searchTerm") String searchTerm);
 
-       // Eliminar logs antiguos (para limpieza de datos)
-       void deleteByPerformedAtBefore(LocalDateTime cutoffDate);
-
        // Obtener estadísticas de actividad por usuario
        @Query("SELECT a.performedBy, COUNT(a) FROM AuditLog a GROUP BY a.performedBy ORDER BY COUNT(a) DESC")
        List<Object[]> findUserActivityStatistics();
@@ -240,4 +237,63 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
                      Pageable pageable);
 
        Optional<AuditLog> findTopByEntityTypeOrderByPerformedAtDesc(String entityType);
+
+       /**
+        * Listado de la pantalla. Los parámetros vacíos llegan como null.
+        * {@code centroId} null no filtra (SUPERADMIN). Si viene, solo ese centro.
+        * El orden lo pone el {@link Pageable}: la pantalla pide performedAt DESC.
+        */
+       @Query("""
+                     SELECT a.id, a.turno.id, a.entityType, a.entityId, a.action, a.performedAt, a.performedBy,
+                            a.estadoAnterior, a.estadoNuevo, a.reason, a.source, a.actorRole, a.centroAtencionId
+                     FROM AuditLog a
+                     WHERE (:entidad IS NULL OR LOWER(a.entityType) LIKE LOWER(CONCAT('%', CAST(:entidad AS string), '%')))
+                       AND (:usuario IS NULL OR LOWER(a.performedBy) LIKE LOWER(CONCAT('%', CAST(:usuario AS string), '%')))
+                       AND (:tipoAccion IS NULL OR a.action = :tipoAccion)
+                       AND (CAST(:rol AS string) IS NULL OR UPPER(a.actorRole) = UPPER(CAST(:rol AS string)))
+                       AND (CAST(:origen AS string) IS NULL OR CAST(a.source AS string) = CAST(:origen AS string))
+                       AND a.performedAt >= :fechaDesde AND a.performedAt <= :fechaHasta
+                       AND (CAST(:centroId AS integer) IS NULL OR a.centroAtencionId = :centroId)
+                     """)
+       Page<Object[]> buscar(@Param("entidad") String entidad,
+                     @Param("usuario") String usuario,
+                     @Param("tipoAccion") String tipoAccion,
+                     @Param("rol") String rol,
+                     @Param("origen") String origen,
+                     @Param("fechaDesde") LocalDateTime fechaDesde,
+                     @Param("fechaHasta") LocalDateTime fechaHasta,
+                     @Param("centroId") Integer centroId,
+                     Pageable pageable);
+
+       @Query("""
+                     SELECT a.action, COUNT(a) FROM AuditLog a
+                     WHERE (CAST(:centroId AS integer) IS NULL OR a.centroAtencionId = :centroId)
+                     GROUP BY a.action ORDER BY COUNT(a) DESC
+                     """)
+       List<Object[]> findActionStatisticsByCentro(@Param("centroId") Integer centroId);
+
+       @Query("""
+                     SELECT a.performedBy, COUNT(a) FROM AuditLog a
+                     WHERE (CAST(:centroId AS integer) IS NULL OR a.centroAtencionId = :centroId)
+                     GROUP BY a.performedBy ORDER BY COUNT(a) DESC
+                     """)
+       List<Object[]> findUserActivityStatisticsByCentro(@Param("centroId") Integer centroId);
+
+       @Query("""
+                     SELECT DATE(a.performedAt) as date, a.action, COUNT(a) as count
+                     FROM AuditLog a
+                     WHERE a.performedAt >= :startDate
+                       AND (CAST(:centroId AS integer) IS NULL OR a.centroAtencionId = :centroId)
+                     GROUP BY DATE(a.performedAt), a.action
+                     ORDER BY DATE(a.performedAt) DESC
+                     """)
+       List<Object[]> getActionStatsByDayAndCentro(@Param("startDate") LocalDateTime startDate,
+                     @Param("centroId") Integer centroId);
+
+       @Query("""
+                     SELECT DISTINCT a.performedBy FROM AuditLog a
+                     WHERE (CAST(:centroId AS integer) IS NULL OR a.centroAtencionId = :centroId)
+                     ORDER BY a.performedBy
+                     """)
+       List<String> findDistinctPerformedByCentro(@Param("centroId") Integer centroId);
 }

@@ -6,12 +6,17 @@ import java.time.ZonedDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 
+import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import jakarta.persistence.PrePersist;
@@ -27,11 +32,16 @@ import lombok.Setter;
  * Soporta auditoría genérica para múltiples tipos de entidades.
  */
 @Entity
+@Immutable
+@EntityListeners(AuditLogGuard.class)
 @Table(indexes = {
         @Index(name = "idx_audit_entity_type_id", columnList = "entityType, entityId"),
         @Index(name = "idx_audit_performed_at", columnList = "performedAt"),
         @Index(name = "idx_audit_performed_by", columnList = "performedBy"),
-        @Index(name = "idx_audit_action", columnList = "action")
+        @Index(name = "idx_audit_action", columnList = "action"),
+        @Index(name = "idx_audit_source", columnList = "source"),
+        @Index(name = "idx_audit_actor_role", columnList = "actorRole"),
+        @Index(name = "idx_audit_centro", columnList = "centroAtencionId")
 })
 @Getter
 @Setter
@@ -43,40 +53,63 @@ public class AuditLog {
     private Integer id;
 
     @ManyToOne(optional = true)
+    @JoinColumn(name = "turno_id", updatable = false)
     private Turno turno; // Mantener para compatibilidad con turnos
 
-    @Column(length = 50, nullable = false)
+    @Column(length = 50, nullable = false, updatable = false)
     private String entityType; // TURNO, USUARIO, OPERADOR, CONSULTORIO, etc.
 
-    @Column
+    @Column(updatable = false)
     private Long entityId; // ID de la entidad auditada
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 50, updatable = false)
     private String action; // CREATE, UPDATE, DELETE, LOGIN, etc.
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime performedAt;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, updatable = false)
     private String performedBy; // Usuario que realizó la acción
 
-    @Column(length = 500)
+    /**
+     * Rol de la cuenta en el momento de la acción. Vacío si el actor es el sistema
+     * o si la fila es anterior a esta columna y no se pudo cruzar con users.
+     */
+    @Column(name = "actor_role", length = 30, updatable = false)
+    private String actorRole;
+
+    /**
+     * SISTEMA (jobs, cancelaciones automáticas, ofertas de lista de espera) o
+     * USUARIO. Nullable para que ddl-auto=update agregue la columna sin rellenar
+     * las filas viejas; el arranque las completa.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20, updatable = false)
+    private AuditSource source;
+
+    /**
+     * Centro al que pertenece el hecho. Null en acciones de plataforma
+     * (las ve el SUPERADMIN). El administrador de un centro no las ve.
+     */
+    @Column(name = "centro_atencion_id", updatable = false)
+    private Integer centroAtencionId;
+
+    @Column(length = 500, updatable = false)
     private String estadoAnterior; // Estado anterior (genérico, puede ser JSON)
 
-    @Column(length = 500)
+    @Column(length = 500, updatable = false)
     private String estadoNuevo; // Nuevo estado (genérico, puede ser JSON)
 
     // Hibernate 6.2+ mapea @Lob String a oid en PostgreSQL. En producción estas columnas son text.
     @JdbcTypeCode(SqlTypes.LONGVARCHAR)
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "text", updatable = false)
     private String oldValues; // JSON con valores anteriores de la entidad
 
     @JdbcTypeCode(SqlTypes.LONGVARCHAR)
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "text", updatable = false)
     private String newValues; // JSON con nuevos valores de la entidad
-    // TODO: BUG - Verificar que la columna en DB sea TEXT/JSON, no INTEGER. Actualmente se guarda hashCode del Map en lugar de JSON.
 
-    @Column(length = 500)
+    @Column(length = 500, updatable = false)
     private String reason; // Motivo del cambio (opcional)
 
     @PrePersist

@@ -26,12 +26,17 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import unpsjb.labprog.backend.business.repository.AuditLogRepository;
-import unpsjb.labprog.backend.business.repository.TurnoRepository;
 import unpsjb.labprog.backend.business.repository.ConsultorioRepository;
+import unpsjb.labprog.backend.business.repository.ListaEsperaRepository;
 import unpsjb.labprog.backend.business.repository.StaffMedicoRepository;
+import unpsjb.labprog.backend.business.repository.TurnoRepository;
+import unpsjb.labprog.backend.business.repository.UserRepository;
+import unpsjb.labprog.backend.config.AuditContext;
 import unpsjb.labprog.backend.model.AuditLog;
+import unpsjb.labprog.backend.model.AuditSource;
 import unpsjb.labprog.backend.model.EstadoTurno;
 import unpsjb.labprog.backend.model.Turno;
+import unpsjb.labprog.backend.model.User;
 
 /**
  * Servicio para gestionar los registros de auditoría de turnos.
@@ -59,6 +64,157 @@ public class AuditLogService {
     @Lazy
     private CentroAtencionService centroAtencionService;
 
+    @Autowired(required = false)
+    private CentroAccessGuard centroAccess;
+
+    @Autowired(required = false)
+    private UserRepository userRepository;
+
+    @Autowired(required = false)
+    private ListaEsperaRepository listaEsperaRepository;
+
+    /**
+     * Persiste una fila nueva. Completa origen, rol y centro antes del insert.
+     * No hay camino de update: la entidad es inmutable.
+     */
+    private AuditLog guardar(AuditLog auditLog) {
+        preparar(auditLog);
+        return auditLogRepository.save(auditLog);
+    }
+
+    private void preparar(AuditLog auditLog) {
+        if (auditLog.getSource() == null) {
+            auditLog.setSource(AuditSource.deActor(auditLog.getPerformedBy()));
+        }
+        if (auditLog.getActorRole() == null && auditLog.getSource() == AuditSource.USUARIO) {
+            auditLog.setActorRole(rolDelActor(auditLog.getPerformedBy()));
+        }
+        if (auditLog.getCentroAtencionId() == null) {
+            auditLog.setCentroAtencionId(resolverCentro(auditLog));
+        }
+    }
+
+    private String rolDelActor(String performedBy) {
+        if (performedBy == null || performedBy.isBlank()) {
+            return null;
+        }
+        User actual = AuditContext.getCurrentUserObject();
+        if (actual != null && actual.getRole() != null && actual.getEmail() != null
+                && actual.getEmail().equalsIgnoreCase(performedBy.trim())) {
+            return actual.getRole().name();
+        }
+        if (userRepository == null || !performedBy.contains("@")) {
+            return null;
+        }
+        try {
+            return userRepository.findByEmail(performedBy.trim())
+                    .map(User::getRole)
+                    .map(role -> role.name())
+                    .orElse(null);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private Integer resolverCentro(AuditLog auditLog) {
+        try {
+            if (auditLog.getTurno() != null) {
+                Integer delTurno = CentroAccessGuard.centroDe(auditLog.getTurno());
+                if (delTurno != null) {
+                    return delTurno;
+                }
+            }
+            String tipo = auditLog.getEntityType();
+            Long entityId = auditLog.getEntityId();
+            if (tipo == null || entityId == null) {
+                return centroDeLaCuenta(auditLog);
+            }
+            if (AuditLog.EntityTypes.TURNO.equals(tipo) && turnoRepository != null) {
+                return turnoRepository.findById(entityId.intValue()).map(CentroAccessGuard::centroDe).orElse(null);
+            }
+            if (AuditLog.EntityTypes.CONSULTORIO.equals(tipo) && consultorioRepository != null) {
+                return consultorioRepository.findById(entityId.intValue())
+                        .map(consultorio -> consultorio.getCentroAtencion() == null
+                                ? null
+                                : consultorio.getCentroAtencion().getId())
+                        .orElse(null);
+            }
+            if (AuditLog.EntityTypes.STAFF_MEDICO.equals(tipo) && staffMedicoRepository != null) {
+                return staffMedicoRepository.findById(entityId.intValue()).map(CentroAccessGuard::centroDe).orElse(null);
+            }
+            if (AuditLog.EntityTypes.CENTRO_ATENCION.equals(tipo)) {
+                return entityId.intValue();
+            }
+            if ("LISTA_ESPERA".equals(tipo) && listaEsperaRepository != null) {
+                return listaEsperaRepository.findById(entityId)
+                        .map(solicitud -> solicitud.getCentroAtencion() == null
+                                ? null
+                                : solicitud.getCentroAtencion().getId())
+                        .orElse(centroDeLaCuenta(auditLog));
+            }
+            if (AuditLog.EntityTypes.USUARIO.equals(tipo) && userRepository != null) {
+                return userRepository.findById(entityId)
+                        .map(user -> user.getCentroAtencion() == null ? null : user.getCentroAtencion().getId())
+                        .orElse(null);
+            }
+            return centroDeLaCuenta(auditLog);
+        } catch (RuntimeException ex) {
+            return centroDeLaCuenta(auditLog);
+        }
+    }
+
+    /** Centro de quien está logueado, solo si el actor de la fila es esa cuenta. */
+    private Integer centroDeLaCuenta(AuditLog auditLog) {
+        if (auditLog.getSource() == AuditSource.SISTEMA) {
+            return null;
+        }
+        User actual = AuditContext.getCurrentUserObject();
+        if (actual == null || actual.getCentroAtencion() == null || actual.getEmail() == null) {
+            return null;
+        }
+        if (auditLog.getPerformedBy() != null && actual.getEmail().equalsIgnoreCase(auditLog.getPerformedBy().trim())) {
+            return actual.getCentroAtencion().getId();
+        }
+        return null;
+    }
+
+    /**
+     * Centro que la cuenta puede ver. Null: sin filtro (SUPERADMIN o sin sesión).
+     * -1: la cuenta está limitada y no tiene centro, así que no ve filas.
+     */
+    private Integer centroAlcance() {
+        if (centroAccess == null) {
+            return null;
+        }
+        java.util.Set<Integer> centros = centroAccess.centrosPermitidos();
+        if (centros == null) {
+            return null;
+        }
+        if (centros.isEmpty()) {
+            return -1;
+        }
+        return centros.iterator().next();
+    }
+
+    private Integer centroPedido(Integer centroId) {
+        if (centroId != null && centroAccess != null) {
+            centroAccess.exigirCentro(centroId);
+            return centroId;
+        }
+        return centroAlcance();
+    }
+
+    private List<AuditLog> enAlcance(List<AuditLog> logs) {
+        Integer centro = centroAlcance();
+        if (centro == null || logs == null) {
+            return logs;
+        }
+        if (centro < 0) {
+            return List.of();
+        }
+        return logs.stream().filter(log -> centro.equals(log.getCentroAtencionId())).toList();
+    }
+
     /**
      * Registra una acción de auditoría para un turno.
      * Este método es inmutable - una vez guardado el registro no puede modificarse.
@@ -78,7 +234,7 @@ public class AuditLogService {
                     oldValuesJson, newValuesJson, reason);
 
             // Guardar de forma inmutable
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -225,6 +381,9 @@ public class AuditLogService {
      * Obtiene el historial de auditoría de un turno específico
      */
     public List<AuditLog> getTurnoAuditHistory(Integer turnoId) {
+        if (centroAccess != null) {
+            centroAccess.exigirTurno(turnoId);
+        }
         try {
             // Si el contexto es tenant-restringido, verificar que el turno pertenezca al centro
             if (unpsjb.labprog.backend.config.TenantContext.isTenantRestricted()) {
@@ -314,6 +473,9 @@ public class AuditLogService {
      * Obtiene el historial de auditoría de un turno con paginación
      */
     public Page<AuditLog> getTurnoAuditHistoryPaged(Integer turnoId, Pageable pageable) {
+        if (centroAccess != null) {
+            centroAccess.exigirTurno(turnoId);
+        }
         return auditLogRepository.findByTurnoId(turnoId, pageable);
     }
 
@@ -324,7 +486,7 @@ public class AuditLogService {
 
         try {
             List<AuditLog> results = auditLogRepository.findByActionOrderByPerformedAtDesc(action);
-            return results;
+            return enAlcance(results);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Fallo al obtener logs por acción " + action + ": " + e.getMessage());
@@ -340,7 +502,7 @@ public class AuditLogService {
 
         try {
             List<AuditLog> results = auditLogRepository.findByPerformedByOrderByPerformedAtDesc(performedBy);
-            return results;
+            return enAlcance(results);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Fallo al obtener logs por usuario " + performedBy + ": " + e.getMessage());
@@ -356,7 +518,7 @@ public class AuditLogService {
 
         try {
             List<AuditLog> results = auditLogRepository.findByPerformedAtBetweenOrderByPerformedAtDesc(start, end);
-            return results;
+            return enAlcance(results);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Fallo al obtener logs por rango de fechas: " + e.getMessage());
@@ -372,7 +534,7 @@ public class AuditLogService {
 
         try {
             List<AuditLog> results = auditLogRepository.findByTurnoIdAndActionOrderByPerformedAtDesc(turnoId, action);
-            return results;
+            return enAlcance(results);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Fallo al obtener logs por turno y acción: " + e.getMessage());
@@ -385,82 +547,21 @@ public class AuditLogService {
      * Obtiene usuarios únicos que han realizado auditorías
      */
     public List<String> getUniqueUsers() {
-        return auditLogRepository.findDistinctPerformedBy();
+        return auditLogRepository.findDistinctPerformedByCentro(centroAlcance());
     }
 
     /**
      * Obtiene estadísticas de acciones
      */
     public List<Object[]> getActionStatistics() {
-        // Si el contexto está restringido a un centro, computar solo con logs visibles
-        if (unpsjb.labprog.backend.config.TenantContext.isTenantRestricted()) {
-            // Consulta segura: iterar IDs y usar datos básicos para evitar cargar LOBs
-            List<Integer> ids = auditLogRepository.findRecentLogIds(LocalDateTime.now().minusYears(1000));
-            Map<String, Long> map = new HashMap<>();
-            for (Integer id : ids) {
-                try {
-                    // Try to get a portable basic row (JPQL) and fallback to native
-                    Object[] basic = auditLogRepository.findBasicRowByIdJPQL(id);
-                    if (basic == null || basic.length == 0) {
-                        basic = auditLogRepository.findBasicRowById(id);
-                    }
-
-                    // If we still get a single-column result, attempt to rebuild from entity
-                    if (basic != null && basic.length == 1) {
-                        try {
-                            Optional<AuditLog> full = auditLogRepository.findById(id);
-                            if (full.isPresent()) {
-                                AuditLog a = full.get();
-                                basic = new Object[] {
-                                    a.getId(),
-                                    a.getTurno() != null ? a.getTurno().getId() : null,
-                                    a.getEntityType(),
-                                    a.getEntityId(),
-                                    a.getAction(),
-                                    a.getPerformedAt(),
-                                    a.getPerformedBy(),
-                                    a.getEstadoAnterior(),
-                                    a.getEstadoNuevo(),
-                                    a.getReason()
-                                };
-                            } else {
-                                continue;
-                            }
-                        } catch (Exception ex) {
-                            // If loading full entity fails (LOB issues), skip this row
-                            continue;
-                        }
-                    }
-
-                    if (basic == null || basic.length < 5) continue;
-                    String action = basic[4] != null ? basic[4].toString() : "UNKNOWN";
-
-                    // Use basic-row visibility check to avoid loading LOB fields per-row
-                    if (!isAuditRowVisibleForCurrentCentro(basic)) continue;
-
-                    map.put(action, map.getOrDefault(action, 0L) + 1L);
-                } catch (Exception e) {
-                    System.err.println("⚠️ WARN: Error obteniendo datos básicos para id " + id + ": " + e.getMessage());
-                }
-            }
-
-            List<Object[]> results = map.entrySet().stream()
-                    .map(e -> new Object[] { e.getKey(), e.getValue() })
-                    .sorted((a, b) -> Long.compare((Long) b[1], (Long) a[1]))
-                    .collect(Collectors.toList());
-
-            return results;
-        }
-
-        List<Object[]> stats = auditLogRepository.findActionStatistics();
-        return stats;
+        return auditLogRepository.findActionStatisticsByCentro(centroAlcance());
     }
 
     /**
-     * Obtiene estadísticas de acciones por día
+     * Obtiene estadísticas de acciones por día, del centro de la cuenta.
      */
     public List<Object[]> getActionStatsByDay(LocalDateTime startDate) {
-        return auditLogRepository.getActionStatsByDay(startDate);
+        return auditLogRepository.getActionStatsByDayAndCentro(startDate, centroAlcance());
     }
 
     /**
@@ -472,14 +573,14 @@ public class AuditLogService {
         try {
             // Intentar primero la consulta normal
             List<AuditLog> recentLogs = auditLogRepository.findRecentLogs(since);
-            return recentLogs;
+            return enAlcance(recentLogs);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Fallo en consulta normal de logs recientes: " + e.getMessage());
 
             try {
                 // Usar consulta segura alternativa
-                return getRecentLogsIndividually(since);
+                return enAlcance(getRecentLogsIndividually(since));
 
             } catch (Exception e2) {
                 System.err.println("❌ ERROR: Todas las consultas de logs recientes fallaron. Retornando lista vacía");
@@ -555,7 +656,7 @@ public class AuditLogService {
         try {
             // Intentar la búsqueda normal
             List<AuditLog> results = auditLogRepository.findLogsContaining(searchTerm);
-            return results;
+            return enAlcance(results);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Fallo en búsqueda de logs: " + e.getMessage());
@@ -578,20 +679,6 @@ public class AuditLogService {
      */
     public Long countByUser(String performedBy) {
         return auditLogRepository.countByPerformedBy(performedBy);
-    }
-
-    /**
-     * Limpia logs antiguos (solo para mantenimiento del sistema)
-     * NOTA: Este método debe usarse con extrema precaución y solo por
-     * administradores del sistema
-     */
-    @Transactional
-    public void cleanupOldLogs(LocalDateTime cutoffDate) {
-        // Solo permite eliminar logs muy antiguos para mantener rendimiento
-        if (cutoffDate.isAfter(LocalDateTime.now().minusYears(2))) {
-            throw new IllegalArgumentException("Solo se pueden eliminar logs con más de 2 años de antigüedad");
-        }
-        auditLogRepository.deleteByPerformedAtBefore(cutoffDate);
     }
 
     /**
@@ -736,84 +823,7 @@ public class AuditLogService {
      * Obtiene estadísticas de actividad por usuario
      */
     public List<Object[]> getUserActivityStatistics() {
-        if (unpsjb.labprog.backend.config.TenantContext.isTenantRestricted()) {
-            // Consulta segura: obtener solo campos básicos sin LOBs
-
-            // En tenant-restricted preferimos obtener todos los IDs básicos y contar manualmente
-            List<Object[]> basicRows = auditLogRepository.findRecentLogIds(LocalDateTime.now().minusYears(1000))
-                    .stream()
-                    .map(id -> {
-                        try {
-                            Object[] basic = auditLogRepository.findBasicRowByIdJPQL((Integer) id);
-                            if (basic == null || basic.length == 0) basic = auditLogRepository.findBasicRowById((Integer) id);
-                            // If returned as single column, try to reconstruct
-                            if (basic != null && basic.length == 1) {
-                                try {
-                                    Optional<AuditLog> full = auditLogRepository.findById((Integer) id);
-                                    if (full.isPresent()) {
-                                        AuditLog a = full.get();
-                                        basic = new Object[] {
-                                            a.getId(),
-                                            a.getTurno() != null ? a.getTurno().getId() : null,
-                                            a.getEntityType(),
-                                            a.getEntityId(),
-                                            a.getAction(),
-                                            a.getPerformedAt(),
-                                            a.getPerformedBy(),
-                                            a.getEstadoAnterior(),
-                                            a.getEstadoNuevo(),
-                                            a.getReason()
-                                        };
-                                    } else {
-                                        return null;
-                                    }
-                                } catch (Exception ex) {
-                                    return null;
-                                }
-                            }
-                            return basic; // may be null
-                        } catch (Exception e) {
-                            return null;
-                        }
-                    })
-                    .filter(r -> r != null)
-                    .collect(Collectors.toList());
-
-            Map<String, Long> map = new java.util.HashMap<>();
-            for (Object[] row : basicRows) {
-                if (row == null || row.length < 3) {
-                    System.err.println("⚠️ WARN: Fila básica inválida (longitud=" + (row == null ? 0 : row.length) + "). Se omite.");
-                    continue;
-                }
-                // In our basic-row format, performedBy is at index 6
-                String performedBy = row.length > 6 && row[6] != null ? row[6].toString() : "UNKNOWN";
-                Integer auditId = row[0] instanceof Integer ? (Integer) row[0] : null;
-                if (auditId == null) {
-                    System.err.println("⚠️ WARN: ID de auditoría inválido en fila básica. Se omite.");
-                    continue;
-                }
-                // Reuse existing isVisibleForCurrentCentro by loading minimal AuditLog if necessary
-                try {
-                    // Use basic-row visibility check to avoid loading LOBs per row
-                    if (!isAuditRowVisibleForCurrentCentro(row)) continue;
-                } catch (Exception e) {
-                    System.err.println("⚠️ WARN: Error verificando visibilidad para auditId " + auditId + ": " + e.getMessage());
-                    continue; // skip problematic rows
-                }
-
-                map.put(performedBy, map.getOrDefault(performedBy, 0L) + 1L);
-            }
-
-            List<Object[]> results = map.entrySet().stream()
-                    .map(e -> new Object[] { e.getKey(), e.getValue() })
-                    .sorted((a, b) -> Long.compare((Long) b[1], (Long) a[1]))
-                    .collect(Collectors.toList());
-
-            return results;
-        }
-
-        List<Object[]> userStats = auditLogRepository.findUserActivityStatistics();
-        return userStats;
+        return auditLogRepository.findUserActivityStatisticsByCentro(centroAlcance());
     }
 
     /**
@@ -890,7 +900,7 @@ public class AuditLogService {
                     AuditLog.EntityTypes.USUARIO, userId, AuditLog.Actions.ROLE_CHANGE,
                     performedBy, previousRole, newRole, oldValuesJson, newValuesJson, reason);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -922,7 +932,7 @@ public class AuditLogService {
                     performedBy, null, userRole, null, userDataJson,
                     "Usuario '" + userNombre + " " + userApellido + "' (" + userEmail + ") creado con rol " + userRole);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -948,7 +958,7 @@ public class AuditLogService {
                     AuditLog.EntityTypes.USUARIO, userId, AuditLog.Actions.USER_UPDATE,
                     performedBy, null, null, oldDataJson, newDataJson, reason);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -982,7 +992,7 @@ public class AuditLogService {
                     AuditLog.EntityTypes.USUARIO, userId, action,
                     performedBy, previousStatus, newStatus, null, statusJson, reason);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -996,8 +1006,8 @@ public class AuditLogService {
      */
     public List<AuditLog> getUserAuditHistory(Long userId) {
         try {
-            return auditLogRepository.findByEntityTypeAndEntityIdOrderByPerformedAtDesc(
-                    AuditLog.EntityTypes.USUARIO, userId);
+            return enAlcance(auditLogRepository.findByEntityTypeAndEntityIdOrderByPerformedAtDesc(
+                    AuditLog.EntityTypes.USUARIO, userId));
         } catch (Exception e) {
             System.err.println("❌ ERROR: Error al obtener historial de usuario: " + e.getMessage());
             return new java.util.ArrayList<>();
@@ -1009,8 +1019,8 @@ public class AuditLogService {
      */
     public List<AuditLog> getAllRoleChanges() {
         try {
-            return auditLogRepository.findByEntityTypeAndActionOrderByPerformedAtDesc(
-                    AuditLog.EntityTypes.USUARIO, AuditLog.Actions.ROLE_CHANGE);
+            return enAlcance(auditLogRepository.findByEntityTypeAndActionOrderByPerformedAtDesc(
+                    AuditLog.EntityTypes.USUARIO, AuditLog.Actions.ROLE_CHANGE));
         } catch (Exception e) {
             System.err.println("❌ ERROR: Error al obtener historial de cambios de rol: " + e.getMessage());
             return new java.util.ArrayList<>();
@@ -1022,8 +1032,8 @@ public class AuditLogService {
      */
     public List<AuditLog> getRoleChangesByUser(Long userId) {
         try {
-            return auditLogRepository.findByEntityTypeAndEntityIdAndActionOrderByPerformedAtDesc(
-                    AuditLog.EntityTypes.USUARIO, userId, AuditLog.Actions.ROLE_CHANGE);
+            return enAlcance(auditLogRepository.findByEntityTypeAndEntityIdAndActionOrderByPerformedAtDesc(
+                    AuditLog.EntityTypes.USUARIO, userId, AuditLog.Actions.ROLE_CHANGE));
         } catch (Exception e) {
             System.err.println("❌ ERROR: Error al obtener cambios de rol del usuario: " + e.getMessage());
             return new java.util.ArrayList<>();
@@ -1115,7 +1125,7 @@ public class AuditLogService {
      */
     public List<AuditLog> getLogsByEntityTypeAndAction(String entityType, String action) {
         try {
-            return auditLogRepository.findByEntityTypeAndActionOrderByPerformedAtDesc(entityType, action);
+            return enAlcance(auditLogRepository.findByEntityTypeAndActionOrderByPerformedAtDesc(entityType, action));
         } catch (Exception e) {
             System.err.println("❌ ERROR: Error al obtener logs por entidad y acción: " + e.getMessage());
             return new java.util.ArrayList<>();
@@ -1140,7 +1150,7 @@ public class AuditLogService {
                     AuditLog.EntityTypes.USUARIO, userId, AuditLog.Actions.USER_UPDATE,
                     userEmail, "No verificado", "Cuenta activada", null, activationJson, reason);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (Exception e) {
@@ -1167,7 +1177,7 @@ public class AuditLogService {
                     AuditLog.EntityTypes.USUARIO, userId, AuditLog.Actions.USER_UPDATE,
                     userEmail, null, "PASSWORD_UPDATED", null, changeJson, reason);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (Exception e) {
@@ -1201,7 +1211,7 @@ public class AuditLogService {
                     "SYSTEM_SEED", null, "ADMIN_INITIAL_CREATED",
                     null, adminDataJson, "Creación automática del administrador inicial del sistema");
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (Exception e) {
@@ -1245,7 +1255,7 @@ public class AuditLogService {
                 auditLog.setTurno(turnoRepository.getReferenceById(turnoId.intValue()));
             }
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
 
             System.out.println(
                     "✅ AUDIT: Cancelación automática de turno registrada exitosamente. ID Audit: " + saved.getId());
@@ -1280,7 +1290,7 @@ public class AuditLogService {
 
             AuditLog auditLog = new AuditLog(entityType, entityId, action, performedBy,
                     estadoAnterior, estadoNuevo, oldValuesJson, newValuesJson, reason);
-            return auditLogRepository.save(auditLog);
+            return guardar(auditLog);
         } catch (JacksonException e) {
             throw new RuntimeException("Error al serializar datos de auditoría", e);
         }
@@ -1348,7 +1358,7 @@ public class AuditLogService {
                     changeJson,
                     "Cambio de configuración: " + clave);
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -1420,7 +1430,7 @@ public class AuditLogService {
                     resetJson,
                     "Restauración de configuraciones a valores por defecto");
 
-            AuditLog saved = auditLogRepository.save(auditLog);
+            AuditLog saved = guardar(auditLog);
             return saved;
 
         } catch (JacksonException e) {
@@ -1551,21 +1561,21 @@ public class AuditLogService {
      * Obtiene el historial de auditoría de una entidad específica
      */
     public List<AuditLog> getEntityAuditHistory(String entityType, Long entityId) {
-        return auditLogRepository.findByEntityTypeAndEntityIdOrderByPerformedAtDesc(entityType, entityId);
+        return enAlcance(auditLogRepository.findByEntityTypeAndEntityIdOrderByPerformedAtDesc(entityType, entityId));
     }
 
     /**
      * Obtiene el historial de auditoría de un tipo de entidad
      */
     public List<AuditLog> getEntityTypeAuditHistory(String entityType) {
-        return auditLogRepository.findByEntityTypeOrderByPerformedAtDesc(entityType);
+        return enAlcance(auditLogRepository.findByEntityTypeOrderByPerformedAtDesc(entityType));
     }
 
     /**
      * Obtiene logs por tipo de entidad en un rango de fechas
      */
     public List<AuditLog> getLogsByEntityTypeAndDateRange(String entityType, LocalDateTime start, LocalDateTime end) {
-        return auditLogRepository.findByEntityTypeAndPerformedAtBetweenOrderByPerformedAtDesc(entityType, start, end);
+        return enAlcance(auditLogRepository.findByEntityTypeAndPerformedAtBetweenOrderByPerformedAtDesc(entityType, start, end));
     }
 
     /**
@@ -1607,49 +1617,43 @@ public class AuditLogService {
      * Busca logs de auditoría con filtros avanzados, paginación y ordenamiento
      */
     public Page<AuditLog> findByFilters(String entidad, String usuario, String tipoAccion,
+            String rol, String origen, Integer centroId,
             LocalDate fechaDesde, LocalDate fechaHasta,
             int page, int size, String sortBy, String sortDir) {
-        // Convertir LocalDate a LocalDateTime para el rango completo del día
         LocalDateTime fechaDesdeFilter = fechaDesde != null ? fechaDesde.atStartOfDay()
                 : LocalDateTime.of(1900, 1, 1, 0, 0);
         LocalDateTime fechaHastaFilter = fechaHasta != null ? fechaHasta.atTime(23, 59, 59, 999999999)
                 : LocalDateTime.of(2100, 1, 1, 0, 0);
 
-        // Crear ordenamiento dinámico
-        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, sortBy);
+        String campo = sortBy == null || sortBy.isBlank() ? "performedAt" : sortBy;
+        Sort.Direction direction = sortDir != null && sortDir.equalsIgnoreCase("ASC")
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        int pagina = Math.max(page, 0);
+        int tamanio = Math.min(Math.max(size, 1), 100);
+        Pageable pageable = PageRequest.of(pagina, tamanio, Sort.by(direction, campo));
 
-        // Crear paginación con ordenamiento
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        // Si estamos en modo tenant-restringido, traer todos los candidatos y paginar en memoria
-        if (unpsjb.labprog.backend.config.TenantContext.isTenantRestricted()) {
-            // Cap razonable para evitar OOM en caso de datos masivos
-            Pageable largePageable = PageRequest.of(0, 10000, sort);
-            Page<Object[]> resultPageAll = auditLogRepository.findByFilters(entidad, usuario, tipoAccion,
-                fechaDesdeFilter, fechaHastaFilter, largePageable);
-
-            List<AuditLog> allLogs = resultPageAll.getContent().stream()
-                .map(this::convertObjectArrayToAuditLog)
-                .filter(this::isVisibleForCurrentCentro)
-                .collect(Collectors.toList());
-
-            int fromIndex = Math.min(page * size, allLogs.size());
-            int toIndex = Math.min(fromIndex + size, allLogs.size());
-            List<AuditLog> pageContent = allLogs.subList(fromIndex, toIndex);
-
-            return new PageImpl<>(pageContent, pageable, allLogs.size());
+        String origenNormalizado = texto(origen);
+        if (origenNormalizado != null) {
+            origenNormalizado = origenNormalizado.toUpperCase(java.util.Locale.ROOT);
         }
 
-        Page<Object[]> resultPage = auditLogRepository.findByFilters(entidad, usuario, tipoAccion,
-            fechaDesdeFilter, fechaHastaFilter, pageable);
+        Page<Object[]> resultPage = auditLogRepository.buscar(
+                texto(entidad), texto(usuario), texto(tipoAccion), texto(rol), origenNormalizado,
+                fechaDesdeFilter, fechaHastaFilter, centroPedido(centroId), pageable);
 
-        // Convertir Object[] a AuditLog
         List<AuditLog> auditLogs = resultPage.getContent().stream()
-            .map(this::convertObjectArrayToAuditLog)
-            .collect(Collectors.toList());
+                .map(this::convertObjectArrayToAuditLog)
+                .collect(Collectors.toList());
 
         return new PageImpl<>(auditLogs, pageable, resultPage.getTotalElements());
+    }
+
+    private static String texto(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        return valor.trim();
     }
 
     /**
@@ -1751,10 +1755,26 @@ public class AuditLogService {
             System.err.println("⚠️ WARN: datos insuficientes al convertir fila a AuditLog (length=" + data.length + ")");
         }
         auditLog.setPerformedBy(data.length > 6 ? (String) data[6] : null);
-        auditLog.setEstadoAnterior((String) data[7]);
-        auditLog.setEstadoNuevo((String) data[8]);
-        auditLog.setReason((String) data[9]);
-        // No incluimos oldValues y newValues para evitar problemas con LOB
+        auditLog.setEstadoAnterior(data.length > 7 ? (String) data[7] : null);
+        auditLog.setEstadoNuevo(data.length > 8 ? (String) data[8] : null);
+        auditLog.setReason(data.length > 9 ? (String) data[9] : null);
+        if (data.length > 10 && data[10] != null) {
+            if (data[10] instanceof AuditSource origen) {
+                auditLog.setSource(origen);
+            } else {
+                try {
+                    auditLog.setSource(AuditSource.valueOf(data[10].toString()));
+                } catch (IllegalArgumentException ignored) {
+                    auditLog.setSource(null);
+                }
+            }
+        }
+        if (data.length > 11 && data[11] != null) {
+            auditLog.setActorRole(data[11].toString());
+        }
+        if (data.length > 12 && data[12] instanceof Number centro) {
+            auditLog.setCentroAtencionId(centro.intValue());
+        }
         return auditLog;
     }
 
