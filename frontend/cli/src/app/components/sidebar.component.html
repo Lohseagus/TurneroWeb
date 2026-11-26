@@ -99,7 +99,21 @@
                 class="sidebar__menu-item"
                 [class.sidebar__menu-item--active]="isItemActive(item)"
                 >
-                @if (item.route) {
+                @if (item.route && item.disabled) {
+                  <span
+                    class="sidebar__menu-link sidebar__menu-link--disabled"
+                    role="link"
+                    aria-disabled="true"
+                    [attr.title]="item.disabledHint"
+                    >
+                    <span class="material-symbols-outlined sidebar__menu-icon">lock</span>
+                    <span class="sidebar__menu-label">
+                      {{ item.label }}
+                      <small class="sidebar__menu-hint">{{ item.disabledHint }}</small>
+                    </span>
+                  </span>
+                }
+                @if (item.route && !item.disabled) {
                   <a
                     [routerLink]="item.route"
                     class="sidebar__menu-link"

@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import unpsjb.labprog.backend.Response;
+import unpsjb.labprog.backend.saas.FeaturePlan;
+import unpsjb.labprog.backend.saas.RequiereFeature;
 import unpsjb.labprog.backend.business.service.AuditLogService;
 import unpsjb.labprog.backend.model.AuditLog;
 
@@ -27,6 +29,7 @@ import unpsjb.labprog.backend.model.AuditLog;
  * Proporciona endpoints de solo lectura para consultar el historial de auditoría.
  */
 @RestController
+@RequiereFeature(FeaturePlan.AUDITORIA)
 @RequestMapping("/api/audit")
 public class AuditLogPresenter {
 

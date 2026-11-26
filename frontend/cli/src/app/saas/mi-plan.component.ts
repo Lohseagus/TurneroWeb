@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -6,6 +6,7 @@ import { SaasService } from './saas.service';
 import { ToastService } from '../services/toast.service';
 import { ModalService } from '../modal/modal.service';
 import { UserContextService } from '../services/user-context.service';
+import { PlanFeaturesService } from '../services/plan-features.service';
 import {
   CatalogoSaas,
   PrecioSaas,
@@ -56,6 +57,8 @@ export class MiPlanComponent implements OnInit {
   tope = tope;
   porcentajeUso = porcentajeUso;
   nivelUso = nivelUso;
+
+  private readonly planFeatures = inject(PlanFeaturesService);
 
   constructor(
     private saas: SaasService,
@@ -212,6 +215,8 @@ export class MiPlanComponent implements OnInit {
           this.ok = 'Los cambios del plan quedaron guardados.';
           this.toast.success(this.ok);
           this.aplicar(resp.data);
+          // El menú muestra o deshabilita funciones según el plan nuevo.
+          this.planFeatures.refrescar();
         } else {
           this.error = resp.status_text || 'No se pudo cambiar el plan.';
           this.toast.error(this.error);

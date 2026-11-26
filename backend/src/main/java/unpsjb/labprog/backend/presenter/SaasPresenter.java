@@ -101,6 +101,13 @@ public class SaasPresenter {
         return Response.ok(saasService.aviso(centroId), "Estado de escritura del centro");
     }
 
+    /** Funciones del plan del centro de quien llama, para armar el menú. */
+    @GetMapping("/features")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Object> features() {
+        return Response.ok(saasService.featuresActuales(), "Funciones del plan");
+    }
+
     @GetMapping("/mi-suscripcion")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Object> miSuscripcion() {

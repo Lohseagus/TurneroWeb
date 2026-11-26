@@ -36,6 +36,18 @@ Característica: Suscripciones SaaS de CheTurno
     Cuando el superadministrador escribe aunque el centro esté suspendido
     Entonces la escritura del superadministrador no queda en solo lectura
 
+  Escenario: El plan define qué funciones usa el administrador
+    Cuando registro una organización de prueba con el plan "PROFESIONAL"
+    Y ingreso con el administrador de esa prueba
+    Entonces las funciones de mi plan no incluyen "AUDITORIA"
+    Cuando consulto el panel de auditoría del centro
+    Entonces la consulta es rechazada porque el plan no incluye "AUDITORIA"
+    Cuando registro una organización de prueba con el plan "CONSULTORIO"
+    Y ingreso con el administrador de esa prueba
+    Entonces las funciones de mi plan incluyen "AUDITORIA"
+    Cuando consulto el panel de auditoría del centro
+    Entonces la consulta no es rechazada por el plan
+
   Escenario: El pago simulado deja la suscripción activa
     Cuando registro una organización de prueba con el plan "CONSULTORIO"
     Y ingreso con el administrador de esa prueba
