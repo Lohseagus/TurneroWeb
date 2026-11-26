@@ -1,6 +1,7 @@
 package unpsjb.labprog.backend.business.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.Query;
@@ -68,4 +69,55 @@ public interface ConfiguracionExcepcionalRepository extends CrudRepository<Confi
         @Param("staffId") Integer staffId,
         @Param("fecha") LocalDate fecha,
         @Param("tipo") ConfiguracionExcepcional.TipoExcepcion tipo);
+
+    /**
+     * Feriados activos que pisan el rango: un día suelto o un tramo inclusive.
+     * Globales (sin centro) y los de los centros pedidos. Una sola consulta.
+     */
+    @Query("""
+        SELECT c FROM ConfiguracionExcepcional c
+        LEFT JOIN FETCH c.centroAtencion ca
+        WHERE c.activo = true
+          AND c.tipo = unpsjb.labprog.backend.model.ConfiguracionExcepcional.TipoExcepcion.FERIADO
+          AND (
+                (c.fechaFin IS NULL AND c.fecha >= :desde AND c.fecha <= :hasta)
+             OR (c.fechaFin IS NOT NULL AND c.fecha <= :hasta AND c.fechaFin >= :desde)
+          )
+          AND (ca IS NULL OR ca.id IN :centroIds)
+        ORDER BY c.fecha ASC, c.id ASC
+        """)
+    List<ConfiguracionExcepcional> feriadosEnRango(
+        @Param("desde") LocalDate desde,
+        @Param("hasta") LocalDate hasta,
+        @Param("centroIds") Collection<Integer> centroIds);
+
+    @Query("""
+        SELECT c FROM ConfiguracionExcepcional c
+        WHERE c.activo = true
+          AND c.centroAtencion IS NULL
+          AND c.tipo = unpsjb.labprog.backend.model.ConfiguracionExcepcional.TipoExcepcion.FERIADO
+          AND (
+                (c.fechaFin IS NULL AND c.fecha >= :desde AND c.fecha <= :hasta)
+             OR (c.fechaFin IS NOT NULL AND c.fecha <= :hasta AND c.fechaFin >= :desde)
+          )
+        ORDER BY c.fecha ASC, c.id ASC
+        """)
+    List<ConfiguracionExcepcional> feriadosGlobalesEnRango(
+        @Param("desde") LocalDate desde,
+        @Param("hasta") LocalDate hasta);
+
+    @Query("""
+        SELECT c FROM ConfiguracionExcepcional c
+        LEFT JOIN FETCH c.centroAtencion ca
+        WHERE c.activo = true
+          AND c.tipo = unpsjb.labprog.backend.model.ConfiguracionExcepcional.TipoExcepcion.FERIADO
+          AND (
+                (c.fechaFin IS NULL AND c.fecha >= :desde AND c.fecha <= :hasta)
+             OR (c.fechaFin IS NOT NULL AND c.fecha <= :hasta AND c.fechaFin >= :desde)
+          )
+        ORDER BY c.fecha ASC, c.id ASC
+        """)
+    List<ConfiguracionExcepcional> feriadosTodosEnRango(
+        @Param("desde") LocalDate desde,
+        @Param("hasta") LocalDate hasta);
 }

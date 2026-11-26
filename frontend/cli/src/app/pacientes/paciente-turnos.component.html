@@ -24,10 +24,16 @@
       <span class="material-symbols-outlined">history</span>
       Pasados
     </button>
+    <button type="button" class="portal-tab" role="tab" [class.active]="tab === 'mes'" (click)="ir('mes')">
+      <span class="material-symbols-outlined">calendar_month</span>
+      Mes
+    </button>
   </div>
 
   @if (tab === "proximos") {
     <app-paciente-dashboard [embebido]="true" />
+  } @else if (tab === "mes") {
+    <app-calendario-mes [embebido]="true" />
   } @else {
     <app-historial-turnos [embebido]="true" />
   }

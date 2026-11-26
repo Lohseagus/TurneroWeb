@@ -702,4 +702,45 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer>, JpaSpeci
     List<unpsjb.labprog.backend.model.Paciente> findPacientesAtendidos(
             @Param("medicoId") Integer medicoId,
             @Param("cancelado") EstadoTurno cancelado);
+
+    /**
+     * Turnos de un rango para la grilla mensual. Los filtros nulos no se aplican.
+     * Una sola consulta, sin colecciones: no hay producto cartesiano ni N+1.
+     */
+    @Query("""
+            SELECT new unpsjb.labprog.backend.dto.TurnoCalendarioDTO(
+                t.id, t.fecha, t.horaInicio, t.horaFin, t.estado,
+                p.id, p.nombre, p.apellido,
+                m.id, m.nombre, m.apellido,
+                sm.id,
+                e.id, e.nombre,
+                c.id, c.nombre,
+                ca.id, ca.nombre,
+                t.asistio)
+            FROM Turno t
+            JOIN t.paciente p
+            JOIN t.medico m
+            JOIN t.consultorio c
+            JOIN t.especialidad e
+            JOIN t.centroAtencion ca
+            LEFT JOIN t.staffMedico sm
+            WHERE t.fecha >= :desde AND t.fecha <= :hasta
+              AND (:centroId IS NULL OR ca.id = :centroId)
+              AND (:medicoId IS NULL OR m.id = :medicoId)
+              AND (:especialidadId IS NULL OR e.id = :especialidadId)
+              AND (:consultorioId IS NULL OR c.id = :consultorioId)
+              AND (:pacienteId IS NULL OR p.id = :pacienteId)
+            ORDER BY t.fecha ASC, t.horaInicio ASC, t.id ASC
+            """)
+    List<unpsjb.labprog.backend.dto.TurnoCalendarioDTO> buscarParaCalendario(
+            @Param("desde") LocalDate desde,
+            @Param("hasta") LocalDate hasta,
+            @Param("centroId") Integer centroId,
+            @Param("medicoId") Integer medicoId,
+            @Param("especialidadId") Integer especialidadId,
+            @Param("consultorioId") Integer consultorioId,
+            @Param("pacienteId") Integer pacienteId);
+
+    @Query("SELECT DISTINCT t.centroAtencion.id FROM Turno t WHERE t.paciente.id = :pacienteId")
+    List<Integer> findCentroIdsByPacienteId(@Param("pacienteId") Integer pacienteId);
 }

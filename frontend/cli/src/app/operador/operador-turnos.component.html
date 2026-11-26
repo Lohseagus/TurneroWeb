@@ -36,10 +36,17 @@
       <span class="material-symbols-outlined">pending_actions</span>
       Lista de espera
     </a>
+    <a class="portal-tab" role="tab" routerLink="/operador/turnos" [queryParams]="{ tab: 'mes' }"
+      [class.active]="solapa === 'mes'" [attr.aria-selected]="solapa === 'mes'">
+      <span class="material-symbols-outlined">calendar_month</span>
+      Mes
+    </a>
   </div>
 
   @if (solapa === 'por-confirmar') {
     <app-operador-dashboard [soloTurnos]="true" />
+  } @else if (solapa === 'mes') {
+    <app-calendario-mes [embebido]="true" />
   } @else if (solapa === 'agenda') {
     <app-admin-agenda />
   } @else if (solapa === 'todos') {

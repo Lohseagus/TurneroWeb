@@ -49,6 +49,8 @@ import { MedicoPerfilComponent } from "./medicos/medico-perfil.component";
 import { TurnoAdvancedSearchComponent } from "./turnos/turno-advanced-search.component";
 import { AuditDashboardComponent } from "./turnos/audit-dashboard.component";
 
+import { CalendarioMesComponent } from "./calendario/calendario-mes.component";
+import { AuthGuard } from "./guards/auth.guard";
 import { AdminGuard } from "./guards/admin.guard";
 import { PatientGuard } from "./guards/patient.guard";
 import { MedicoGuard } from "./guards/medico.guard";
@@ -278,6 +280,12 @@ export const routes: Routes = [
     path: "lista-espera-estadisticas",
     component: ListaEsperaEstadisticasComponent,
     canActivate: [AdminOperadorGuard, redirigirPanelOperador],
+  },
+
+  {
+    path: "calendario",
+    component: CalendarioMesComponent,
+    canActivate: [AuthGuard],
   },
 
   // Admin Routes (protected)
